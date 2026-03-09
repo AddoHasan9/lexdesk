@@ -306,7 +306,7 @@ select.fm-inp{cursor:pointer;}
 
 /* ══ LOGIN ══ */
 .login-screen{position:fixed;inset:0;z-index:9000;background:var(–bg);display:flex;align-items:center;justify-content:center;padding:20px;}
-.login-box{background:var(–surface);border:1px solid var(–border2);border-radius:20px;padding:36px 32px;width:min(380px,100%);box-shadow:var(–sh-lg);animation:slideUp .3s;}
+.login-box{background:var(–surface);border:1px solid var(–border2);border-radius:20px;padding:32px 24px;width:min(380px,100%);box-shadow:var(–sh-lg);animation:slideUp .3s;}
 .login-logo{width:52px;height:52px;border-radius:15px;background:linear-gradient(135deg,var(–gold),var(–gold2));display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;box-shadow:0 6px 24px var(–gold-glow);}
 .login-brand{font-family:‘Cairo’,sans-serif;font-size:28px;font-weight:900;text-align:center;background:linear-gradient(135deg,var(–gold),var(–gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;letter-spacing:-1px;}
 .login-sub{font-size:12px;color:var(–text2);text-align:center;margin-bottom:24px;}
@@ -314,8 +314,9 @@ select.fm-inp{cursor:pointer;}
 .pass-inp:focus{border-color:var(–gold);box-shadow:0 0 0 3px var(–gold-glow);}
 .pass-err{font-size:12px;color:var(–red);text-align:center;margin:8px 0;display:none;}
 .pass-err.show{display:block;}
-.login-btn{width:100%;background:linear-gradient(135deg,var(–gold),var(–gold2));color:#000;font-size:14px;font-weight:700;border:none;padding:12px;border-radius:10px;margin-top:12px;box-shadow:0 4px 16px var(–gold-glow);}
-.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(–gold-glow);}
+.login-btn{width:100%;background:linear-gradient(135deg,#F0A500,#FFB830) !important;color:#000 !important;font-size:15px;font-weight:800;border:none;padding:13px;border-radius:10px;margin-top:14px;box-shadow:0 4px 16px rgba(240,165,0,.35);-webkit-appearance:none;}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(240,165,0,.4);}
+.login-btn:active{transform:scale(.98);}
 
 /* ══ IMPORT/EXPORT OVERLAYS ══ */
 .imp-area{border:2px dashed var(–border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:border-color .18s;}
@@ -335,46 +336,12 @@ select.fm-inp{cursor:pointer;}
 @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
 
-/* ══ GLASSMORPHISM ══ */
-[data-theme] .stat-card {
-background: rgba(26,32,48,0.7) !important;
-backdrop-filter: blur(12px);
--webkit-backdrop-filter: blur(12px);
-border: 1px solid rgba(255,255,255,0.08) !important;
-}
-[data-theme=“light”] .stat-card {
-background: rgba(255,255,255,0.65) !important;
-border: 1px solid rgba(255,255,255,0.9) !important;
-}
-[data-theme] .sum-card {
-background: rgba(26,32,48,0.6) !important;
-backdrop-filter: blur(10px);
--webkit-backdrop-filter: blur(10px);
-border: 1px solid rgba(255,255,255,0.07) !important;
-}
-[data-theme=“light”] .sum-card {
-background: rgba(255,255,255,0.6) !important;
-}
-[data-theme] .panel {
-background: rgba(22,27,37,0.75) !important;
+/* ══ GLASSMORPHISM — uses CSS variables so dark/light both work ══ */
+.stat-card, .sum-card, .panel, .topbar, .sidebar {
 backdrop-filter: blur(14px);
 -webkit-backdrop-filter: blur(14px);
 }
-[data-theme=“light”] .panel {
-background: rgba(255,255,255,0.7) !important;
-}
-[data-theme] .topbar {
-background: rgba(22,27,37,0.85) !important;
-backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
-}
-[data-theme=“light”] .topbar {
-background: rgba(240,242,248,0.85) !important;
-}
-[data-theme] .sidebar {
-background: rgba(14,17,23,0.9) !important;
-backdrop-filter: blur(20px);
-}
+/* stat card hover glow already defined below */
 
 /* stat card hover glow */
 .stat-card:hover {
@@ -473,9 +440,14 @@ body{background:#fff;color:#000;}
 /* ══ RESPONSIVE ══ */
 @media(max-width:768px){
 .sidebar{display:none;}
-.topbar{padding:0 12px;}
+.topbar{padding:0 10px;gap:6px;}
 .tb-filters,.add-btn,.tb-brand,.tb-sep{display:none;}
-.stats-row{grid-template-columns:1fr 1fr;}
+.rem-topbar-btn,.notif-btn,.theme-btn{width:36px;height:36px;font-size:17px;}
+.user-pill span{display:none;}
+.user-pill{padding:4px 6px;}
+.stats-row{grid-template-columns:1fr 1fr;gap:8px;}
+.stat-card{padding:14px 14px;}
+.stat-val{font-size:24px;}
 .dash-grid{grid-template-columns:1fr;}
 .sum-panel{display:none;}
 .charts-grid{grid-template-columns:1fr;}
@@ -501,11 +473,12 @@ th,td{padding:8px 10px;}
 
 <!-- LOGIN -->
 
-<div class="login-screen" id="loginScreen" style="z-index:9000;position:relative">
+<div class="login-screen" id="loginScreen">
   <div class="login-box">
-    <div class="login-logo">⚖️</div>
+    <div class="login-logo" style="font-size:26px">⚖️</div>
     <div class="login-brand">LexDesk</div>
-    <div class="login-sub" id="loginOfficeSub">مكتب المحاماة</div>
+    <div class="login-brand" style="margin-bottom:2px">LexDesk</div>
+  <div class="login-sub" id="loginOfficeSub">مكتب المحاماة</div>
     <input id="passInp" type="password" class="pass-inp" placeholder="••••••" maxlength="20"
       onkeydown="if(event.key==='Enter')doLogin()" autofocus>
     <div class="pass-err" id="passErr">كلمة المرور غلط، حاول مرة ثانية</div>
@@ -997,8 +970,27 @@ async function loadAll(){
 }
 
 // ══ THEME ══
-function initTheme(){const t=localStorage.getItem(SK_THEME)||'dark';document.documentElement.setAttribute('data-theme',t==='light'?'light':'');updateThemeBtn(t);}
-function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';const next=cur==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',next==='light'?'light':'');localStorage.setItem(SK_THEME,next);updateThemeBtn(next);}
+function initTheme(){
+  const t=localStorage.getItem(SK_THEME)||'dark';
+  if(t==='light'){
+    document.documentElement.setAttribute('data-theme','light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  updateThemeBtn(t);
+}
+function toggleTheme(){
+  const isLight=document.documentElement.getAttribute('data-theme')==='light';
+  if(isLight){
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem(SK_THEME,'dark');
+    updateThemeBtn('dark');
+  } else {
+    document.documentElement.setAttribute('data-theme','light');
+    localStorage.setItem(SK_THEME,'light');
+    updateThemeBtn('light');
+  }
+}
 function updateThemeBtn(t){const btn=document.querySelector('.theme-btn');if(btn)btn.textContent=t==='light'?'🌙':'☀️';}
 
 // ══ AUTH ══
@@ -1328,7 +1320,7 @@ function confirmImport(){if(!importRows.length){toast('اختر ملف أولا�
 function handleJSONRestore(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.cases)cases=d.cases;if(d.settings){settings={...settings,...d.settings};saveCfg();populateAllDropdowns();}saveData();render();closeOverlay('restoreOverlay');toast('📂 تمت الاستعادة','ok');}catch(err){toast('خطأ في ملف JSON','err');}};r.readAsText(inp.files[0]);}
 
 // ══ MOBILE ══
-function initMobile(){if(window.innerWidth<=768){document.getElementById('mobNav').style.display='flex';document.getElementById('mobFab').style.display='flex';}}
+function initMobile(){/* mob nav shown only after login via showApp */}
 
 
 // ══ PARTICLES ══
