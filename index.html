@@ -989,7 +989,37 @@ const SB_URL='https://jyufcedgprierjmqsxpa.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5dWZjZWRncHJpZXJqbXFzeHBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzQyMTQsImV4cCI6MjA4ODYxMDIxNH0.088t4cMF80f0mXMJONZDX8bZPeDymGzT4yjzX3fn0CI';
 const SB_H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 async function sbLoad(){try{const r=await fetch(SB_URL+'/rest/v1/cases?select=id,data&order=id.asc',{method:'GET',headers:SB_H});if(!r.ok)return false;const rows=await r.json();if(!Array.isArray(rows))return false;if(rows.length===0)return'empty';cases=rows.map(x=>x.data);return true;}catch(e){return false;}}
-async function sbSave(){try{const rows=cases.map(c=>({id:c.id,data:c}));if(rows.length>0){const r=await fetch(SB_URL+'/rest/v1/cases',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});if(!r.ok)return;}const ex=await fetch(SB_URL+'/rest/v1/cases?select=id',{headers:SB_H});if(ex.ok){const all=await ex.json();const cur=new Set(cases.map(c=>c.id));for(const x of all.filter(x=>!cur.has(x.id)))await fetch(SB_URL+'/rest/v1/cases?id=eq.'+x.id,{method:'DELETE',headers:SB_H});}}catch(e){}}
+// ══ SMART SYNC: upsert only changed cases, delete only explicitly removed ══
+let _pendingDeletes = []; // track IDs deleted in this session
+
+async function sbSave(){
+  try {
+    if(cases.length > 0){
+      const rows = cases.map(c=>({id:c.id, data:c, updated_at: new Date().toISOString()}));
+      const r = await fetch(SB_URL+'/rest/v1/cases',{
+        method:'POST',
+        headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify(rows)
+      });
+      if(!r.ok){ console.error('sbSave upsert failed', r.status); return; }
+    }
+    // Only delete cases that were explicitly deleted in THIS session
+    if(_pendingDeletes.length > 0){
+      const ids = _pendingDeletes.join(',');
+      await fetch(SB_URL+'/rest/v1/cases?id=in.('+ids+')',{
+        method:'DELETE', headers:SB_H
+      });
+      _pendingDeletes = [];
+    }
+  } catch(e){ console.error('sbSave error', e); }
+}
+
+async function sbDeleteCase(id){
+  // Delete single case from DB immediately
+  try {
+    await fetch(SB_URL+'/rest/v1/cases?id=eq.'+id,{method:'DELETE',headers:SB_H});
+  } catch(e){}
+}
 function showSyncStatus(s){const el=document.getElementById('syncStatus');if(!el)return;if(s==='saving'){el.textContent='☁️ حفظ...';el.style.color='var(--muted)';}else if(s==='saved'){el.textContent='✅ محفوظ';el.style.color='var(--green)';}else if(s==='error'){el.textContent='⚠️ خطأ';el.style.color='var(--red)';}else if(s==='loading'){el.textContent='☁️ تحميل...';el.style.color='var(--muted)';}else{el.textContent='';}}
 let saveTimer=null;
 async function saveData(){try{localStorage.setItem(SK_D,JSON.stringify(cases));}catch(e){}showSyncStatus('saving');clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{await sbSave();showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),3000);}catch(e){showSyncStatus('error');}},800);}
@@ -1316,8 +1346,65 @@ async function saveCase(){
 }
 
 // ══ DELETE ══
-function askDel(id){const c=cases.find(x=>x.id===id);if(!c)return;document.getElementById('confirmIco').textContent='🗑️';document.getElementById('confirmTitle').textContent='حذف المعاملة';document.getElementById('confirmSub').textContent='هل تريد حذف "'+c.company+'"؟ لا يمكن التراجع.';document.getElementById('confirmBtn').onclick=()=>{cases=cases.filter(x=>x.id!==id);saveData();render();closeOverlay('confirmOverlay');SFX.play('delete');toast('🗑️ تم الحذف','err');};openOverlay('confirmOverlay');}
-function askClearAll(){document.getElementById('confirmIco').textContent='⚠️';document.getElementById('confirmTitle').textContent='مسح كل البيانات';document.getElementById('confirmSub').textContent='سيتم حذف جميع المعاملات نهائياً!';document.getElementById('confirmBtn').onclick=()=>{cases=[];saveData();render();closeOverlay('confirmOverlay');toast('🗑️ تم مسح البيانات','err');};openOverlay('confirmOverlay');}
+function askDel(id){
+  const c=cases.find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('confirmIco').textContent='🗑️';
+  document.getElementById('confirmTitle').textContent='حذف المعاملة';
+  document.getElementById('confirmSub').textContent='هل تريد حذف "'+c.company+'"؟ لا يمكن التراجع.';
+  document.getElementById('confirmBtn').onclick=async()=>{
+    // 1. Remove from local array
+    cases=cases.filter(x=>x.id!==id);
+    // 2. Delete from Supabase DB immediately (not batch)
+    sbDeleteCase(id);
+    // 3. Delete attachment from Storage if exists
+    if(c.attachUrl){
+      try{
+        const path = c.attachUrl.split('/object/public/'+SB_BUCKET+'/')[1];
+        if(path){
+          await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
+            method:'DELETE',
+            headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+          });
+        }
+      }catch(e){ console.warn('Storage delete failed (non-critical)', e); }
+    }
+    // 4. Update local state
+    localStorage.setItem(SK_D, JSON.stringify(cases));
+    render();
+    closeOverlay('confirmOverlay');
+    SFX.play('delete');
+    toast('🗑️ تم الحذف','err');
+  };
+  openOverlay('confirmOverlay');
+}
+function askClearAll(){
+  document.getElementById('confirmIco').textContent='⚠️';
+  document.getElementById('confirmTitle').textContent='مسح كل البيانات';
+  document.getElementById('confirmSub').textContent='سيتم حذف جميع المعاملات والمرفقات نهائياً!';
+  document.getElementById('confirmBtn').onclick=async()=>{
+    // Delete all attachments from storage
+    for(const c of cases){
+      if(c.attachUrl){
+        try{
+          const path=c.attachUrl.split('/object/public/'+SB_BUCKET+'/')[1];
+          if(path) await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{
+            method:'DELETE',
+            headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+          });
+        }catch(e){}
+      }
+    }
+    // Delete all from DB
+    try{ await fetch(SB_URL+'/rest/v1/cases',{method:'DELETE',headers:{...SB_H,'Prefer':'return=minimal'}}); }catch(e){}
+    cases=[];
+    localStorage.setItem(SK_D, JSON.stringify(cases));
+    render();
+    closeOverlay('confirmOverlay');
+    toast('🗑️ تم مسح البيانات','err');
+  };
+  openOverlay('confirmOverlay');
+}
 
 // ══ VIEW ══
 function setView(v){currentView=v;document.getElementById('vtList').classList.toggle('active',v==='list');document.getElementById('vtCards').classList.toggle('active',v==='cards');render();}
