@@ -1459,20 +1459,30 @@ async function uploadAttachment(file, company) {
 async function diagStorage() {
   toast('🔍 جاري فحص الإعدادات...', '');
   try {
-    // Check bucket
-    const b = await fetch(`${SB_URL}/storage/v1/bucket/${SB_BUCKET}`, { headers: SB_H });
-    if (!b.ok) {
-      alert('❌ مشكلة: الـ Bucket "attachments" غير موجود\n\nالحل:\n1. افتح Supabase\n2. روح Storage\n3. اضغط New Bucket\n4. اسمه: attachments\n5. فعّل Public');
-      return;
+    // try uploading a tiny test file
+    const testContent = new Blob(['test'], {type:'text/plain'});
+    const testName = 'test_' + Date.now() + '.txt';
+    const r = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${testName}`, {
+      method: 'POST',
+      headers: { ...SB_H, 'Content-Type': 'text/plain', 'x-upsert': 'true' },
+      body: testContent
+    });
+    if (r.ok) {
+      // cleanup
+      await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${testName}`, {method:'DELETE', headers:SB_H});
+      alert('✅ Storage يشتغل بشكل صحيح!\nجرب ترفع الباركود الحين.');
+    } else {
+      const err = await r.json().catch(()=>({message: r.status}));
+      if(r.status === 404) {
+        alert('❌ الـ Bucket "attachments" غير موجود\n\nالحل:\n1. افتح Supabase → Storage\n2. اضغط New Bucket\n3. الاسم: attachments\n4. فعّل Public ✅\n5. احفظ');
+      } else if(r.status === 403 || r.status === 400) {
+        alert('❌ الـ Policy غير مضبوطة\n\nالحل من SQL Editor في Supabase:\n\nCREATE POLICY "allow_all"\nON storage.objects FOR ALL TO anon\nUSING (bucket_id = \'attachments\')\nWITH CHECK (bucket_id = \'attachments\');');
+      } else {
+        alert('❌ خطأ: ' + (err.message || err.error || r.status));
+      }
     }
-    const bData = await b.json();
-    if (!bData.public) {
-      alert('❌ مشكلة: الـ Bucket موجود بس مو Public\n\nالحل:\n1. افتح Supabase → Storage\n2. اضغط على الـ Bucket "attachments"\n3. اضغط Edit\n4. فعّل Public bucket\n5. احفظ');
-      return;
-    }
-    alert('✅ الـ Bucket شغال وPublic\n\nجرب ترفع الملف مرة ثانية');
   } catch(e) {
-    alert('❌ خطأ في الاتصال بـ Supabase: ' + e.message);
+    alert('❌ خطأ في الاتصال: ' + e.message);
   }
 }
 
