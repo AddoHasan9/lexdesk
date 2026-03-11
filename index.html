@@ -1413,35 +1413,36 @@ const SB_BUCKET = 'attachments';
 
 async function uploadAttachment(file, company) {
   try {
-    const ext = file.name.split('.').pop();
-    const safeName = (company||'file').replace(/ /g,'_').substring(0,30);
+    const ext = file.name.split('.').pop().toLowerCase();
+    // Supabase Storage only accepts ASCII filenames
+    const safeName = 'case_' + (Date.now()%100000);
     const fileName = Date.now() + '_' + safeName + '.' + ext;
 
-    // 1. Check bucket exists
-    const bucketCheck = await fetch(`${SB_URL}/storage/v1/bucket/${SB_BUCKET}`, {
-      headers: SB_H
-    });
-    if (!bucketCheck.ok) {
-      const err = await bucketCheck.json().catch(()=>({}));
-      toast('❌ Bucket "attachments" غير موجود — اصنعه من Supabase → Storage', 'err');
-      console.error('Bucket error:', err);
-      return '';
-    }
+    // Storage headers — no Content-Type in base headers for file upload
+    const storageHeaders = {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': file.type,
+      'x-upsert': 'true'
+    };
 
-    // 2. Upload file
     const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${fileName}`, {
       method: 'POST',
-      headers: { ...SB_H, 'Content-Type': file.type, 'x-upsert': 'true' },
+      headers: storageHeaders,
       body: file
     });
 
     if (!res.ok) {
       const err = await res.json().catch(()=>({}));
-      const msg = err.message || err.error || res.status;
-      if(res.status === 400) toast('❌ الـ Bucket مو Public — فعّل Public من إعدادات الـ Bucket', 'err');
-      else if(res.status === 403) toast('❌ صلاحيات الرفع ممنوعة — راجع RLS Policy في Storage', 'err');
-      else toast('❌ فشل الرفع: ' + msg, 'err');
-      console.error('Upload error:', err);
+      const msg = err.message || err.error || String(res.status);
+      console.error('Upload failed:', res.status, err);
+      if(msg.includes('not found') || msg.includes('does not exist')) {
+        toast('❌ الـ Bucket غير موجود — اصنعه من Supabase → Storage', 'err');
+      } else if(res.status === 403 || msg.includes('policy') || msg.includes('violates')) {
+        toast('❌ Policy غير مضبوطة — شغّل الـ SQL من Supabase', 'err');
+      } else {
+        toast('❌ فشل الرفع: ' + msg, 'err');
+      }
       return '';
     }
 
@@ -1464,7 +1465,7 @@ async function diagStorage() {
     const testName = 'test_' + Date.now() + '.txt';
     const r = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${testName}`, {
       method: 'POST',
-      headers: { ...SB_H, 'Content-Type': 'text/plain', 'x-upsert': 'true' },
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Content-Type': 'text/plain', 'x-upsert': 'true' },
       body: testContent
     });
     if (r.ok) {
