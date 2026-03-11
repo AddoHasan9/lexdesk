@@ -453,6 +453,7 @@ body{background:#fff;color:#000;}
 .topbar{padding:0 10px;gap:6px;}
 .tb-filters,.add-btn,.tb-brand,.tb-sep{display:none;}
 .rem-topbar-btn,.notif-btn{width:36px;height:36px;font-size:17px;}
+.theme-switch{font-size:11px;width:3.5em;height:1.9em;}
 .user-pill span{display:none;}
 .user-pill{padding:4px 6px;}
 .stats-row{grid-template-columns:1fr 1fr;gap:8px;}
@@ -462,14 +463,21 @@ body{background:#fff;color:#000;}
 .sum-panel{display:none;}
 .charts-grid{grid-template-columns:1fr;}
 .settings-grid{grid-template-columns:1fr;}
-.mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(–surface);border-top:1px solid var(–border);z-index:60;align-items:center;justify-content:space-around;padding:0 8px;}
+.mob-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(–surface);border-top:1px solid var(–border);z-index:200;align-items:center;justify-content:space-around;padding:0 8px;box-shadow:0 -4px 20px rgba(0,0,0,.3);}
 .mob-nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;color:var(–muted);font-size:18px;padding:6px 12px;border-radius:10px;min-width:50px;}
 .mob-nav-btn span{font-size:9px;font-weight:600;}
 .mob-nav-btn.active{color:var(–gold);}
-.mob-fab{display:flex;position:fixed;bottom:72px;left:20px;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(–gold),var(–gold2));color:#000;font-size:22px;border:none;align-items:center;justify-content:center;box-shadow:0 6px 20px var(–gold-glow);z-index:59;}
-.page{padding-bottom:70px;}
+.mob-fab{display:flex;position:fixed;bottom:72px;left:20px;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(–gold),var(–gold2));color:#000;font-size:22px;border:none;align-items:center;justify-content:center;box-shadow:0 6px 20px var(–gold-glow);z-index:199;}
+.page{padding-bottom:80px;}
 table{font-size:11px;}
-th,td{padding:8px 10px;}
+th,td{padding:8px 8px;}
+/* hide non-essential columns on mobile */
+table th:nth-child(2), table td:nth-child(2),
+table th:nth-child(6), table td:nth-child(6),
+table th:nth-child(7), table td:nth-child(7){display:none;}
+/* make status badge smaller */
+.status-badge{font-size:9px;padding:3px 6px;}
+.type-chip{max-width:90px;}
 .fm-grid{grid-template-columns:1fr;}
 }
 
@@ -917,6 +925,10 @@ th,td{padding:8px 10px;}
         </div>
         <div class="fm-full">
           <label class="fm-lbl">📎 مرفق الشركة (باركود / وثائق)</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:10px;color:var(--muted)">صورة أو PDF — حتى 10MB</span>
+            <button type="button" onclick="diagStorage()" style="font-size:10px;color:var(--blue2);background:transparent;border:none;cursor:pointer;font-weight:700">🔧 فحص الإعدادات</button>
+          </div>
           <div class="attach-zone" id="attachZone" onclick="document.getElementById('attachFile').click()">
             <input type="file" id="attachFile" accept="image/*,.pdf" style="display:none" onchange="handleAttachSelect(this)">
             <div class="attach-ico">📎</div>
@@ -1063,7 +1075,7 @@ function updateThemeBtn(t){
 const ADMIN_USER='منتظر';
 let currentUser=null;
 function doLogin(){const pass=document.getElementById('passInp').value;const ok=settings.adminPass||'1234';if(pass!==ok){document.getElementById('passErr').classList.add('show');document.getElementById('passInp').value='';document.getElementById('passInp').focus();const b=document.querySelector('.login-box');b.style.animation='none';b.offsetHeight;b.style.animation='shake .4s';return;}document.getElementById('passErr').classList.remove('show');currentUser=ADMIN_USER;try{sessionStorage.setItem(SK_USER,currentUser);}catch(e){}SFX.play('login');showApp();}
-function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appWrap').style.display='flex';document.getElementById('mobNav').style.display='flex';document.getElementById('mobFab').style.display='flex';document.getElementById('userPill').style.display='flex';document.getElementById('notifBell').style.display='flex';document.getElementById('remBell').style.display='flex';document.getElementById('loginOfficeSub').textContent=settings.officeName;populateAllDropdowns();render();updateStats();loadNotifs();renderNotifBadge();renderNotifList();loadReminders();renderRemBadge();toast('أهلاً بك 👋','ok');}
+function showApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appWrap').style.display='flex';document.getElementById('mobNav').style.display='flex';document.getElementById('mobFab').style.display='flex';if(window.innerWidth<=768){currentView='cards';}document.getElementById('userPill').style.display='flex';document.getElementById('notifBell').style.display='flex';document.getElementById('remBell').style.display='flex';document.getElementById('loginOfficeSub').textContent=settings.officeName;populateAllDropdowns();render();updateStats();loadNotifs();renderNotifBadge();renderNotifList();loadReminders();renderRemBadge();toast('أهلاً بك 👋','ok');}
 function logout(){if(!confirm('تريد تسجيل الخروج؟'))return;currentUser=null;try{sessionStorage.removeItem(SK_USER);}catch(e){}document.getElementById('passInp').value='';document.getElementById('passErr').classList.remove('show');document.getElementById('loginScreen').style.display='flex';document.getElementById('appWrap').style.display='none';document.getElementById('mobNav').style.display='none';document.getElementById('mobFab').style.display='none';}
 
 // ══ NOTIFICATIONS ══
@@ -1422,15 +1434,66 @@ const SB_BUCKET = 'attachments';
 async function uploadAttachment(file, company) {
   try {
     const ext = file.name.split('.').pop();
-    const safeName = company.replace(/ /g,'_').replace(/[^a-zA-Z0-9_؀-ۿ]/g,''); const fileName = `${Date.now()}_${safeName}.${ext}`;
+    const safeName = (company||'file').replace(/ /g,'_').substring(0,30);
+    const fileName = Date.now() + '_' + safeName + '.' + ext;
+
+    // 1. Check bucket exists
+    const bucketCheck = await fetch(`${SB_URL}/storage/v1/bucket/${SB_BUCKET}`, {
+      headers: SB_H
+    });
+    if (!bucketCheck.ok) {
+      const err = await bucketCheck.json().catch(()=>({}));
+      toast('❌ Bucket "attachments" غير موجود — اصنعه من Supabase → Storage', 'err');
+      console.error('Bucket error:', err);
+      return '';
+    }
+
+    // 2. Upload file
     const res = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${fileName}`, {
       method: 'POST',
       headers: { ...SB_H, 'Content-Type': file.type, 'x-upsert': 'true' },
       body: file
     });
-    if (!res.ok) { toast('⚠️ فشل رفع الملف — تأكد من إعداد Supabase Storage', 'err'); return ''; }
+
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      const msg = err.message || err.error || res.status;
+      if(res.status === 400) toast('❌ الـ Bucket مو Public — فعّل Public من إعدادات الـ Bucket', 'err');
+      else if(res.status === 403) toast('❌ صلاحيات الرفع ممنوعة — راجع RLS Policy في Storage', 'err');
+      else toast('❌ فشل الرفع: ' + msg, 'err');
+      console.error('Upload error:', err);
+      return '';
+    }
+
+    toast('✅ تم رفع الملف بنجاح', 'ok');
     return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${fileName}`;
-  } catch(e) { toast('⚠️ خطأ في رفع الملف', 'err'); return ''; }
+
+  } catch(e) {
+    toast('❌ خطأ في الاتصال: ' + e.message, 'err');
+    console.error('Upload exception:', e);
+    return '';
+  }
+}
+
+// ══ DIAGNOSE SUPABASE STORAGE ══
+async function diagStorage() {
+  toast('🔍 جاري فحص الإعدادات...', '');
+  try {
+    // Check bucket
+    const b = await fetch(`${SB_URL}/storage/v1/bucket/${SB_BUCKET}`, { headers: SB_H });
+    if (!b.ok) {
+      alert('❌ مشكلة: الـ Bucket "attachments" غير موجود\n\nالحل:\n1. افتح Supabase\n2. روح Storage\n3. اضغط New Bucket\n4. اسمه: attachments\n5. فعّل Public');
+      return;
+    }
+    const bData = await b.json();
+    if (!bData.public) {
+      alert('❌ مشكلة: الـ Bucket موجود بس مو Public\n\nالحل:\n1. افتح Supabase → Storage\n2. اضغط على الـ Bucket "attachments"\n3. اضغط Edit\n4. فعّل Public bucket\n5. احفظ');
+      return;
+    }
+    alert('✅ الـ Bucket شغال وPublic\n\nجرب ترفع الملف مرة ثانية');
+  } catch(e) {
+    alert('❌ خطأ في الاتصال بـ Supabase: ' + e.message);
+  }
 }
 
 function handleAttachSelect(inp) {
