@@ -212,14 +212,11 @@ tr:hover .row-acts{opacity:1;}
 .act-btn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;display:flex;align-items:center;justify-content:center;}
 .act-btn svg,.act-btn *{pointer-events:none;}
 .act-btn:hover{border-color:var(--gold);color:var(--gold);}
-/* ══ ANIMATED DELETE BUTTON ══ */
-.act-btn.del{width:24px;height:24px;border-radius:50%;background:rgba(30,30,30,.9);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:width .3s,border-radius .3s,background .3s;position:relative;box-shadow:0 0 6px rgba(0,0,0,.4);flex-shrink:0;overflow:hidden;}
-.act-btn.del .del-svg{width:8px;transition:width .3s,transform .3s;position:relative;z-index:1;}
-.act-btn.del .del-svg path{fill:white;}
-.act-btn.del:hover{width:60px;border-radius:50px;background:rgb(255,69,69);}
-.act-btn.del:hover .del-svg{width:14px;transform:translateY(150%);opacity:0;}
-.act-btn.del .del-label{position:absolute;color:white;font-size:10px;font-family:var(--font);font-weight:700;white-space:nowrap;opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;pointer-events:none;}
-.act-btn.del:hover .del-label{opacity:1;transform:translateY(0);}
+/* ══ DELETE BUTTON — consistent with other row action buttons ══ */
+.act-btn.del{color:var(--text2);}
+.act-btn.del:hover{border-color:var(--red);color:var(--red);background:rgba(255,77,106,.08);}
+.act-btn.del .del-svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.act-btn.del .del-label{display:none;}
 
 /* EMPTY STATE */
 .empty-state{padding:60px 20px;text-align:center;}
@@ -385,6 +382,7 @@ tr:hover .row-acts{opacity:1;}
 /* ══ MODAL ══ */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:700;display:none;align-items:center;justify-content:center;padding:16px;}
 .overlay.open{display:flex;}
+#confirmOverlay{z-index:900;}
 .modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(620px,100%);max-height:90vh;overflow-y:auto;box-shadow:var(--sh-lg);animation:slideUp .25s;}
 .modal-hd{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .modal-title{font-family:'Cairo',sans-serif;font-size:20px;font-weight:900;}
@@ -882,7 +880,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
   <div class="tb-brand" id="officeTitle">LexDesk</div>
   <div class="tb-sep"></div>
   <div class="tb-search">
-    <span style="color:var(--muted);font-size:14px">🔍</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input id="searchInp" placeholder="بحث عن شركة..." oninput="render()">
   </div>
   <div class="tb-filters">
@@ -901,11 +899,15 @@ tbody tr:nth-child(10){animation-delay:.20s}
       <span class="theme-slider"></span>
     </label>
     <div class="rem-btn-wrap" id="remBell" style="display:none">
-      <button class="rem-topbar-btn" onclick="toggleRemPanel()" title="التذكيرات">📝</button>
+      <button class="rem-topbar-btn" onclick="toggleRemPanel()" title="التذكيرات">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3a1 1 0 0 1 2 0"/><path d="M12 3C8.134 3 5 6.134 5 10v4l-1.5 2.5A1 1 0 0 0 4.36 18H19.64a1 1 0 0 0 .86-1.5L19 14v-4c0-3.866-3.134-7-7-7z"/><path d="M9 18a3 3 0 0 0 6 0"/></svg>
+      </button>
       <div class="rem-badge" id="remBadge">0</div>
     </div>
     <div class="notif-wrap" id="notifBell" style="display:none">
-      <button class="notif-btn" onclick="toggleNotifPanel()">🔔</button>
+      <button class="notif-btn" onclick="toggleNotifPanel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
       <div class="notif-badge" id="notifBadge">0</div>
     </div>
     <div class="user-pill" id="userPill" onclick="logout()" style="display:none">
@@ -934,7 +936,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
   <div class="stats-row">
     <div class="stat-card" style="--accent-glow:var(--blue-glow)">
       <div class="stat-top">
-        <div class="stat-ico" style="background:var(--blue-glow);font-size:18px">📋</div>
+        <div class="stat-ico" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
         <div class="stat-tag" style="background:var(--blue-glow);color:var(--blue2)" id="statCasesTag">0</div>
       </div>
       <div class="stat-val" id="statCases">0</div>
@@ -943,7 +945,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
     </div>
     <div class="stat-card" style="--accent-glow:var(--gold-glow)">
       <div class="stat-top">
-        <div class="stat-ico" style="background:var(--gold-glow);font-size:18px">💰</div>
+        <div class="stat-ico" style="background:var(--gold-glow)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><path d="M9 11l3-3 3 3"/><path d="M9 17h6"/></svg></div>
         <div class="stat-tag" style="background:var(--gold-glow);color:var(--gold)">IQD</div>
       </div>
       <div class="stat-val iqd" id="statIQD">0</div>
@@ -952,7 +954,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
     </div>
     <div class="stat-card" style="--accent-glow:rgba(0,196,140,.1)">
       <div class="stat-top">
-        <div class="stat-ico" style="background:rgba(0,196,140,.1);font-size:18px">💵</div>
+        <div class="stat-ico" style="background:rgba(0,196,140,.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="stat-tag" style="background:rgba(0,196,140,.1);color:var(--green)">USD</div>
       </div>
       <div class="stat-val" id="statUSD" style="color:var(--green)">$0</div>
@@ -961,7 +963,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
     </div>
     <div class="stat-card" style="--accent-glow:rgba(255,77,106,.08)">
       <div class="stat-top">
-        <div class="stat-ico" style="background:rgba(255,77,106,.08);font-size:18px">⚠️</div>
+        <div class="stat-ico" style="background:rgba(255,77,106,.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
         <div class="stat-tag" style="background:rgba(255,77,106,.08);color:var(--red)" id="statDefTag">0</div>
       </div>
       <div class="stat-val" id="statDef" style="color:var(--red)">0</div>
@@ -1210,6 +1212,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
           <div class="fm-group-inner"><label class="fm-lbl">اسم الشركة *</label>
           <input id="fCompany" type="text" class="fm-inp" placeholder="الاسم القانوني للشركة">
           <div class="fm-err" id="errCompany">هذا الحقل مطلوب</div>
+          </div>
         </div>
         <div>
           <label class="fm-lbl">نوع المعاملة *</label>
@@ -1257,14 +1260,14 @@ tbody tr:nth-child(10){animation-delay:.20s}
           <input id="fNotes" type="text" class="fm-inp" placeholder="ملاحظات إضافية">
         </div>
         <div class="fm-full">
-          <label class="fm-lbl">📎 مرفق الشركة (باركود / وثائق)</label>
+          <label class="fm-lbl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:4px"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> مرفق الشركة (باركود / وثائق)</label>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
             <span style="font-size:10px;color:var(--muted)">صورة أو PDF — حتى 10MB</span>
             <button type="button" onclick="diagStorage()" style="font-size:10px;color:var(--blue2);background:transparent;border:none;cursor:pointer;font-weight:700">🔧 فحص الإعدادات</button>
           </div>
           <div class="attach-zone" id="attachZone" onclick="document.getElementById('attachFile').click()">
             <input type="file" id="attachFile" accept="image/*,.pdf" style="display:none" onchange="handleAttachSelect(this)">
-            <div class="attach-ico">📎</div>
+            <div class="attach-ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div>
             <div class="attach-txt">اضغط لرفع صورة أو PDF (باركود، وثائق الشركة)</div>
           </div>
           <div id="attachPreview" style="display:none"></div>
@@ -1274,7 +1277,7 @@ tbody tr:nth-child(10){animation-delay:.20s}
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeForm()">إلغاء</button>
-      <button class="btn-save" onclick="saveCase()">💾 حفظ المعاملة</button>
+      <button class="btn-save" onclick="saveCase()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:5px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>حفظ المعاملة</button>
     </div>
   </div>
 </div>
@@ -1616,7 +1619,22 @@ async function requestNotifPermission(){if(!('Notification'in window)){toast('م
 async function toggleNotifSetting(){const on=settings.notifEnabled!==false;if(!on){const g=await requestNotifPermission();if(!g){updateNotifUI(false);return;}settings.notifEnabled=true;toast('✅ الإشعارات مفعّلة','ok');setTimeout(()=>sendPushNotif('LexDesk — الإشعارات شغالة ✅'),500);}else{settings.notifEnabled=false;toast('🔕 الإشعارات موقفة','ok');}saveCfg();updateNotifUI(settings.notifEnabled!==false);}
 function updateNotifUI(on){const btn=document.getElementById('notifToggle');if(btn)btn.classList.toggle('on',on);const pl=document.getElementById('notifPermLbl');if(!pl)return;const p=('Notification'in window)?Notification.permission:'unsupported';if(p==='granted')pl.textContent='✅ المتصفح سمح بالإشعارات';else if(p==='denied')pl.textContent='🚫 محظورة — غيّر من إعدادات المتصفح';else if(p==='default')pl.textContent='⏳ لم تُطلب الإذن بعد';else pl.textContent='❌ غير مدعومة';}
 
-// ══ RENDER ══
+// ══ TABLE ROW DELEGATION ══
+document.addEventListener('DOMContentLoaded', ()=>{
+  const body = document.getElementById('casesBody');
+  if(!body) return;
+  body.addEventListener('click', e=>{
+    // ignore clicks on action buttons, status/stage chips, links
+    if(e.target.closest('.acts-cell')) return;
+    if(e.target.closest('.status-badge')) return;
+    if(e.target.closest('.stage-chip')) return;
+    if(e.target.closest('a')) return;
+    const row = e.target.closest('tr.case-row');
+    if(!row) return;
+    const id = Number(row.dataset.id);
+    if(id) openDetail(id);
+  });
+});
 function render(){
   const q=(document.getElementById('searchInp').value||'').trim().toLowerCase();
   const ft=document.getElementById('filterType').value;
@@ -1647,7 +1665,7 @@ function renderRow(c){
   let statusHtml=`<span class="status-badge ${statusClass(c.status)}" onclick="openStatusDrop(event,${c.id})">${c.status}</span>`;
   if(c.status==='معلقة'&&c.holdReason)statusHtml+=`<div style="font-size:10px;color:var(--muted);margin-top:3px">${c.holdReason}</div>`;
   const attachHtml=c.attachUrl?`<a href="${c.attachUrl}" target="_blank" class="attach-badge">📎 فتح</a>`:'<span style="color:var(--muted);font-size:11px">—</span>';
-  return`<tr style="cursor:pointer" onclick="openDetail(${c.id})"><td><div class="td-company">${c.company}</div>${c.notes?`<div class="td-notes">${c.notes}</div>`:''}</td><td><span class="type-chip">${c.type}</span></td><td><div class="td-lawyer"><div class="lawyer-dot" style="background:${lc}"></div>${c.lawyer}</div></td><td>${amt}</td><td>${statusHtml}</td><td>${stg}</td><td>${attachHtml}</td><td><div class="row-acts" onclick="event.stopPropagation()"><button class="act-btn" onclick="event.stopPropagation();openForm(${c.id})" title="تعديل"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" onclick="event.stopPropagation();askDel(${c.id})" title="حذف"><svg viewBox="0 0 448 512" class="del-svg"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"></path></svg><span class="del-label">حذف</span></button></div></td></tr>`;
+  return`<tr class="case-row" data-id="${c.id}" style="cursor:pointer"><td><div class="td-company">${c.company}</div>${c.notes?`<div class="td-notes">${c.notes}</div>`:''}</td><td><span class="type-chip">${c.type}</span></td><td><div class="td-lawyer"><div class="lawyer-dot" style="background:${lc}"></div>${c.lawyer}</div></td><td>${amt}</td><td>${statusHtml}</td><td>${stg}</td><td>${attachHtml}</td><td class="acts-cell"><div class="row-acts"><button class="act-btn" onclick="event.stopPropagation();openForm(${c.id})" title="تعديل"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" onclick="event.stopPropagation();askDel(${c.id})" title="حذف"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="del-label">حذف</span></button></div></td></tr>`;
 }
 
 function renderCard(c){
@@ -1676,7 +1694,7 @@ function renderCard(c){
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
         <button class="act-btn del" title="حذف" onclick="askDel(${c.id})">
-          <svg viewBox="0 0 448 512" class="del-svg"><path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"></path></svg>
+          <svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           <span class="del-label">حذف</span>
         </button>
       </div>
@@ -1827,11 +1845,11 @@ function buildLawyerSel(){
 function pickLawyer(n){selLawyer=n;buildLawyerSel();}
 function buildStatusOpts(){
   const opts=[
-    {v:'قيد المعالجة', c:'#00C48C', bg:'rgba(0,196,140,.12)',  icon:'⚡'},
-    {v:'منجزة',        c:'#5B99FF', bg:'rgba(91,153,255,.12)', icon:'✅'},
-    {v:'معلقة',        c:'#FF4D6A', bg:'rgba(255,77,106,.12)', icon:'⏸'},
-    {v:'مراجعة',       c:'#F0A500', bg:'rgba(240,165,0,.12)',  icon:'🔍'},
-    {v:'ناقصة',        c:'#9B6DFF', bg:'rgba(155,109,255,.12)',icon:'⚠️'},
+    {v:'قيد المعالجة', c:'#00C48C', bg:'rgba(0,196,140,.12)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'},
+    {v:'منجزة',        c:'#5B99FF', bg:'rgba(91,153,255,.12)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
+    {v:'معلقة',        c:'#FF4D6A', bg:'rgba(255,77,106,.12)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'},
+    {v:'مراجعة',       c:'#F0A500', bg:'rgba(240,165,0,.12)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'},
+    {v:'ناقصة',        c:'#9B6DFF', bg:'rgba(155,109,255,.12)',icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'},
   ];
   document.getElementById('statusOpts').innerHTML=opts.map(o=>{
     const sel = o.v===selStatus;
@@ -1889,6 +1907,9 @@ async function saveCase(){
 function askDel(id){
   const c=cases.find(x=>x.id===id);
   if(!c)return;
+  // close detail overlay if open
+  const det=document.getElementById('detailOverlay');
+  if(det&&det.classList.contains('open'))closeDetail();
   document.getElementById('confirmIco').textContent='🗑️';
   document.getElementById('confirmTitle').textContent='حذف المعاملة';
   document.getElementById('confirmSub').textContent='هل تريد حذف "'+c.company+'"؟ لا يمكن التراجع.';
