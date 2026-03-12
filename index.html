@@ -1721,7 +1721,7 @@ function updateStats(){
   const _sumU=document.getElementById('sumUSD'); if(_sumU) countUp(_sumU, totalUSD, '$', '', 900);
   // statuses
   const statusList=['قيد المعالجة','منجزة','معلقة','مراجعة','ناقصة'];
-  const statusColors={'قيد المعالجة':'var(--green)','منجزة':'var(--blue2)','معلقة':'var(--red)','مراجعة':'var(--gold)','ناقصة':'var(--purple)'};
+  const statusColors={'قيد المعالجة':'var(--gold)','منجزة':'var(--green)','معلقة':'var(--red)','مراجعة':'var(--blue2)','ناقصة':'var(--purple)'};
   const sc=document.getElementById('sumStatuses');
   sc.innerHTML=statusList.map(s=>{const n=cases.filter(c=>c.status===s).length;return`<div class="status-row"><div class="status-row-lbl"><div class="status-row-dot" style="background:${statusColors[s]}"></div>${s}</div><div class="status-row-num">${n}</div></div>`;}).join('');
   // lawyers
