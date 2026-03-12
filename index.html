@@ -1555,6 +1555,29 @@ async function sbDeleteCase(id){
   } catch(e){ console.warn('sbDeleteCase failed (offline?)', e); }
 }
 
+// ══ SUPABASE META (reminders + notifications) ══
+// لازم تنشئ الجدول من SQL Editor في Supabase:
+// CREATE TABLE IF NOT EXISTS meta (id text PRIMARY KEY, data jsonb, updated_at timestamptz);
+// ALTER TABLE meta ENABLE ROW LEVEL SECURITY;
+// CREATE POLICY "allow_all" ON meta FOR ALL TO anon USING (true) WITH CHECK (true);
+async function sbSaveMeta(key, data){
+  try{
+    await sbFetch(SB_URL+'/rest/v1/meta',{
+      method:'POST',
+      headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({id:key, data:data, updated_at:new Date().toISOString()})
+    });
+  }catch(e){ console.warn('sbSaveMeta failed',e); }
+}
+async function sbLoadMeta(key){
+  try{
+    const r=await sbFetch(SB_URL+'/rest/v1/meta?id=eq.'+key+'&select=data',{method:'GET',headers:SB_H},2,6000);
+    if(!r.ok)return null;
+    const rows=await r.json();
+    return (rows&&rows[0])?rows[0].data:null;
+  }catch(e){return null;}
+}
+
 function showSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el)return;
@@ -1709,7 +1732,9 @@ function showApp(){
   document.getElementById('loginOfficeSub').textContent=settings.officeName;
   populateAllDropdowns();
   applyRoleUI();
-  render();updateStats();loadNotifs();renderNotifBadge();renderNotifList();loadReminders();renderRemBadge();
+  render();updateStats();
+  loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
+  loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك 👋','ok');
 }
 
@@ -1726,8 +1751,18 @@ function logout(){
 
 // ══ NOTIFICATIONS ══
 let notifications=[];
-function loadNotifs(){try{notifications=JSON.parse(localStorage.getItem(SK_NOTIFS)||'[]');}catch(e){notifications=[];}}
-function saveNotifs(){try{localStorage.setItem(SK_NOTIFS,JSON.stringify(notifications.slice(0,50)));}catch(e){}}
+async function loadNotifs(){
+  // try Supabase first
+  const cloud = await sbLoadMeta('notifications');
+  if(cloud && Array.isArray(cloud)){ notifications=cloud; }
+  else { try{notifications=JSON.parse(localStorage.getItem(SK_NOTIFS)||'[]');}catch(e){notifications=[];} }
+  renderNotifBadge(); renderNotifList();
+}
+function saveNotifs(){
+  const data = notifications.slice(0,50);
+  try{localStorage.setItem(SK_NOTIFS,JSON.stringify(data));}catch(e){}
+  sbSaveMeta('notifications', data);
+}
 function addNotif(type,msg){if(settings.notifEnabled===false)return;const n={id:Date.now(),type,msg,time:new Date().toISOString(),read:false};notifications.unshift(n);saveNotifs();renderNotifBadge();renderNotifList();sendPushNotif(msg);SFX.play('notif');}
 async function sendPushNotif(msg){if(!('Notification'in window)||Notification.permission!=='granted'||settings.notifEnabled===false)return;try{new Notification('LexDesk ⚖️',{body:msg,dir:'rtl',lang:'ar'});}catch(e){}}
 function renderNotifBadge(){const u=notifications.filter(n=>!n.read).length;const b=document.getElementById('notifBadge');if(!b)return;b.textContent=u>9?'9+':u;b.classList.toggle('show',u>0);}
@@ -2772,11 +2807,15 @@ const REM_CATS = {
   'عاجل': { icon:'🔴', color:'var(--red)',    bg:'rgba(255,77,106,.15)' },
 };
 
-function loadReminders() {
-  try { reminders = JSON.parse(localStorage.getItem(SK_REM) || '[]'); } catch(e) { reminders = []; }
+async function loadReminders() {
+  const cloud = await sbLoadMeta('reminders');
+  if(cloud && Array.isArray(cloud)){ reminders=cloud; }
+  else { try{ reminders=JSON.parse(localStorage.getItem(SK_REM)||'[]'); }catch(e){ reminders=[]; } }
+  renderRemBadge(); renderRemList();
 }
 function saveReminders() {
-  try { localStorage.setItem(SK_REM, JSON.stringify(reminders)); } catch(e) {}
+  try{localStorage.setItem(SK_REM, JSON.stringify(reminders));}catch(e){}
+  sbSaveMeta('reminders', reminders);
 }
 function renderRemBadge() {
   const active = reminders.filter(r => !r.done).length;
