@@ -1899,7 +1899,7 @@ function setStatus(id,val){
   if(val==='معلقة'&&old!=='معلقة'){
     const reason=prompt('سبب التعليق (اختياري):');
     if(reason!==null)c.holdReason=reason;
-    addNotif('hold','⏸ معاملة معلقة: '+c.company);
+    addNotif('hold',' معاملة معلقة: '+c.company);
   }else if(val!=='معلقة'){c.holdReason='';}
   saveData();render();closeAllDrops();toast('✅ تم التحديث','ok');
 }
