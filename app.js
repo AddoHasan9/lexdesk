@@ -1,8 +1,33 @@
 'use strict';
-// ══ SUPABASE ══
-const SB_URL='https://jyufcedgprierjmqsxpa.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5dWZjZWRncHJpZXJqbXFzeHBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzQyMTQsImV4cCI6MjA4ODYxMDIxNH0.088t4cMF80f0mXMJONZDX8bZPeDymGzT4yjzX3fn0CI';
+// ══ SUPABASE CONFIG ══
+// Note: anon key is safe to expose in frontend — security is enforced by RLS on Supabase
+const SB_CONFIG={
+  url:'https://jyufcedgprierjmqsxpa.supabase.co',
+  key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5dWZjZWRncHJpZXJqbXFzeHBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzQyMTQsImV4cCI6MjA4ODYxMDIxNH0.088t4cMF80f0mXMJONZDX8bZPeDymGzT4yjzX3fn0CI'
+};
+const SB_URL=SB_CONFIG.url;
+const SB_KEY=SB_CONFIG.key;
 const SB_H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+// ══ SECURITY: LOGIN RATE LIMITER (brute-force protection) ══
+const LOGIN_RATE={maxAttempts:5,lockoutMs:60000,attempts:0,lockedUntil:0};
+function canAttemptLogin(){
+  if(Date.now()<LOGIN_RATE.lockedUntil){
+    const secs=Math.ceil((LOGIN_RATE.lockedUntil-Date.now())/1000);
+    toast('⏳ حاول بعد '+secs+' ثانية','warn');
+    return false;
+  }
+  return true;
+}
+function recordFailedLogin(){
+  LOGIN_RATE.attempts++;
+  if(LOGIN_RATE.attempts>=LOGIN_RATE.maxAttempts){
+    LOGIN_RATE.lockedUntil=Date.now()+LOGIN_RATE.lockoutMs;
+    LOGIN_RATE.attempts=0;
+    toast('🔒 تم قفل الدخول لمدة دقيقة','err');
+  }
+}
+function resetLoginAttempts(){LOGIN_RATE.attempts=0;LOGIN_RATE.lockedUntil=0;}
 // ══ SMART SYNC: upsert only changed cases, delete only explicitly removed ══
 let _pendingDeletes = []; // track IDs deleted in this session
 
@@ -221,29 +246,93 @@ function updateThemeBtn(t){
   if(mobIcon) mobIcon.innerHTML=html;
 }
 
+// ══ SECURITY: PASSWORD HASHING (SHA-256) ══
+async function hashPassword(pass){
+  const enc=new TextEncoder();
+  const data=enc.encode(pass+'_LexDesk_Salt_2025');
+  const buf=await crypto.subtle.digest('SHA-256',data);
+  const arr=Array.from(new Uint8Array(buf));
+  return arr.map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══ SECURITY: SESSION WITH EXPIRY ══
+const SESSION_DURATION_MS=8*60*60*1000; // 8 hours
+function setSecureSession(user,role){
+  const session={user,role,exp:Date.now()+SESSION_DURATION_MS};
+  try{sessionStorage.setItem(SK_USER,JSON.stringify(session));}catch(e){}
+}
+function getSecureSession(){
+  try{
+    const raw=sessionStorage.getItem(SK_USER);
+    if(!raw)return null;
+    const session=JSON.parse(raw);
+    if(!session||!session.exp||Date.now()>session.exp){
+      sessionStorage.removeItem(SK_USER);
+      return null;
+    }
+    return session;
+  }catch(e){return null;}
+}
+function clearSecureSession(){
+  try{sessionStorage.removeItem(SK_USER);}catch(e){}
+}
+
+// ══ SECURITY: FIRST-RUN PASSWORD SETUP ══
+async function initPasswords(){
+  if(!settings.adminPassHash){
+    settings.adminPassHash=await hashPassword('1234');
+    settings.mustChangeAdminPass=true;
+  }
+  if(!settings.userPassHash){
+    settings.userPassHash=await hashPassword('0000');
+    settings.mustChangeUserPass=true;
+  }
+  // migrate old plain-text passwords if they exist
+  if(settings.adminPass){
+    settings.adminPassHash=await hashPassword(settings.adminPass);
+    delete settings.adminPass;
+    saveCfg();
+  }
+  if(settings.userPass){
+    settings.userPassHash=await hashPassword(settings.userPass);
+    delete settings.userPass;
+    saveCfg();
+  }
+}
+
 // ══ AUTH ══
 const ADMIN_USER='منتظر';
 let currentUser=null;
 let currentRole=null; // 'admin' | 'user'
 
-function doLogin(){
+async function doLogin(){
+  if(!canAttemptLogin())return;
   const pass=document.getElementById('passInp').value;
-  const adminPass=settings.adminPass||'1234';
-  const userPass=settings.userPass||'0000';
-  if(pass===adminPass){
+  if(!pass){return;}
+  const hashed=await hashPassword(pass);
+  if(hashed===settings.adminPassHash){
     currentRole='admin';currentUser=ADMIN_USER;
-  } else if(pass===userPass){
+  } else if(hashed===settings.userPassHash){
     currentRole='user';currentUser='مستخدم';
   } else {
+    recordFailedLogin();
     document.getElementById('passErr').classList.add('show');
     document.getElementById('passInp').value='';
     document.getElementById('passInp').focus();
     const b=document.querySelector('.login-box');b.style.animation='none';b.offsetHeight;b.style.animation='shake .4s';
     return;
   }
+  resetLoginAttempts();
   document.getElementById('passErr').classList.remove('show');
-  try{sessionStorage.setItem(SK_USER,currentUser);sessionStorage.setItem('lexdesk_role',currentRole);}catch(e){}
+  setSecureSession(currentUser,currentRole);
   SFX.play('login');showApp();
+  // warn if using default password
+  if(currentRole==='admin'&&settings.mustChangeAdminPass){
+    setTimeout(()=>toast('⚠️ غيّر كلمة مرور الأدمن الافتراضية من الإعدادات!','warn'),2000);
+  }
+  if(currentRole==='user'&&settings.mustChangeUserPass){
+    setTimeout(()=>toast('⚠️ غيّر كلمة مرور المستخدم الافتراضية من الإعدادات!','warn'),2000);
+  }
 }
 
 function isAdmin(){return currentRole==='admin';}
@@ -290,7 +379,7 @@ function showApp(){
 
 function logout(){
   currentUser=null;currentRole=null;
-  try{sessionStorage.removeItem(SK_USER);sessionStorage.removeItem('lexdesk_role');}catch(e){}
+  clearSecureSession();
   document.getElementById('passInp').value='';
   document.getElementById('passErr').classList.remove('show');
   document.getElementById('loginScreen').style.display='flex';
@@ -774,7 +863,7 @@ function removeItem(kind,i){
 function addLawyer(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newLawyerInp').value.trim();if(!v)return;settings.lawyers.push(v);saveCfg();document.getElementById('newLawyerInp').value='';loadSettingsPage();populateAllDropdowns();}
 function addType(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newTypeInp').value.trim();if(!v)return;settings.types.push(v);saveCfg();document.getElementById('newTypeInp').value='';loadSettingsPage();populateAllDropdowns();}
 function addDept(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newDeptInp').value.trim();if(!v)return;settings.depts.push(v);saveCfg();document.getElementById('newDeptInp').value='';loadSettingsPage();}
-function saveOfficeSettings(){
+async function saveOfficeSettings(){
   if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}
   settings.officeName=document.getElementById('setOfficeName').value.trim()||'مكتب المحاماة';
   settings.defCurrency=document.getElementById('setDefCur').value;
@@ -785,10 +874,12 @@ function saveOfficeSettings(){
   const newP=document.getElementById('newPass').value;
   const newP2=document.getElementById('newPass2').value;
   if(oldP||newP||newP2){
-    if(oldP!==(settings.adminPass||'1234')){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');return;}
-    if(newP.length<4){errEl.textContent='لازم 4 أحرف على الأقل';errEl.classList.add('show');return;}
+    const oldHash=await hashPassword(oldP);
+    if(oldHash!==settings.adminPassHash){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');return;}
+    if(newP.length<6){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');return;}
     if(newP!==newP2){errEl.textContent='كلمتا مرور الأدمن غير متطابقتان';errEl.classList.add('show');return;}
-    settings.adminPass=newP;
+    settings.adminPassHash=await hashPassword(newP);
+    settings.mustChangeAdminPass=false;
     document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';
     toast('🔐 تم تغيير كلمة مرور الأدمن','ok');
   }
@@ -797,10 +888,12 @@ function saveOfficeSettings(){
   const newU=document.getElementById('newUserPass').value;
   const newU2=document.getElementById('newUserPass2').value;
   if(oldU||newU||newU2){
-    if(oldU!==(settings.userPass||'0000')){errEl.textContent='كلمة مرور المستخدم الحالية غلط';errEl.classList.add('show');return;}
-    if(newU.length<4){errEl.textContent='لازم 4 أحرف على الأقل للمستخدم';errEl.classList.add('show');return;}
+    const oldUHash=await hashPassword(oldU);
+    if(oldUHash!==settings.userPassHash){errEl.textContent='كلمة مرور المستخدم الحالية غلط';errEl.classList.add('show');return;}
+    if(newU.length<6){errEl.textContent='لازم 6 أحرف على الأقل للمستخدم';errEl.classList.add('show');return;}
     if(newU!==newU2){errEl.textContent='كلمتا مرور المستخدم غير متطابقتان';errEl.classList.add('show');return;}
-    settings.userPass=newU;
+    settings.userPassHash=await hashPassword(newU);
+    settings.mustChangeUserPass=false;
     document.getElementById('oldUserPass').value='';document.getElementById('newUserPass').value='';document.getElementById('newUserPass2').value='';
     toast('👤 تم تغيير كلمة مرور المستخدم','ok');
   }
@@ -1491,9 +1584,9 @@ document.addEventListener('click',e=>{closeAllDrops();const panel=document.getEl
 (async()=>{
   initTheme();
   await loadAll();
-  const saved=sessionStorage.getItem(SK_USER);
-  const savedRole=sessionStorage.getItem('lexdesk_role');
-  if(saved&&savedRole){currentUser=saved;currentRole=savedRole;showApp();}
+  await initPasswords();
+  const session=getSecureSession();
+  if(session&&session.user&&session.role){currentUser=session.user;currentRole=session.role;showApp();}
   else{document.getElementById('loginOfficeSub').textContent=settings.officeName;selectRole('admin');setTimeout(()=>{const p=document.getElementById('passInp');if(p)p.focus();},300);}
   initMobile();
 })();
