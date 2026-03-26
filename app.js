@@ -546,17 +546,27 @@ function updateStats(){
   const _sct=document.getElementById('statCasesTag');
   if(_sct) _sct.textContent='إجمالي المعاملات';
 
-  // ── Area chart main value ──
+  // ── Hero KPI value ──
   const _av=document.getElementById('areaChartVal');
-  if(_av) countUp(_av, totalIQD, '', ' د.ع', 900);
+  if(_av){
+    const dispVal=fmt(totalIQD);
+    countUp(_av, totalIQD, '', '', 900);
+    // Fix the span tag
+    setTimeout(()=>{
+      const el=document.getElementById('areaChartVal');
+      if(el) el.innerHTML = fmt(totalIQD) + ' <span>د.ع</span>';
+    },950);
+  }
   const _ac=document.getElementById('areaChartChange');
   if(_ac){
     const pct=total>0?Math.round((pendingCount/total)*100):0;
-    _ac.textContent='+'+pct+'%';
-    _ac.style.color=pct>50?'var(--green)':'var(--gold)';
+    _ac.innerHTML=`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+${pct}%`;
+    _ac.style.color=pct>0?'var(--green)':'var(--text3)';
+    _ac.style.background=pct>0?'var(--green-g)':'var(--surface)';
+    _ac.style.borderColor=pct>0?'rgba(16,185,129,.2)':'var(--border)';
   }
   const _as=document.getElementById('areaChartSub');
-  if(_as) _as.textContent='مجموع الدينار العراقي';
+  if(_as) _as.textContent='مجموع الدينار العراقي للمعاملات';
 
   // ── Donut chart ──
   updateDashDonut(total, pendingCount, defCount);
