@@ -253,14 +253,39 @@ tr.case-row:last-child td{border-bottom:none;}
 .rp-note svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;}
 
 /* ═══════════ FAB ═══════════ */
-.fab-wrap{position:fixed;bottom:22px;left:22px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;z-index:80;}
-.fab-main{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;color:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px var(--gold-glow);cursor:pointer;align-self:flex-start;transition:all .25s;}
+.fab-wrap{
+  position:fixed;
+  bottom:22px;
+  left:22px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:8px;
+  z-index:80;
+}
+.fab-main{
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border:none;color:#000;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px var(--gold-glow);
+  cursor:pointer;align-self:flex-start;transition:all .25s;
+}
 .fab-main:hover{transform:scale(1.08);}
 .fab-main svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
 .fab-actions{display:flex;flex-direction:column;gap:7px;align-items:flex-start;}
-.fab-action{display:flex;align-items:center;gap:9px;padding:8px 14px 8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:28px;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;box-shadow:var(--sh);}
+.fab-action{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 14px 8px 10px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:28px;color:var(--text);font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all .2s;box-shadow:var(--sh);
+}
 .fab-action:hover{background:var(--card2);border-color:var(--gold);color:var(--gold);}
-.fab-action-ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.fab-action-ico{
+  width:26px;height:26px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
 .fab-action-ico svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
 
 /* ═══════════ EMPTY STATE ═══════════ */
@@ -587,29 +612,29 @@ tr.case-row:last-child td{border-bottom:none;}
   /* ── Layout ── */
   .sidebar{display:none;}
   .mob-nav{display:flex;}
-  body{padding-bottom:66px;}
+  body{padding-bottom:68px;}
+
+  /* ── إخفاء FAB (desktop) على الموبايل — زر + في mob-nav يغني عنه ── */
+  .fab-wrap{display:none !important;}
 
   /* ── Topbar ── */
-  .topbar{
-    padding:0 10px;
-    height:52px;
-    gap:6px;
-  }
-  /* على الموبايل: اخفي search وfilters وadd-btn وuser pill */
+  .topbar{padding:0 12px;height:52px;gap:6px;}
+
+  /* إخفاء عناصر الـ topbar على الموبايل */
   .tb-filters,
   .tb-search,
   .add-btn,
   .user-pill{display:none !important;}
 
-  /* اظهر فقط: brand + sep + icons */
+  /* الـ brand يبقى */
   .tb-brand{font-size:14px;font-weight:800;}
   .tb-r{gap:5px;}
 
-  /* Mobile filter bar */
+  /* ── Mobile filter bar ── */
   .mob-filter-bar{display:flex;}
 
   /* ── Dashboard layout ── */
-  .dash-layout{flex-direction:column;overflow:auto;}
+  .dash-layout{flex-direction:column;overflow-y:auto;}
   .dash-center{padding:10px;gap:10px;}
 
   /* ── Area chart ── */
@@ -617,15 +642,12 @@ tr.case-row:last-child td{border-bottom:none;}
   .area-chart-card{padding:14px 14px 10px;}
   .area-chart-canvas-wrap{height:65px;}
 
-  /* ── Stats row: 2 columns on mobile ── */
-  .stats-row{
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-  .stat-mini{padding:11px 12px;gap:10px;}
-  .stat-mini-icon{width:36px;height:36px;border-radius:10px;}
-  .stat-mini-icon svg{width:17px;height:17px;}
-  .stat-mini-num{font-size:20px;}
+  /* ── Stats row: عمودين على الموبايل ── */
+  .stats-row{grid-template-columns:1fr 1fr;gap:8px;}
+  .stat-mini{padding:12px;gap:10px;}
+  .stat-mini-icon{width:38px;height:38px;border-radius:10px;}
+  .stat-mini-icon svg{width:18px;height:18px;}
+  .stat-mini-num{font-size:22px;}
   .stat-mini-lbl{font-size:10px;}
   .stat-mini-sub{display:none;}
 
@@ -634,23 +656,32 @@ tr.case-row:last-child td{border-bottom:none;}
   .panel-hd{padding:10px 12px;}
   .panel-title{font-size:12px;}
 
-  /* ── Right panel: hidden on mobile (data shown in cards) ── */
+  /* ── Right panel: مخفي على الموبايل ── */
   .dash-right{display:none;}
 
-  /* ── FAB ── */
-  .fab-wrap{bottom:76px;left:14px;}
-  .fab-action{font-size:11px;padding:7px 12px 7px 9px;}
-
-  /* ── Table ── */
+  /* ── Table: إخفاء أعمدة ثانوية ── */
   .tbl-wrap th:nth-child(5),
   .tbl-wrap td:nth-child(5),
   .tbl-wrap th:nth-child(6),
   .tbl-wrap td:nth-child(6),
   .tbl-wrap th:nth-child(7),
   .tbl-wrap td:nth-child(7){display:none;}
+
+  /* ── mob-nav center + button ── */
+  #mnAddCenter{
+    width:50px !important;
+    height:50px !important;
+    flex:0 0 auto !important;
+    border-radius:50% !important;
+    background:linear-gradient(135deg,var(--gold),var(--gold2)) !important;
+    color:#000 !important;
+    box-shadow:0 4px 16px var(--gold-glow) !important;
+    margin:0 4px !important;
+    padding:0 !important;
+  }
 }
 
-/* ── Very small screens ── */
+/* ── شاشات صغيرة جداً ── */
 @media (max-width:380px) {
   .stats-row{grid-template-columns:1fr;}
   .area-chart-main-val{font-size:26px;}

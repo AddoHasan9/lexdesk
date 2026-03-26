@@ -362,9 +362,8 @@ function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='flex';
-  const mf=document.getElementById('mobFab');if(mf)mf.style.display='none';
   if(window.innerWidth<=768){currentView='cards';}
-  // Show user pill in topbar
+  // Show user pill in topbar (desktop)
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
   // Show notification bell
   const nb=document.getElementById('notifBell');if(nb)nb.style.display='flex';
@@ -372,16 +371,20 @@ function showApp(){
   const rb=document.getElementById('remBell');if(rb)rb.style.display='flex';
   // Mobile theme btn
   const mb=document.getElementById('mobThemeBtn');if(mb)mb.style.display='flex';
-  // FAB
+  // FAB (desktop only — hidden on mobile via CSS)
   const fab=document.getElementById('fabWrap');if(fab)fab.style.display='flex';
   // Update sidebar user info
   const sui=document.getElementById('sbUserInfo');if(sui)sui.style.display='flex';
   const suav=document.getElementById('sbUserAv');if(suav)suav.textContent=isAdmin()?'م':'ع';
   const sun=document.getElementById('sbUserName');if(sun)sun.textContent=isAdmin()?ADMIN_USER:'مستخدم';
-  // office name in login sub
-  document.getElementById('loginOfficeSub').textContent=settings.officeName;
-  // topbar brand
-  const tb=document.getElementById('officeTitle');if(tb)tb.textContent=settings.officeName||'LexDesk';
+  // user pill name
+  const upn=document.getElementById('userPillName');if(upn)upn.textContent=isAdmin()?ADMIN_USER:'مستخدم';
+  const uav=document.querySelector('.user-av');if(uav)uav.textContent=isAdmin()?'م':'ع';
+  // اسم المكتب في الـ topbar
+  const officeName=settings.officeName||'مكتب المحاماة';
+  const tb=document.getElementById('officeTitle');if(tb)tb.textContent=officeName;
+  // اسم المكتب في شاشة الدخول
+  const ls=document.getElementById('loginOfficeSub');if(ls)ls.textContent=officeName;
   populateAllDropdowns();
   applyRoleUI();
   render();updateStats();
@@ -409,8 +412,8 @@ function logout(){
   document.getElementById('passErr').classList.remove('show');
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appWrap').style.display='none';
-  document.getElementById('mobNav').style.display='none';
-  document.getElementById('mobFab').style.display='none';
+  const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
+  const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
 }
 
 // ══ NOTIFICATIONS ══
