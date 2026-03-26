@@ -361,7 +361,7 @@ function applyRoleUI(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
-  const mn=document.getElementById('mobNav');if(mn)mn.style.display='flex';
+  const mn=document.getElementById('mobNav');if(mn)mn.style.display=window.innerWidth<=768?'flex':'none';
   if(window.innerWidth<=768){currentView='cards';}
   // Show user pill in topbar (desktop)
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
@@ -1259,7 +1259,19 @@ function removeAttach() {
 }
 
 // ══ MOBILE ══
-function initMobile(){/* mob nav shown only after login via showApp */}
+function initMobile(){
+  // Show/hide mob-nav based on screen width
+  function handleResize(){
+    const mn=document.getElementById('mobNav');
+    if(!mn)return;
+    // Only show if logged in AND mobile
+    const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';
+    mn.style.display=(window.innerWidth<=768&&loggedIn)?'flex':'none';
+    // Also hide desktop body padding on resize
+    document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';
+  }
+  window.addEventListener('resize',handleResize);
+}
 
 
 // ══ PARTICLES ══

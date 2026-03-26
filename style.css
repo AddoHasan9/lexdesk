@@ -2061,6 +2061,9 @@ tr.case-row:last-child td { border-bottom: none; }
   .status-badge { border:1px solid #ccc !important; color:#333 !important; background:transparent !important; }
 }
 
+/* ديسكتوب: بدون padding سفلي */
+body { padding-bottom: 0; }
+
 /* ═══════════════════════════════════
    RESPONSIVE — Tablet (≤1100px)
 ═══════════════════════════════════ */
