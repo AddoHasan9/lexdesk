@@ -361,20 +361,45 @@ function applyRoleUI(){
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
-  document.getElementById('mobNav').style.display='flex';
-  document.getElementById('mobFab').style.display='none';
+  const mn=document.getElementById('mobNav');if(mn)mn.style.display='flex';
+  const mf=document.getElementById('mobFab');if(mf)mf.style.display='none';
   if(window.innerWidth<=768){currentView='cards';}
-  document.getElementById('userPill').style.display='flex';
-  document.getElementById('notifBell').style.display='flex';
-  document.getElementById('remBell').style.display='flex';
+  // Show user pill in topbar
+  const up=document.getElementById('userPill');if(up)up.style.display='flex';
+  // Show notification bell
+  const nb=document.getElementById('notifBell');if(nb)nb.style.display='flex';
+  // Show reminder bell
+  const rb=document.getElementById('remBell');if(rb)rb.style.display='flex';
+  // Mobile theme btn
   const mb=document.getElementById('mobThemeBtn');if(mb)mb.style.display='flex';
+  // FAB
+  const fab=document.getElementById('fabWrap');if(fab)fab.style.display='flex';
+  // Update sidebar user info
+  const sui=document.getElementById('sbUserInfo');if(sui)sui.style.display='flex';
+  const suav=document.getElementById('sbUserAv');if(suav)suav.textContent=isAdmin()?'م':'ع';
+  const sun=document.getElementById('sbUserName');if(sun)sun.textContent=isAdmin()?ADMIN_USER:'مستخدم';
+  // office name in login sub
   document.getElementById('loginOfficeSub').textContent=settings.officeName;
+  // topbar brand
+  const tb=document.getElementById('officeTitle');if(tb)tb.textContent=settings.officeName||'LexDesk';
   populateAllDropdowns();
   applyRoleUI();
   render();updateStats();
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك 👋','ok');
+}
+
+// ── FAB toggle ──
+function toggleFab(){
+  const a=document.getElementById('fabActions');
+  const btn=document.getElementById('fabMainBtn');
+  if(!a||!btn)return;
+  const open=a.style.display==='flex';
+  a.style.display=open?'none':'flex';
+  btn.innerHTML=open
+    ?'<svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    :'<svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 }
 
 function logout(){
@@ -498,34 +523,205 @@ function renderCard(c){
   </div>`;
 }
 
-// ══ STATS ══
+// ══ STATS — updated for new dashboard layout ══
 function updateStats(){
   const totalIQD=cases.reduce((s,c)=>s+(c.amountIQD||0),0);
   const totalUSD=cases.reduce((s,c)=>s+(c.amountUSD||0),0);
   const defCount=cases.filter(c=>c.deficiency||c.status==='ناقصة').length;
+  const pendingCount=cases.filter(c=>c.status==='قيد المعالجة').length;
   const total=cases.length;
-  const _sc=document.getElementById('statCases'); if(_sc) countUp(_sc, total, '', '', 800);
-  document.getElementById('statCasesTag').textContent=total;
-  document.getElementById('statCasesBar').style.width=Math.min(total*10,100)+'%';
-  const _si=document.getElementById('statIQD'); if(_si) countUp(_si, totalIQD, '', ' د.ع', 900);
-  const _su=document.getElementById('statUSD'); if(_su) countUp(_su, totalUSD, '$', '', 900);
-  const _sd=document.getElementById('statDef');
-  if(_sd){ if(defCount===0){_sd.textContent='0';_sd.classList.remove('stat-pop');_sd.offsetHeight;_sd.classList.add('stat-pop');}else countUp(_sd, defCount, '', '', 700); }
-  document.getElementById('statDefTag').textContent=defCount;
-  document.getElementById('statDefBar').style.width=total?Math.min(defCount/total*100,100)+'%':'0%';
+
+  // ── New stats mini cards ──
+  const _sc=document.getElementById('statCases');
+  if(_sc) countUp(_sc, total, '', '', 800);
+  const _spd=document.getElementById('statPending');
+  if(_spd) countUp(_spd, pendingCount, '', '', 700);
+  const _scl=document.getElementById('statClients');
+  if(_scl) countUp(_scl, total, '', '', 800);
+  const _sdt=document.getElementById('statDefTag');
+  if(_sdt) _sdt.textContent='معاملات نشطة';
+  const _sct=document.getElementById('statCasesTag');
+  if(_sct) _sct.textContent='إجمالي المعاملات';
+
+  // ── Area chart main value ──
+  const _av=document.getElementById('areaChartVal');
+  if(_av) countUp(_av, totalIQD, '', ' د.ع', 900);
+  const _ac=document.getElementById('areaChartChange');
+  if(_ac){
+    const pct=total>0?Math.round((pendingCount/total)*100):0;
+    _ac.textContent='+'+pct+'%';
+    _ac.style.color=pct>50?'var(--green)':'var(--gold)';
+  }
+  const _as=document.getElementById('areaChartSub');
+  if(_as) _as.textContent='مجموع الدينار العراقي';
+
+  // ── Donut chart ──
+  updateDashDonut(total, pendingCount, defCount);
+
+  // ── Progress bars (lawyers) ──
+  const rpProg=document.getElementById('rpProgList');
+  if(rpProg){
+    const maxL=Math.max(...settings.lawyers.map(l=>cases.filter(c=>c.lawyer===l).length),1);
+    rpProg.innerHTML=settings.lawyers.map((l,i)=>{
+      const n=cases.filter(c=>c.lawyer===l).length;
+      const col=LAWYER_COLORS[i%LAWYER_COLORS.length];
+      const ico=`<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>`;
+      return`<div class="rp-prog-item">
+        <div class="rp-prog-top">
+          <span class="rp-prog-lbl" style="color:${col}">${ico}${l}</span>
+          <span class="rp-prog-num">${n}</span>
+        </div>
+        <div class="rp-prog-bar"><div class="rp-prog-fill" style="background:${col};width:${n/maxL*100}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Right panel log (recent 5 cases) ──
+  const rpLog=document.getElementById('rpLogList');
+  if(rpLog){
+    const recent=[...cases].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)).slice(0,5);
+    const statusIcos={
+      'قيد المعالجة':{bg:'rgba(245,166,35,.15)',c:'var(--gold)',ico:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},
+      'منجزة':{bg:'rgba(34,211,160,.15)',c:'var(--green)',ico:'<polyline points="20 6 9 17 4 12"/>'},
+      'معلقة':{bg:'rgba(255,85,114,.15)',c:'var(--red)',ico:'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'},
+      'مراجعة':{bg:'rgba(77,130,255,.15)',c:'var(--blue2)',ico:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'},
+      'ناقصة':{bg:'rgba(155,109,255,.15)',c:'var(--purple)',ico:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'},
+    };
+    rpLog.innerHTML=recent.map(c=>{
+      const si=statusIcos[c.status]||statusIcos['مراجعة'];
+      const amt=c.currency==='USD'?`$${fmt(c.amountUSD)}`:`${fmt(c.amountIQD)} د.ع`;
+      return`<div class="rp-log-item" onclick="openDetail(${c.id})" style="cursor:pointer">
+        <div class="rp-log-ico" style="background:${si.bg};color:${si.c}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${si.ico}</svg>
+        </div>
+        <div class="rp-log-main">
+          <div class="rp-log-name">${c.company}</div>
+          <div class="rp-log-sub">${c.lawyer} • <span class="status-badge ${statusClass(c.status)}" style="font-size:9px;padding:1px 5px">${c.status}</span></div>
+        </div>
+        <div class="rp-log-amt">${amt}</div>
+      </div>`;
+    }).join('')||'<div class="rp-empty" style="text-align:center;padding:20px 0;color:var(--muted);font-size:11px">لا توجد معاملات بعد</div>';
+  }
+
+  // ── Area chart mini sparkline ──
+  buildAreaSparkline();
+
+  // ── Legacy support for elements that might be in reports page ──
   const _sumI=document.getElementById('sumIQD'); if(_sumI) countUp(_sumI, totalIQD, '', ' د.ع', 900);
   const _sumU=document.getElementById('sumUSD'); if(_sumU) countUp(_sumU, totalUSD, '$', '', 900);
-  // statuses
-  const statusList=['قيد المعالجة','منجزة','معلقة','مراجعة','ناقصة'];
-  const statusColors={'قيد المعالجة':'var(--gold)','منجزة':'var(--green)','معلقة':'var(--red)','مراجعة':'var(--gold)','ناقصة':'var(--purple)'};
   const sc=document.getElementById('sumStatuses');
-  sc.innerHTML=statusList.map(s=>{const n=cases.filter(c=>c.status===s).length;return`<div class="status-row"><div class="status-row-lbl"><div class="status-row-dot" style="background:${statusColors[s]}"></div>${s}</div><div class="status-row-num">${n}</div></div>`;}).join('');
-  // lawyers
-  const lc=document.getElementById('sumLawyers');
-  const max=Math.max(...settings.lawyers.map(l=>cases.filter(c=>c.lawyer===l).length),1);
-  lc.innerHTML=settings.lawyers.map((l,i)=>{const n=cases.filter(c=>c.lawyer===l).length;const col=LAWYER_COLORS[i%LAWYER_COLORS.length];return`<div class="lawyer-row"><div class="lawyer-av" style="background:${col}">${l[0]}</div><div class="lawyer-info"><div class="lawyer-name">${l}</div><div class="lawyer-bar-wrap"><div class="lawyer-bar" style="background:${col};width:${n/max*100}%"></div></div></div><div class="lawyer-count">${n}</div></div>`;}).join('');
+  if(sc){
+    const statusList=['قيد المعالجة','منجزة','معلقة','مراجعة','ناقصة'];
+    const statusColors={'قيد المعالجة':'var(--gold)','منجزة':'var(--green)','معلقة':'var(--red)','مراجعة':'var(--gold)','ناقصة':'var(--purple)'};
+    sc.innerHTML=statusList.map(s=>{const n=cases.filter(c=>c.status===s).length;return`<div class="status-row"><div class="status-row-lbl"><div class="status-row-dot" style="background:${statusColors[s]}"></div>${s}</div><div class="status-row-num">${n}</div></div>`;}).join('');
+  }
+  const lcEl=document.getElementById('sumLawyers');
+  if(lcEl){
+    const maxL2=Math.max(...settings.lawyers.map(l=>cases.filter(c=>c.lawyer===l).length),1);
+    lcEl.innerHTML=settings.lawyers.map((l,i)=>{const n=cases.filter(c=>c.lawyer===l).length;const col=LAWYER_COLORS[i%LAWYER_COLORS.length];return`<div class="lawyer-row"><div class="lawyer-av" style="background:${col}">${l[0]}</div><div class="lawyer-info"><div class="lawyer-name">${l}</div><div class="lawyer-bar-wrap"><div class="lawyer-bar" style="background:${col};width:${n/maxL2*100}%"></div></div></div><div class="lawyer-count">${n}</div></div>`;}).join('');
+  }
   // update charts if on charts page
   if(document.getElementById('pageCharts').classList.contains('active'))buildCharts();
+}
+
+// ── Donut chart for dashboard right panel ──
+let donutDashChart=null;
+function updateDashDonut(total, pending, def){
+  const done=cases.filter(c=>c.status==='منجزة').length;
+  const hold=cases.filter(c=>c.status==='معلقة').length;
+  const review=cases.filter(c=>c.status==='مراجعة').length;
+  const data=[pending,done,hold,def||review];
+  const sum=data.reduce((a,b)=>a+b,0)||1;
+
+  // update center val
+  const cv=document.getElementById('donutCenterVal');
+  if(cv) cv.innerHTML=total+'<span>معاملة</span>';
+  // update legend pcts
+  const pct=n=>Math.round(n/sum*100)+'%';
+  const da=document.getElementById('dlegActive');if(da)da.textContent=pct(pending);
+  const dd=document.getElementById('dlegDone');if(dd)dd.textContent=pct(done);
+  const dh=document.getElementById('dlegHold');if(dh)dh.textContent=pct(hold);
+  const df=document.getElementById('dlegDef');if(df)df.textContent=pct(def);
+  // build/update chart
+  const ctx=document.getElementById('chartDonutDash');
+  if(!ctx)return;
+  if(donutDashChart){donutDashChart.destroy();}
+  donutDashChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['قيد المعالجة','منجزة','معلقة','ناقصة'],
+      datasets:[{
+        data:data.map(d=>d||0),
+        backgroundColor:['rgba(245,166,35,.85)','rgba(34,211,160,.85)','rgba(255,85,114,.85)','rgba(155,109,255,.85)'],
+        borderColor:['#F5A623','#22D3A0','#FF5572','#9B6DFF'],
+        borderWidth:2,
+        hoverOffset:4
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      cutout:'72%',
+      plugins:{legend:{display:false},tooltip:{rtl:true}},
+      animation:{duration:700}
+    }
+  });
+}
+
+// ── Area sparkline ──
+let areaSparkChart=null;
+function buildAreaSparkline(){
+  const ctx=document.getElementById('chartAreaMain');
+  if(!ctx)return;
+  // Generate monthly data from cases
+  const months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const now=new Date();
+  const labels=[];
+  const data=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    labels.push(months[d.getMonth()]);
+    const monthCases=cases.filter(c=>{
+      const ca=new Date(c.addedAt||0);
+      return ca.getFullYear()===d.getFullYear()&&ca.getMonth()===d.getMonth();
+    });
+    data.push(monthCases.reduce((s,c)=>s+(c.amountIQD||0),0));
+  }
+  // Add current total as last value
+  if(data[data.length-1]===0 && cases.length>0){
+    data[data.length-1]=cases.reduce((s,c)=>s+(c.amountIQD||0),0);
+  }
+  const isDark=document.documentElement.getAttribute('data-theme')!=='light';
+  if(areaSparkChart)areaSparkChart.destroy();
+  areaSparkChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data,
+        borderColor:'#F5A623',
+        borderWidth:2.5,
+        pointRadius:data.map((_,i)=>i===data.length-1?5:0),
+        pointBackgroundColor:'#F5A623',
+        fill:true,
+        backgroundColor:(context)=>{
+          const chart=context.chart;
+          const{ctx:c,chartArea}=chart;
+          if(!chartArea)return 'transparent';
+          const gradient=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+          gradient.addColorStop(0,'rgba(245,166,35,.35)');
+          gradient.addColorStop(1,'rgba(245,166,35,.02)');
+          return gradient;
+        },
+        tension:0.4
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{rtl:true,mode:'index',intersect:false}},
+      scales:{x:{display:false},y:{display:false}},
+      animation:{duration:600}
+    }
+  });
 }
 
 // ══ CHARTS ══

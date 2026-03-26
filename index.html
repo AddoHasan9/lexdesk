@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Security Headers -->
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="no-referrer">
 <title>LexDesk</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -69,23 +73,29 @@
 <nav class="sidebar">
   <!-- Logo -->
   <div class="sb-logo">
-    <svg viewBox="0 0 24 24" stroke-width="2.2"><path d="M12 3L4 9v12h5v-6h6v6h5V9L12 3z"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+    <div class="sb-logo-icon">
+      <svg viewBox="0 0 24 24" stroke-width="2.2"><path d="M12 3L4 9v12h5v-6h6v6h5V9L12 3z"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+    </div>
+    <span class="sb-logo-text">LexDesk</span>
   </div>
 
   <div class="sb-nav">
     <!-- Dashboard -->
     <button class="sb-btn active" id="sbDash" onclick="goPage('dash')">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-      <span class="tip">لوحة التحكم</span>
+      <span class="sb-lbl">الرئيسية</span>
+      <span class="tip">الرئيسية</span>
     </button>
     <!-- Charts -->
     <button class="sb-btn" id="sbCharts" onclick="goPage('charts')">
       <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      <span class="sb-lbl">التحليلات</span>
       <span class="tip">التحليلات</span>
     </button>
     <!-- Reports -->
     <button class="sb-btn" id="sbReports" onclick="goPage('reports')">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+      <span class="sb-lbl">التقارير</span>
       <span class="tip">التقارير المالية</span>
     </button>
 
@@ -94,16 +104,19 @@
     <!-- Add new -->
     <button class="sb-btn" onclick="openForm(null)">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span class="sb-lbl">معاملة جديدة</span>
       <span class="tip">معاملة جديدة</span>
     </button>
     <!-- Export Excel -->
     <button class="sb-btn" onclick="exportExcel()">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="sb-lbl">تصدير Excel</span>
       <span class="tip">تصدير Excel</span>
     </button>
     <!-- Print -->
     <button class="sb-btn" onclick="window.print()">
       <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      <span class="sb-lbl">طباعة</span>
       <span class="tip">طباعة</span>
     </button>
   </div>
@@ -113,12 +126,22 @@
     <!-- Settings -->
     <button class="sb-btn" id="sbSettings" onclick="goPage('settings')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="sb-lbl">الإعدادات</span>
       <span class="tip">الإعدادات</span>
     </button>
-    <!-- Theme toggle compact -->
+    <!-- Theme toggle -->
     <button class="sb-theme-btn" onclick="toggleTheme()" id="sbThemeBtn" title="تبديل الوضع">
-      <svg id="sbThemeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="sbThemeIcon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span class="sb-lbl">الوضع الليلي</span>
     </button>
+    <!-- User info -->
+    <div class="sb-user" onclick="logout()" id="sbUserInfo" style="display:none">
+      <div class="sb-user-av" id="sbUserAv">م</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name" id="sbUserName">الأدمن</div>
+        <div class="sb-user-role">تسجيل خروج</div>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -185,87 +208,128 @@
 
 <!-- DASH PAGE -->
 <div class="page active" id="pageDash">
+  <div class="dash-layout">
 
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-card" style="--accent-glow:var(--blue-glow)">
-      <div class="stat-top">
-        <div class="stat-ico" style="background:var(--blue-glow)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
-        <div class="stat-tag" style="background:var(--blue-glow);color:var(--blue2)" id="statCasesTag">0</div>
-      </div>
-      <div class="stat-val" id="statCases">0</div>
-      <div class="stat-lbl">إجمالي المعاملات</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="statCasesBar" style="background:var(--blue);width:0%"></div></div>
-    </div>
-    <div class="stat-card" style="--accent-glow:var(--gold-glow)">
-      <div class="stat-top">
-        <div class="stat-ico" style="background:var(--gold-glow)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/><path d="M9 11l3-3 3 3"/><path d="M9 17h6"/></svg></div>
-        <div class="stat-tag" style="background:var(--gold-glow);color:var(--gold)">IQD</div>
-      </div>
-      <div class="stat-val iqd" id="statIQD">0</div>
-      <div class="stat-lbl">إجمالي الدينار</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="statIQDBar" style="background:var(--gold);width:70%"></div></div>
-    </div>
-    <div class="stat-card" style="--accent-glow:rgba(0,196,140,.1)">
-      <div class="stat-top">
-        <div class="stat-ico" style="background:rgba(0,196,140,.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <div class="stat-tag" style="background:rgba(0,196,140,.1);color:var(--green)">USD</div>
-      </div>
-      <div class="stat-val" id="statUSD" style="color:var(--green)">$0</div>
-      <div class="stat-lbl">إجمالي الدولار</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="statUSDBar" style="background:var(--green);width:0%"></div></div>
-    </div>
-    <div class="stat-card" style="--accent-glow:rgba(255,77,106,.08)">
-      <div class="stat-top">
-        <div class="stat-ico" style="background:rgba(255,77,106,.08)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-        <div class="stat-tag" style="background:rgba(255,77,106,.08);color:var(--red)" id="statDefTag">0</div>
-      </div>
-      <div class="stat-val" id="statDef" style="color:var(--red)">0</div>
-      <div class="stat-lbl">معاملات بها نواقص</div>
-      <div class="stat-bar"><div class="stat-bar-fill" id="statDefBar" style="background:var(--red);width:0%"></div></div>
-    </div>
-  </div>
+    <!-- ─── CENTER ─── -->
+    <div class="dash-center">
 
-  <!-- MAIN GRID -->
-  <div class="dash-grid">
-
-    <!-- CASES PANEL -->
-    <div class="panel">
-      <div class="panel-hd">
-        <div class="panel-title">سجل المعاملات <span class="panel-count" id="caseCount">0</span></div>
-        <div class="panel-acts">
-          <div class="view-tabs">
-            <button class="vt active" id="vtList" onclick="setView('list')">☰ قائمة</button>
-            <button class="vt" id="vtCards" onclick="setView('cards')">⊞ بطاقات</button>
+      <!-- Area Chart Card -->
+      <div class="area-chart-card">
+        <div class="area-chart-header">
+          <div class="area-chart-label">
+            <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            إجمالي المبالغ
           </div>
-          <button class="btn-ghost" onclick="openForm(null)">＋ إضافة</button>
+          <span class="area-chart-change" id="areaChartChange">+0%</span>
+        </div>
+        <div class="area-chart-main-val" id="areaChartVal">0 د.ع</div>
+        <div class="area-chart-main-sub" id="areaChartSub">محاسبة النشر</div>
+        <div class="area-chart-canvas-wrap">
+          <canvas id="chartAreaMain"></canvas>
         </div>
       </div>
-      <div id="casesBody"></div>
-    </div>
 
-    <!-- SUMMARY -->
-    <div class="sum-panel">
-      <div class="sum-card">
-        <div class="sum-hd">💼 ملخص مالي</div>
-        <div class="sum-body">
-          <div class="sum-total" id="sumIQD">0 د.ع</div>
-          <div class="sum-sub">إجمالي الدينار العراقي</div>
-          <div class="sum-divider"></div>
-          <div class="sum-total" id="sumUSD" style="color:var(--green);font-size:16px">$0</div>
-          <div class="sum-sub">إجمالي الدولار الأمريكي</div>
+      <!-- 3 Mini Stats -->
+      <div class="stats-row">
+        <!-- معاملات -->
+        <div class="stat-mini">
+          <div class="stat-mini-icon" style="background:rgba(245,166,35,.12);color:var(--gold)">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          </div>
+          <div class="stat-mini-info">
+            <div class="stat-mini-num" id="statCases">0</div>
+            <div class="stat-mini-lbl">معاملات</div>
+            <div class="stat-mini-sub" id="statCasesTag">إجمالي المعاملات</div>
+          </div>
+        </div>
+        <!-- عملاء -->
+        <div class="stat-mini">
+          <div class="stat-mini-icon" style="background:rgba(77,130,255,.12);color:var(--blue2)">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-mini-info">
+            <div class="stat-mini-num" id="statClients">0</div>
+            <div class="stat-mini-lbl">عملاء</div>
+            <div class="stat-mini-sub">شركات مسجّلة</div>
+          </div>
+        </div>
+        <!-- قيد المعالجة -->
+        <div class="stat-mini">
+          <div class="stat-mini-icon" style="background:rgba(255,85,114,.12);color:var(--red)">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-mini-info">
+            <div class="stat-mini-num" id="statPending">0</div>
+            <div class="stat-mini-lbl">قيد المعالجة</div>
+            <div class="stat-mini-sub" id="statDefTag">معاملات نشطة</div>
+          </div>
         </div>
       </div>
-      <div class="sum-card">
-        <div class="sum-hd">📊 توزيع الحالات</div>
-        <div class="sum-body" id="sumStatuses"></div>
+
+      <!-- Cases Panel -->
+      <div class="cases-panel">
+        <div class="panel-hd">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            سجل المعاملات
+            <span class="panel-count" id="caseCount">0</span>
+          </div>
+          <div class="panel-acts">
+            <div class="view-tabs">
+              <button class="vt active" id="vtList" onclick="setView('list')">☰ قائمة</button>
+              <button class="vt" id="vtCards" onclick="setView('cards')">⊞ بطاقات</button>
+            </div>
+            <button class="btn-ghost" onclick="openForm(null)">＋ إضافة</button>
+          </div>
+        </div>
+        <div id="casesBody"></div>
       </div>
-      <div class="sum-card">
-        <div class="sum-hd">👥 أداء المحامين</div>
-        <div class="sum-body" id="sumLawyers"></div>
+
+    </div><!-- end dash-center -->
+
+    <!-- ─── RIGHT PANEL ─── -->
+    <div class="dash-right">
+
+      <!-- Donut chart -->
+      <div class="rp-card">
+        <div class="rp-hd">
+          <span class="rp-title">المعاملات</span>
+          <div class="rp-dots"><div class="rp-dot"></div><div class="rp-dot" style="background:var(--border)"></div><div class="rp-dot" style="background:var(--border)"></div></div>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-canvas-wrap">
+            <canvas id="chartDonutDash"></canvas>
+            <div class="donut-center-val" id="donutCenterVal">0<span>معاملة</span></div>
+          </div>
+          <div class="donut-legend" id="donutLegend">
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--gold)"></div>قيد المعالجة</div><span class="dleg-pct" id="dlegActive">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--green)"></div>منجزة</div><span class="dleg-pct" id="dlegDone">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--red)"></div>معلقة</div><span class="dleg-pct" id="dlegHold">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--purple)"></div>ناقصة</div><span class="dleg-pct" id="dlegDef">0%</span></div>
+          </div>
+        </div>
+        <!-- Progress bars per lawyer -->
+        <div class="rp-prog-list" id="rpProgList"></div>
       </div>
-    </div>
-  </div>
+
+      <!-- Cases log -->
+      <div class="rp-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="rp-hd">
+          <span class="rp-title">سجل المعاملات</span>
+          <div class="rp-dots"><div class="rp-dot"></div><div class="rp-dot" style="background:var(--border)"></div></div>
+        </div>
+        <div class="rp-log-list" id="rpLogList">
+          <!-- populated by JS -->
+        </div>
+        <div class="rp-note" style="margin-top:auto">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          مباشرة من قاعدة البيانات
+        </div>
+      </div>
+
+    </div><!-- end dash-right -->
+
+  </div><!-- end dash-layout -->
 </div>
 
 <!-- CHARTS PAGE -->
@@ -431,7 +495,35 @@
 </div><!-- end .main -->
 </div><!-- end .app -->
 
-<!-- MOBILE NAV -->
+<!-- FAB BUTTON (matches reference image) -->
+<div class="fab-wrap" id="fabWrap" style="display:none">
+  <div class="fab-actions" id="fabActions" style="display:none">
+    <div class="fab-action" onclick="openForm(null);toggleFab()">
+      <div class="fab-action-ico" style="background:rgba(245,166,35,.15);color:var(--gold)">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="13" x2="12" y2="17"/><line x1="10" y1="15" x2="14" y2="15"/></svg>
+      </div>
+      إضافة معاملة
+    </div>
+    <div class="fab-action" onclick="exportExcel();toggleFab()">
+      <div class="fab-action-ico" style="background:rgba(34,211,160,.15);color:var(--green)">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      تصدير Excel
+    </div>
+    <div class="fab-action" onclick="window.print();toggleFab()">
+      <div class="fab-action-ico" style="background:rgba(77,130,255,.15);color:var(--blue2)">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      </div>
+      طباعة
+    </div>
+  </div>
+  <button class="fab-main" id="fabMainBtn" onclick="toggleFab()">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
 <nav class="mob-nav" id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mnDash" onclick="mobGoPage('dash')" title="الرئيسية">
     <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
