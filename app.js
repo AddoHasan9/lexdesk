@@ -747,36 +747,3 @@ document.addEventListener('click',e=>{closeAllDrops();const panel=document.getEl
   else{document.getElementById('loginOfficeSub').textContent=settings.officeName;selectRole('admin');setTimeout(()=>{const p=document.getElementById('passInp');if(p)p.focus();},300);}
   initMobile();
 })();
-
-
-// ===== SIDEBAR =====
-function toggleSidebar(){
-  document.querySelector('.sidebar').classList.toggle('collapsed');
-}
-
-// ===== PAGE SWITCH =====
-function switchPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// ===== CHART =====
-function loadChart(){
-  const ctx = document.getElementById('chart');
-  if(!ctx) return;
-  new Chart(ctx,{
-    type:'doughnut',
-    data:{
-      labels:['منجزة','قيد المعالجة','معلقة'],
-      datasets:[{
-        data:[
-          cases.filter(c=>c.status==='منجزة').length,
-          cases.filter(c=>c.status==='قيد المعالجة').length,
-          cases.filter(c=>c.status==='معلقة').length
-        ]
-      }]
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', loadChart);
