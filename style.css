@@ -2177,10 +2177,36 @@ body { padding-bottom: 0; }
 .tag-item{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);}
 
 
-.card{
-  background:var(--card);
-  padding:15px;
+/* ===== UX UPGRADE FINAL ===== */
+
+.topbar-ux{
+  display:flex;
+  gap:10px;
+  padding:12px 20px;
+  align-items:center;
+}
+
+.search-box{
+  flex:1;
+  padding:10px;
   border-radius:10px;
   border:1px solid var(--border);
-  min-width:120px;
+  background:var(--surface2);
+}
+
+.page{
+  opacity:0;
+  transform:translateY(10px);
+  transition:.3s;
+}
+.page.active{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.sidebar.collapsed{
+  width:70px;
+}
+.sidebar.collapsed .sb-lbl{
+  display:none;
 }

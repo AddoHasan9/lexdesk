@@ -15,6 +15,19 @@
 </head>
 <body>
 
+<!-- ===== TOPBAR ENHANCED ===== -->
+<div class="topbar-ux">
+  <button onclick="toggleSidebar()">☰</button>
+  <input placeholder="بحث سريع..." class="search-box">
+  <button class="btn-primary" onclick="logout()">تسجيل خروج</button>
+</div>
+
+<!-- ===== PAGES ===== -->
+<div id="dashboardPage" class="page active">
+  <canvas id="chart" height="120"></canvas>
+</div>
+
+
 
 <!-- PARTICLES CANVAS -->
 <canvas id="particles" style="position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.4"></canvas>
@@ -936,16 +949,5 @@
 </div>
 
 <script src="app.js"></script>
-
-<!-- DASHBOARD -->
-<div id="dashboard" style="display:none;padding:20px">
-  <h2>📊 Dashboard</h2>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <div class="card">القضايا: <span id="statCases">0</span></div>
-    <div class="card">المنجزة: <span id="statDone">0</span></div>
-    <div class="card">المعلقة: <span id="statHold">0</span></div>
-  </div>
-</div>
-
 </body>
 </html>
