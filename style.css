@@ -362,7 +362,7 @@ svg { flex-shrink:0; }
 }
 .tb-search:focus-within {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px var(--gold-glow);
+  box-shadow: 0 0 0 3px var(--gold-dark);
 }
 .tb-search svg { width:14px; height:14px; stroke:var(--text3); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 .tb-search input {
@@ -400,7 +400,7 @@ svg { flex-shrink:0; }
   position: relative;
   transition: all var(--t);
 }
-.tb-icon-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
+.tb-icon-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-g); }
 .tb-icon-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
 /* User pill */
@@ -670,7 +670,7 @@ svg { flex-shrink:0; }
   font-weight: 600;
   transition: all var(--t);
 }
-.btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-g); }
 
 /* ─── TABLE ─── */
 .tbl-wrap { overflow-x: auto; }
@@ -742,7 +742,7 @@ tr.case-row:last-child td { border-bottom: none; }
   white-space: nowrap;
   transition: all var(--t);
 }
-.stage-chip:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
+.stage-chip:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-g); }
 
 /* Status badges — refined pill design */
 .status-badge {
@@ -1213,7 +1213,7 @@ tr.case-row:last-child td { border-bottom: none; }
   width: 100%;
   direction: rtl;
 }
-.sf-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.sf-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dark); }
 .btn-save-set {
   display: inline-flex;
   align-items: center;
@@ -1305,7 +1305,7 @@ tr.case-row:last-child td { border-bottom: none; }
   text-align: right;
   transition: all var(--t);
 }
-.data-action-btn:hover { border-color: var(--gold); background: var(--gold-glow); }
+.data-action-btn:hover { border-color: var(--gold); background: var(--gold-g); }
 .dab-ico { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
 .dab-title { font-size:13px; font-weight:700; color:var(--text); }
 .dab-sub { font-size:11px; color:var(--text3); margin-top:2px; }
@@ -1406,7 +1406,7 @@ tr.case-row:last-child td { border-bottom: none; }
   direction: rtl;
   transition: all var(--t);
 }
-.fm-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.fm-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dark); }
 .fm-inp::placeholder { color: var(--text3); }
 .fm-inp.has-err { border-color: var(--red); }
 .fm-err { font-size:10px; color:var(--red); display:none; margin-top:3px; }
@@ -1460,8 +1460,8 @@ tr.case-row:last-child td { border-bottom: none; }
   font-size: 13px;
 }
 .imp-area svg, .attach-zone svg { width:32px; height:32px; stroke:var(--text3); fill:none; stroke-width:1.5; margin:0 auto 8px; display:block; }
-.imp-area:hover, .attach-zone:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
-.imp-area.drag { border-color: var(--gold); background: var(--gold-glow); }
+.imp-area:hover, .attach-zone:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-g); }
+.imp-area.drag { border-color: var(--gold); background: var(--gold-g); }
 .attach-zone-ico { font-size:24px; margin-bottom:5px; }
 .attach-preview {
   display: flex; align-items: center; gap:9px;
@@ -1976,7 +1976,7 @@ tr.case-row:last-child td { border-bottom: none; }
   direction: ltr;
   transition: all var(--t);
 }
-.pass-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.pass-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dark); }
 .pass-inp::placeholder { font-size: 16px; letter-spacing: 1px; color: var(--text3); }
 .pass-err { font-size: 12px; color: var(--red); display:none; margin-bottom:12px; }
 .pass-err.show { display:block; }
@@ -2149,3 +2149,29 @@ body { padding-bottom: 0; }
   .stats-row { grid-template-columns:1fr; }
   .hero-kpi-value { font-size:28px; }
 }
+
+/* ══════════════════════════════════════
+   BUG FIX: Missing classes used in JS
+══════════════════════════════════════ */
+/* stat-card — used in buildReports() */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;}
+.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.stat-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.stat-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;}
+.stat-val{font-family:var(--font-d);font-size:22px;font-weight:900;color:var(--text);line-height:1.1;}
+.stat-val.iqd{color:var(--gold);}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:3px;}
+.stat-bar{height:4px;background:var(--surface);border-radius:2px;overflow:hidden;margin-top:10px;}
+.stat-bar-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+/* rp-empty — used in updateStats() */
+.rp-empty{text-align:center;padding:20px;color:var(--text3);font-size:12px;}
+/* comment classes */
+.comment-txt{font-size:13px;color:var(--text2);line-height:1.5;}
+.comment-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0;transition:color var(--t);}
+.comment-del:hover{color:var(--red);}
+/* attach-preview-size */
+.attach-preview-size{font-size:10px;color:var(--text3);}
+/* tag — used in renderTags() */
+.tag{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);}
+/* tag-item alias */
+.tag-item{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);}

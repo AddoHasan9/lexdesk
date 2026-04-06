@@ -14,7 +14,7 @@ const LOGIN_RATE={maxAttempts:5,lockoutMs:60000,attempts:0,lockedUntil:0};
 function canAttemptLogin(){
   if(Date.now()<LOGIN_RATE.lockedUntil){
     const secs=Math.ceil((LOGIN_RATE.lockedUntil-Date.now())/1000);
-    toast('⏳ حاول بعد '+secs+' ثانية','warn');
+    toast('حاول بعد +secs+' ثانية','warn');
     return false;
   }
   return true;
@@ -24,7 +24,7 @@ function recordFailedLogin(){
   if(LOGIN_RATE.attempts>=LOGIN_RATE.maxAttempts){
     LOGIN_RATE.lockedUntil=Date.now()+LOGIN_RATE.lockoutMs;
     LOGIN_RATE.attempts=0;
-    toast('🔒 تم قفل الدخول لمدة دقيقة','err');
+    toast('تم قفل الدخول لمدة دقيقة','err');
   }
 }
 function resetLoginAttempts(){LOGIN_RATE.attempts=0;LOGIN_RATE.lockedUntil=0;}
@@ -139,11 +139,11 @@ async function sbLoadMeta(key){
 function showSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el)return;
-  if(s==='saving'){el.textContent='☁️ حفظ...';el.style.color='var(--muted)';}
-  else if(s==='saved'){el.textContent='✅ محفوظ';el.style.color='var(--green)';}
-  else if(s==='error'){el.textContent='📵 بلا إنترنت';el.style.color='var(--red)';}
-  else if(s==='loading'){el.textContent='☁️ تحميل...';el.style.color='var(--muted)';}
-  else{el.textContent='';}
+  if(s==='saving'){el.innerHTML='<span style="color:var(--text3)">جاري الحفظ...</span>';}
+  else if(s==='saved'){el.innerHTML='<span style="color:var(--green)">محفوظ</span>';}
+  else if(s==='error'){el.innerHTML='<span style="color:var(--red)">بلا إنترنت</span>';}
+  else if(s==='loading'){el.innerHTML='<span style="color:var(--text3)">تحميل...</span>';}
+  else{el.innerHTML='';}
 }
 // ══ SKELETON LOADING HELPER ══
 function showSkeleton(containerId, rows){
@@ -207,7 +207,7 @@ async function loadAll(){
   const loaded=await sbLoad();
   if(loaded===true){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);return;}
   if(loaded==='empty'){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);cases=[];return;}
-  showSyncStatus('⚠️ بلا إنترنت');
+  showSyncStatus('error');
   try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);return;}}catch(e){}
   cases=SEED.map(c=>({...c}));saveData();
 }
@@ -305,6 +305,15 @@ const ADMIN_USER='منتظر';
 let currentUser=null;
 let currentRole=null; // 'admin' | 'user'
 
+// ══ ROLE SELECTOR ══
+let _selectedRole = 'admin';
+function selectRole(role) {
+  _selectedRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.role === role);
+  });
+}
+
 async function doLogin(){
   if(!canAttemptLogin())return;
   const pass=document.getElementById('passInp').value;
@@ -328,10 +337,10 @@ async function doLogin(){
   SFX.play('login');showApp();
   // warn if using default password
   if(currentRole==='admin'&&settings.mustChangeAdminPass){
-    setTimeout(()=>toast('⚠️ غيّر كلمة مرور الأدمن الافتراضية من الإعدادات!','warn'),2000);
+    setTimeout(()=>toast('غيّر كلمة مرور الأدمن الافتراضية من الإعدادات!','warn'),2000);
   }
   if(currentRole==='user'&&settings.mustChangeUserPass){
-    setTimeout(()=>toast('⚠️ غيّر كلمة مرور المستخدم الافتراضية من الإعدادات!','warn'),2000);
+    setTimeout(()=>toast('غيّر كلمة مرور المستخدم الافتراضية من الإعدادات!','warn'),2000);
   }
 }
 
@@ -390,7 +399,7 @@ function showApp(){
   render();updateStats();
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
-  toast('أهلاً بك 👋','ok');
+  toast('أهلاً بك','ok');
 }
 
 // ── FAB toggle ──
@@ -430,16 +439,66 @@ function saveNotifs(){
   try{localStorage.setItem(SK_NOTIFS,JSON.stringify(data));}catch(e){}
   sbSaveMeta('notifications', data);
 }
-function addNotif(type,msg){if(settings.notifEnabled===false)return;const n={id:Date.now(),type,msg,time:new Date().toISOString(),read:false};notifications.unshift(n);saveNotifs();renderNotifBadge();renderNotifList();sendPushNotif(msg);SFX.play('notif');}
-async function sendPushNotif(msg){if(!('Notification'in window)||Notification.permission!=='granted'||settings.notifEnabled===false)return;try{new Notification('LexDesk ⚖️',{body:msg,dir:'rtl',lang:'ar'});}catch(e){}}
+function addNotif(type,msg){
+  if(settings.notifEnabled===false)return;
+  const n={id:Date.now(),type,msg,time:new Date().toISOString(),read:false};
+  notifications.unshift(n);
+  saveNotifs();renderNotifBadge();renderNotifList();
+  sendPushNotif(msg);SFX.play('notif');
+}
+async function sendPushNotif(msg){if(!('Notification'in window)||Notification.permission!=='granted'||settings.notifEnabled===false)return;try{new Notification('LexDesk',{body:msg,dir:'rtl',lang:'ar'});}catch(e){}}
 function renderNotifBadge(){const u=notifications.filter(n=>!n.read).length;const b=document.getElementById('notifBadge');if(!b)return;b.textContent=u>9?'9+':u;b.classList.toggle('show',u>0);}
-function renderNotifList(){const l=document.getElementById('notifList');if(!l)return;if(!notifications.length){l.innerHTML='<div class="notif-empty"><div style="font-size:28px;margin-bottom:6px;opacity:.3">🔔</div>لا توجد إشعارات</div>';return;}l.innerHTML=notifications.map(n=>{const ico=n.type==='new'?'🟢':n.type==='hold'?'⏸':'✏️';const bg=n.type==='new'?'rgba(0,196,140,.15)':n.type==='hold'?'rgba(255,77,106,.15)':'rgba(59,126,255,.15)';const t=new Date(n.time);const ts=t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});return`<div class="notif-item${n.read?'':' unread'}" onclick="markRead(${n.id})"><div class="ni-ico" style="background:${bg}">${ico}</div><div><div class="ni-txt">${n.msg}</div><div class="ni-time">${ts}</div></div></div>`;}).join('');}
+function renderNotifList(){
+  const l=document.getElementById('notifList');
+  if(!l)return;
+  if(!notifications.length){
+    l.innerHTML='<div class="notif-empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.25;display:block;margin:0 auto 8px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>لا توجد إشعارات</div>';
+    return;
+  }
+  const NOTIF_ICONS = {
+    new:  {svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', bg:'var(--green-g)', color:'var(--green)'},
+    hold: {svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>', bg:'var(--red-g)', color:'var(--red)'},
+    edit: {svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>', bg:'var(--blue-g)', color:'var(--blue2)'}
+  };
+  l.innerHTML=notifications.map(n=>{
+    const icon=NOTIF_ICONS[n.type]||NOTIF_ICONS.edit;
+    const t=new Date(n.time);
+    const ts=t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="notif-item${n.read?'':' unread'}" onclick="markRead(${n.id})">
+      <div class="ni-ico" style="background:${icon.bg};color:${icon.color}">${icon.svg}</div>
+      <div><div class="ni-txt">${n.msg}</div><div class="ni-time">${ts}</div></div>
+    </div>`;
+  }).join('');
+}
 function markRead(id){const n=notifications.find(x=>x.id===id);if(n)n.read=true;saveNotifs();renderNotifBadge();renderNotifList();}
 function clearNotifs(){notifications=[];saveNotifs();renderNotifBadge();renderNotifList();toggleNotifPanel();}
 function toggleNotifPanel(){const p=document.getElementById('notifPanel');p.classList.toggle('open');if(p.classList.contains('open')){setTimeout(()=>{notifications.forEach(n=>n.read=true);saveNotifs();renderNotifBadge();renderNotifList();},1500);}}
 async function requestNotifPermission(){if(!('Notification'in window)){toast('متصفحك لا يدعم الإشعارات','err');return false;}if(Notification.permission==='granted')return true;if(Notification.permission==='denied'){toast('الإشعارات محظورة — فعّلها من إعدادات المتصفح','err');return false;}const r=await Notification.requestPermission();return r==='granted';}
-async function toggleNotifSetting(){const on=settings.notifEnabled!==false;if(!on){const g=await requestNotifPermission();if(!g){updateNotifUI(false);return;}settings.notifEnabled=true;toast('✅ الإشعارات مفعّلة','ok');setTimeout(()=>sendPushNotif('LexDesk — الإشعارات شغالة ✅'),500);}else{settings.notifEnabled=false;toast('🔕 الإشعارات موقفة','ok');}saveCfg();updateNotifUI(settings.notifEnabled!==false);}
-function updateNotifUI(on){const btn=document.getElementById('notifToggle');if(btn)btn.classList.toggle('on',on);const pl=document.getElementById('notifPermLbl');if(!pl)return;const p=('Notification'in window)?Notification.permission:'unsupported';if(p==='granted')pl.textContent='✅ المتصفح سمح بالإشعارات';else if(p==='denied')pl.textContent='🚫 محظورة — غيّر من إعدادات المتصفح';else if(p==='default')pl.textContent='⏳ لم تُطلب الإذن بعد';else pl.textContent='❌ غير مدعومة';}
+async function toggleNotifSetting(){
+  const on=settings.notifEnabled!==false;
+  if(!on){
+    const g=await requestNotifPermission();
+    if(!g){updateNotifUI(false);return;}
+    settings.notifEnabled=true;
+    toast('الإشعارات مفعّلة','ok');
+    setTimeout(()=>sendPushNotif('LexDesk — الإشعارات شغالة'),500);
+  }else{
+    settings.notifEnabled=false;
+    toast('الإشعارات موقفة','warn');
+  }
+  saveCfg();updateNotifUI(settings.notifEnabled!==false);
+}
+function updateNotifUI(on){
+  const btn=document.getElementById('notifToggle');
+  if(btn)btn.classList.toggle('on',on);
+  const pl=document.getElementById('notifPermLbl');
+  if(!pl)return;
+  const p=('Notification'in window)?Notification.permission:'unsupported';
+  if(p==='granted')pl.textContent='المتصفح سمح بالإشعارات';
+  else if(p==='denied')pl.textContent='محظورة — غيّر من إعدادات المتصفح';
+  else if(p==='default')pl.textContent='لم تُطلب الإذن بعد';
+  else pl.textContent='غير مدعومة في هذا المتصفح';
+}
 
 // ══ TABLE ROW DELEGATION ══
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -471,9 +530,19 @@ function render(){
   });
   const body=document.getElementById('casesBody');
   document.getElementById('caseCount').textContent=fil.length;
-  if(!fil.length){body.innerHTML='<div class="empty-state"><div class="empty-ico">⚖️</div><div class="empty-txt">لا توجد معاملات مطابقة</div><div class="empty-sub">جرّب تغيير الفلاتر أو أضف معاملة جديدة</div><button class="empty-btn" onclick="openForm(null)">＋ إضافة معاملة</button></div>';updateStats();return;}
+  if(!fil.length){
+    body.innerHTML=`<div class="empty-state">
+      <div class="empty-ico">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="empty-txt">لا توجد معاملات مطابقة</div>
+      <div class="empty-sub">جرّب تغيير الفلاتر أو أضف معاملة جديدة</div>
+      <button class="empty-btn" onclick="openForm(null)">＋ إضافة معاملة</button>
+    </div>`;
+    updateStats();return;
+  }
   if(currentView==='cards'){body.innerHTML='<div class="cards-grid">'+fil.map(renderCard).join('')+'</div>';}
-  else{body.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>المحامي</th><th>المبلغ</th><th>الحالة</th><th>نوع المعاملة</th><th>وين واصلة</th><th>📎</th><th></th></tr></thead><tbody>'+fil.map(renderRow).join('')+'</tbody></table></div>';}
+  else{body.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>المحامي</th><th>المبلغ</th><th>الحالة</th><th>نوع المعاملة</th><th>وين واصلة</th><th><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></th><th></th></tr></thead><tbody>'+fil.map(renderRow).join('')+'</tbody></table></div>';}
   updateStats();
 }
 
@@ -483,10 +552,10 @@ function renderRow(c){
   const lci=settings.lawyers.indexOf(c.lawyer);
   const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
   const amt=c.currency==='USD'?`<span class="amt usd">$${fmt(c.amountUSD)}</span>`:`<span class="amt iqd">${fmt(c.amountIQD)} د.ع</span>`;
-  const stg=c.stage?`<span class="stage-chip" onclick="openStageDrop(event,${c.id})">${c.stage}</span>`:`<span class="stage-chip" onclick="openStageDrop(event,${c.id})" style="color:var(--muted)">—</span>`;
+  const stg=c.stage?`<span class="stage-chip" onclick="openStageDrop(event,${c.id})">${c.stage}</span>`:`<span class="stage-chip" onclick="openStageDrop(event,${c.id})" style="color:var(--text3)">—</span>`;
   let statusHtml=`<span class="status-badge ${statusClass(c.status)}" onclick="openStatusDrop(event,${c.id})">${c.status}</span>`;
-  if(c.status==='معلقة'&&c.holdReason)statusHtml+=`<div style="font-size:10px;color:var(--muted);margin-top:3px">${c.holdReason}</div>`;
-  const attachHtml=c.attachUrl?`<a href="${c.attachUrl}" target="_blank" class="attach-badge">📎 فتح</a>`:'<span style="color:var(--muted);font-size:11px">—</span>';
+  if(c.status==='معلقة'&&c.holdReason)statusHtml+=`<div style="font-size:10px;color:var(--text3);margin-top:3px">${c.holdReason}</div>`;
+  const attachHtml=c.attachUrl?`<a href="${c.attachUrl}" target="_blank" class="attach-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> فتح</a>`:'<span style="color:var(--text3);font-size:11px">—</span>';
   return`<tr class="case-row" data-id="${c.id}" style="cursor:pointer"><td><div class="td-company">${c.company}</div>${c.notes?`<div class="td-notes">${c.notes}</div>`:''}</td><td><div class="td-lawyer"><div class="lawyer-dot" style="background:${lc}"></div>${c.lawyer}</div></td><td>${amt}</td><td>${statusHtml}</td><td><span class="type-chip">${c.type}</span></td><td>${stg}</td><td>${attachHtml}</td><td class="acts-cell"><div class="row-acts"><button class="act-btn" onclick="event.stopPropagation();openForm(${c.id})" title="تعديل"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" onclick="event.stopPropagation();askDel(${c.id})" title="حذف"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="del-label">حذف</span></button></div></td></tr>`;
 }
 
@@ -512,7 +581,7 @@ function renderCard(c){
     </div>
     <div class="cc-foot">
       ${c.stage?`<span class="stage-chip">${c.stage}</span>`:'<span></span>'}
-      ${c.attachUrl?`<a href="${c.attachUrl}" target="_blank" class="attach-badge" style="margin-right:4px">📎 وثيقة</a>`:''}
+      ${c.attachUrl?`<a href="${c.attachUrl}" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>`:''}
       <div style="display:flex;gap:4px">
         <button class="act-btn" title="تعديل" onclick="openForm(${c.id})">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -563,7 +632,7 @@ function updateStats(){
     _ac.innerHTML=`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>+${pct}%`;
     _ac.style.color=pct>0?'var(--green)':'var(--text3)';
     _ac.style.background=pct>0?'var(--green-g)':'var(--surface)';
-    _ac.style.borderColor=pct>0?'rgba(16,185,129,.2)':'var(--border)';
+    _ac.style.borderColor=pct>0?'rgba(16,185,129,.25)':'var(--border)';
   }
   const _as=document.getElementById('areaChartSub');
   if(_as) _as.textContent='مجموع الدينار العراقي للمعاملات';
@@ -594,11 +663,11 @@ function updateStats(){
   if(rpLog){
     const recent=[...cases].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)).slice(0,5);
     const statusIcos={
-      'قيد المعالجة':{bg:'rgba(245,166,35,.15)',c:'var(--gold)',ico:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},
-      'منجزة':{bg:'rgba(34,211,160,.15)',c:'var(--green)',ico:'<polyline points="20 6 9 17 4 12"/>'},
-      'معلقة':{bg:'rgba(255,85,114,.15)',c:'var(--red)',ico:'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'},
-      'مراجعة':{bg:'rgba(77,130,255,.15)',c:'var(--blue2)',ico:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'},
-      'ناقصة':{bg:'rgba(155,109,255,.15)',c:'var(--purple)',ico:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'},
+      'قيد المعالجة':{bg:'var(--gold-g)',c:'var(--gold)',ico:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'},
+      'منجزة':{bg:'var(--green-g)',c:'var(--green)',ico:'<polyline points="20 6 9 17 4 12"/>'},
+      'معلقة':{bg:'var(--red-g)',c:'var(--red)',ico:'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'},
+      'مراجعة':{bg:'var(--blue-g)',c:'var(--blue2)',ico:'<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'},
+      'ناقصة':{bg:'var(--purple-g)',c:'var(--purple)',ico:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'},
     };
     rpLog.innerHTML=recent.map(c=>{
       const si=statusIcos[c.status]||statusIcos['مراجعة'];
@@ -613,7 +682,7 @@ function updateStats(){
         </div>
         <div class="rp-log-amt">${amt}</div>
       </div>`;
-    }).join('')||'<div class="rp-empty" style="text-align:center;padding:20px 0;color:var(--muted);font-size:11px">لا توجد معاملات بعد</div>';
+    }).join('')||'<div class="rp-empty" style="text-align:center;padding:20px 0;color:var(--text3);font-size:11px">لا توجد معاملات بعد</div>';
   }
 
   // ── Area chart mini sparkline ──
@@ -784,9 +853,9 @@ function setStatus(id,val){
   if(val==='معلقة'&&old!=='معلقة'){
     const reason=prompt('سبب التعليق (اختياري):');
     if(reason!==null)c.holdReason=reason;
-    addNotif('hold',' معاملة معلقة: '+c.company);
+    addNotif('hold','معاملة معلقة: '+c.company);
   }else if(val!=='معلقة'){c.holdReason='';}
-  saveData();render();closeAllDrops();toast('✅ تم التحديث','ok');
+  saveData();render();closeAllDrops();toast('تم التحديث','ok');
 }
 function openStageDrop(e,id){
   e.stopPropagation();closeAllDrops();
@@ -799,7 +868,7 @@ function openStageDrop(e,id){
 }
 function setStage(id,val){
   if(val==='أخرى'){const v=prompt('اكتب المرحلة:');if(v)setStage(id,v.trim());closeAllDrops();return;}
-  const c=cases.find(x=>x.id===id);if(!c)return;c.stage=val;saveData();render();closeAllDrops();toast('✅ تم التحديث','ok');
+  const c=cases.find(x=>x.id===id);if(!c)return;c.stage=val;saveData();render();closeAllDrops();toast('تم التحديث','ok');
 }
 function closeAllDrops(){const d=document.getElementById('flDrop');if(d)d.remove();}
 
@@ -822,7 +891,12 @@ function openForm(id){
   const cur=document.getElementById('attachCurrent');
   if(c.attachUrl){
     cur.style.display='block';
-    cur.innerHTML=`<div class="attach-preview"><span class="attach-preview-ico">📎</span><span class="attach-preview-name">${c.attachName||'مرفق موجود'}</span><a href="${c.attachUrl}" target="_blank" style="font-size:11px;color:var(--green);font-weight:700;text-decoration:none">فتح ↗</a><button class="attach-del" onclick="removeAttach()">✕</button></div>`;
+    cur.innerHTML=`<div class="attach-preview">
+      <svg class="attach-preview-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      <span class="attach-preview-name">${c.attachName||'مرفق موجود'}</span>
+      <a href="${c.attachUrl}" target="_blank" style="font-size:11px;color:var(--green);font-weight:700;text-decoration:none">فتح ↗</a>
+      <button class="attach-del" onclick="removeAttach()">✕</button>
+    </div>`;
     document.getElementById('attachZone').style.display='none';
   } else {
     cur.style.display='none';
@@ -854,11 +928,11 @@ function buildLawyerSel(){
 function pickLawyer(n){selLawyer=n;buildLawyerSel();}
 function buildStatusOpts(){
   const opts=[
-    {v:'قيد المعالجة', c:'#F0A500', bg:'rgba(240,165,0,.12)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'},
-    {v:'منجزة',        c:'#00C48C', bg:'rgba(0,196,140,.12)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
-    {v:'معلقة',        c:'#FF4D6A', bg:'rgba(255,77,106,.12)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'},
-    {v:'مراجعة',       c:'#F0A500', bg:'rgba(240,165,0,.12)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'},
-    {v:'ناقصة',        c:'#9B6DFF', bg:'rgba(155,109,255,.12)',icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'},
+    {v:'قيد المعالجة', c:'#F0A500', bg:'var(--gold-g)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'},
+    {v:'منجزة',        c:'#00C48C', bg:'var(--green-g)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
+    {v:'معلقة',        c:'#FF4D6A', bg:'var(--red-g)', icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'},
+    {v:'مراجعة',       c:'#F0A500', bg:'var(--gold-g)',  icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'},
+    {v:'ناقصة',        c:'#9B6DFF', bg:'var(--purple-g)',icon:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'},
   ];
   document.getElementById('statusOpts').innerHTML=opts.map(o=>{
     const sel = o.v===selStatus;
@@ -938,19 +1012,19 @@ async function saveCase(){
     const statusChanged=old.status!==data.status;
     if(statusChanged) logEntry.msg=`تغيير الحالة: ${old.status} → ${data.status}`;
     cases[idx]={...old,...data,log:[...(old.log||[]),logEntry],comments:old.comments||[]};
-    if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','⏸ معاملة معلقة: '+data.company);else addNotif('edit','✏️ تعديل: '+data.company);}toast('✅ تم التعديل','ok');}
-  else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);addNotif('new','🟢 معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('✅ تمت الإضافة','ok');}
+    if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','معاملة معلقة: '+data.company);else addNotif('edit','تعديل: '+data.company);}toast('تم التعديل','ok');}
+  else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
   // upload file if pending
   if(pendingAttachFile){
     const btn=document.querySelector('.btn-save');
-    if(btn){btn.textContent='⏳ جاري الرفع...';btn.disabled=true;}
+    if(btn){btn.textContent='جاري الرفع...';btn.disabled=true;}
     const url=await uploadAttachment(pendingAttachFile, data.company);
     if(url){ data.attachUrl=url; data.attachName=pendingAttachFile.name;
       // update the case with url
       if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1)cases[idx]={...cases[idx],...data};}
       else{cases[cases.length-1]={...cases[cases.length-1],...data};}
     }
-    if(btn){btn.textContent='💾 حفظ المعاملة';btn.disabled=false;}
+    if(btn){btn.textContent='حفظ المعاملة';btn.disabled=false;}
   }
   saveData();render();closeForm();SFX.play('save');
 }
@@ -962,7 +1036,7 @@ function askDel(id){
   // close detail overlay if open
   const det=document.getElementById('detailOverlay');
   if(det&&det.classList.contains('open'))closeDetail();
-  document.getElementById('confirmIco').textContent='🗑️';
+  document.getElementById('confirmIco').innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
   document.getElementById('confirmTitle').textContent='حذف المعاملة';
   document.getElementById('confirmSub').textContent='هل تريد حذف "'+c.company+'"؟ لا يمكن التراجع.';
   document.getElementById('confirmBtn').onclick=async()=>{
@@ -987,13 +1061,13 @@ function askDel(id){
     render();
     closeOverlay('confirmOverlay');
     SFX.play('delete');
-    toast('🗑️ تم الحذف','err');
+    toast('تم الحذف','err');
   };
   openOverlay('confirmOverlay');
 }
 function askClearAll(){
-  if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}
-  document.getElementById('confirmIco').textContent='⚠️';
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
+  document.getElementById('confirmIco').innerHTML='<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
   document.getElementById('confirmTitle').textContent='مسح كل البيانات';
   document.getElementById('confirmSub').textContent='سيتم حذف جميع المعاملات والمرفقات نهائياً!';
   document.getElementById('confirmBtn').onclick=async()=>{
@@ -1015,7 +1089,7 @@ function askClearAll(){
     localStorage.setItem(SK_D, JSON.stringify(cases));
     render();
     closeOverlay('confirmOverlay');
-    toast('🗑️ تم مسح البيانات','err');
+    toast('تم مسح جميع البيانات','err');
   };
   openOverlay('confirmOverlay');
 }
@@ -1025,7 +1099,7 @@ function setView(v){currentView=v;document.getElementById('vtList').classList.to
 
 // ══ PAGES ══
 function goPage(p){
-  if((p==='reports'||p==='settings')&&!isAdmin()){toast('⛔ هذه الصفحة للأدمن فقط','err');return;}
+  if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
   const pages=['dash','charts','reports','settings'];
   pages.forEach(x=>{
     const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));
@@ -1050,7 +1124,7 @@ function switchSetTab(tab){
   if(el){el.classList.add('active');}
 }
 function loadSettingsPage(){
-  if(!isAdmin()){goPage('dash');toast('⛔ الإعدادات للأدمن فقط','err');return;}
+  if(!isAdmin()){goPage('dash');toast('الإعدادات للأدمن فقط','err');return;}
   document.getElementById('setOfficeName').value=settings.officeName;
   document.getElementById('setDefCur').value=settings.defCurrency;
   renderTags('lawyerTags',settings.lawyers,'lawyer');
@@ -1062,18 +1136,18 @@ function renderTags(elId,arr,kind){
   document.getElementById(elId).innerHTML=arr.map((t,i)=>`<div class="tag">${t}<button class="tag-del" onclick="removeItem('${kind}',${i})">✕</button></div>`).join('');
 }
 function removeItem(kind,i){
-  if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
   const map={lawyer:'lawyers',type:'types',dept:'depts'};
   const key=map[kind];if(!key)return;
-  if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('⚠️ المحامي عنده معاملات — لا يمكن حذفه','err');return;}
-  if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('⚠️ النوع مستخدم — لا يمكن حذفه','err');return;}
-  settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('✅ تم الحذف','ok');
+  if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('المحامي عنده معاملات — لا يمكن حذفه','err');return;}
+  if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('النوع مستخدم — لا يمكن حذفه','err');return;}
+  settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('تم الحذف','ok');
 }
-function addLawyer(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newLawyerInp').value.trim();if(!v)return;settings.lawyers.push(v);saveCfg();document.getElementById('newLawyerInp').value='';loadSettingsPage();populateAllDropdowns();}
-function addType(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newTypeInp').value.trim();if(!v)return;settings.types.push(v);saveCfg();document.getElementById('newTypeInp').value='';loadSettingsPage();populateAllDropdowns();}
-function addDept(){if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}const v=document.getElementById('newDeptInp').value.trim();if(!v)return;settings.depts.push(v);saveCfg();document.getElementById('newDeptInp').value='';loadSettingsPage();}
+function addLawyer(){if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}const v=document.getElementById('newLawyerInp').value.trim();if(!v)return;settings.lawyers.push(v);saveCfg();document.getElementById('newLawyerInp').value='';loadSettingsPage();populateAllDropdowns();}
+function addType(){if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}const v=document.getElementById('newTypeInp').value.trim();if(!v)return;settings.types.push(v);saveCfg();document.getElementById('newTypeInp').value='';loadSettingsPage();populateAllDropdowns();}
+function addDept(){if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}const v=document.getElementById('newDeptInp').value.trim();if(!v)return;settings.depts.push(v);saveCfg();document.getElementById('newDeptInp').value='';loadSettingsPage();}
 async function saveOfficeSettings(){
-  if(!isAdmin()){toast('⛔ للأدمن فقط','err');return;}
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
   settings.officeName=document.getElementById('setOfficeName').value.trim()||'مكتب المحاماة';
   settings.defCurrency=document.getElementById('setDefCur').value;
   const errEl=document.getElementById('passChangeErr');
@@ -1090,7 +1164,7 @@ async function saveOfficeSettings(){
     settings.adminPassHash=await hashPassword(newP);
     settings.mustChangeAdminPass=false;
     document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';
-    toast('🔐 تم تغيير كلمة مرور الأدمن','ok');
+    toast('تم تغيير كلمة مرور الأدمن','ok');
   }
   // --- User pass change ---
   const oldU=document.getElementById('oldUserPass').value;
@@ -1104,12 +1178,12 @@ async function saveOfficeSettings(){
     settings.userPassHash=await hashPassword(newU);
     settings.mustChangeUserPass=false;
     document.getElementById('oldUserPass').value='';document.getElementById('newUserPass').value='';document.getElementById('newUserPass2').value='';
-    toast('👤 تم تغيير كلمة مرور المستخدم','ok');
+    toast('تم تغيير كلمة مرور المستخدم','ok');
   }
   saveCfg();
   document.getElementById('officeTitle').textContent=settings.officeName;
   document.title='LexDesk · '+settings.officeName;
-  toast('✅ تم حفظ الإعدادات','ok');
+  toast('تم حفظ الإعدادات','ok');
 }
 
 // ══ POPULATE ══
@@ -1128,11 +1202,31 @@ function closeOverlay(id){document.getElementById(id).classList.remove('open');}
 
 // ══ TOAST ══
 let toastTimer;
-function toast(msg,type){const el=document.getElementById('toast');const icons={ok:'✅',err:'❌',warn:'⚠️',info:'ℹ️'};const ico=icons[type]||'💬';el.innerHTML=ico+' '+msg;el.style.color=type==='err'?'var(--red)':type==='ok'?'var(--green)':type==='warn'?'var(--orange)':'var(--text)';el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3500);}
+const TOAST_ICONS = {
+  ok:   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  err:  '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  info: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+};
+function toast(msg, type) {
+  const wrap = document.getElementById('toastWrap');
+  if (!wrap) return;
+  const t = type || 'info';
+  const div = document.createElement('div');
+  div.className = 'toast toast-' + (t === 'err' ? 'err' : t === 'ok' ? 'ok' : 'warn');
+  div.innerHTML = (TOAST_ICONS[t] || TOAST_ICONS.info) + '<span>' + msg + '</span>';
+  wrap.appendChild(div);
+  setTimeout(() => {
+    div.style.opacity = '0';
+    div.style.transform = 'translateY(8px)';
+    div.style.transition = 'all .3s';
+    setTimeout(() => div.remove(), 300);
+  }, 3200);
+}
 
 // ══ EXPORT ══
-function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('📤 تم التصدير','ok');}
-function backupJSON(){const b={cases,settings,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(b,null,2));a.download='LexDesk_backup_'+Date.now()+'.json';a.click();toast('💾 تم النسخ الاحتياطي','ok');}
+function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
+function backupJSON(){const b={cases,settings,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(b,null,2));a.download='LexDesk_backup_'+Date.now()+'.json';a.click();toast('تم حفظ النسخة الاحتياطية','ok');}
 function openImport(){openOverlay('importOverlay');}
 function openRestore(){openOverlay('restoreOverlay');}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
@@ -1142,8 +1236,8 @@ function processImportFile(f){
   r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws);
   importRows=raw.map((r,i)=>({id:Date.now()+i,company:r['الشركة']||r['company']||'',type:r['النوع']||r['type']||settings.types[0],lawyer:r['المحامي']||r['lawyer']||settings.lawyers[0],status:r['الحالة']||r['status']||'قيد المعالجة',currency:'IQD',amountIQD:parseFloat(r['المبلغ IQD']||r['amountIQD']||0),amountUSD:parseFloat(r['المبلغ USD']||r['amountUSD']||0),deficiency:r['النواقص']||'',notes:r['الملاحظات']||'',stage:r['المرحلة']||'',date:r['التاريخ']||'',addedAt:Date.now()+i,holdReason:''}));
   document.getElementById('importPreview').textContent='تم قراءة '+importRows.length+' سجل';};r.readAsBinaryString(f);}
-function confirmImport(){if(!importRows.length){toast('اختر ملف أولاً','err');return;}cases=[...cases,...importRows];saveData();render();closeOverlay('importOverlay');toast('✅ تم استيراد '+importRows.length+' سجل','ok');importRows=[];}
-function handleJSONRestore(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.cases)cases=d.cases;if(d.settings){settings={...settings,...d.settings};saveCfg();populateAllDropdowns();}saveData();render();closeOverlay('restoreOverlay');toast('📂 تمت الاستعادة','ok');}catch(err){toast('خطأ في ملف JSON','err');}};r.readAsText(inp.files[0]);}
+function confirmImport(){if(!importRows.length){toast('اختر ملف أولاً','err');return;}cases=[...cases,...importRows];saveData();render();closeOverlay('importOverlay');toast('تم استيراد '+importRows.length+' سجل','ok');importRows=[];}
+function handleJSONRestore(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.cases)cases=d.cases;if(d.settings){settings={...settings,...d.settings};saveCfg();populateAllDropdowns();}saveData();render();closeOverlay('restoreOverlay');toast('تمت الاستعادة بنجاح','ok');}catch(err){toast('خطأ في ملف JSON','err');}};r.readAsText(inp.files[0]);}
 
 // ══ ATTACHMENTS ══
 let pendingAttachFile = null;
@@ -1176,20 +1270,20 @@ async function uploadAttachment(file, company) {
       const msg = err.message || err.error || String(res.status);
       console.error('Upload failed:', res.status, err);
       if(msg.includes('not found') || msg.includes('does not exist')) {
-        toast('❌ الـ Bucket غير موجود — اصنعه من Supabase → Storage', 'err');
+        toast('الـ Bucket غير موجود — اصنعه من Supabase → Storage', 'err');
       } else if(res.status === 403 || msg.includes('policy') || msg.includes('violates')) {
-        toast('❌ Policy غير مضبوطة — شغّل الـ SQL من Supabase', 'err');
+        toast('Policy غير مضبوطة — شغّل الـ SQL من Supabase', 'err');
       } else {
-        toast('❌ فشل الرفع: ' + msg, 'err');
+        toast('فشل الرفع: ' + msg, 'err');
       }
       return '';
     }
 
-    toast('✅ تم رفع الملف بنجاح', 'ok');
+    toast('تم رفع الملف بنجاح', 'ok');
     return `${SB_URL}/storage/v1/object/public/${SB_BUCKET}/${fileName}`;
 
   } catch(e) {
-    toast('❌ خطأ في الاتصال: ' + e.message, 'err');
+    toast('خطأ في الاتصال: ' + e.message, 'err');
     console.error('Upload exception:', e);
     return '';
   }
@@ -1197,9 +1291,8 @@ async function uploadAttachment(file, company) {
 
 // ══ DIAGNOSE SUPABASE STORAGE ══
 async function diagStorage() {
-  toast('🔍 جاري فحص الإعدادات...', '');
+  toast('جاري فحص إعدادات التخزين...', 'info');
   try {
-    // try uploading a tiny test file
     const testContent = new Blob(['test'], {type:'text/plain'});
     const testName = 'test_' + Date.now() + '.txt';
     const r = await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${testName}`, {
@@ -1208,38 +1301,42 @@ async function diagStorage() {
       body: testContent
     });
     if (r.ok) {
-      // cleanup
       await fetch(`${SB_URL}/storage/v1/object/${SB_BUCKET}/${testName}`, {method:'DELETE', headers:SB_H});
-      alert('✅ Storage يشتغل بشكل صحيح!\nجرب ترفع الباركود الحين.');
+      toast('Storage يشتغل بشكل صحيح', 'ok');
     } else {
       const err = await r.json().catch(()=>({message: r.status}));
       if(r.status === 404) {
-        alert('❌ الـ Bucket "attachments" غير موجود\n\nالحل:\n1. افتح Supabase → Storage\n2. اضغط New Bucket\n3. الاسم: attachments\n4. فعّل Public ✅\n5. احفظ');
+        toast('الـ Bucket غير موجود — راجع Supabase Storage', 'err');
       } else if(r.status === 403 || r.status === 400) {
-        alert('❌ الـ Policy غير مضبوطة\n\nالحل من SQL Editor في Supabase:\n\nCREATE POLICY "allow_all"\nON storage.objects FOR ALL TO anon\nUSING (bucket_id = \'attachments\')\nWITH CHECK (bucket_id = \'attachments\');');
+        toast('الـ Policy غير مضبوطة — راجع SQL Editor في Supabase', 'err');
       } else {
-        alert('❌ خطأ: ' + (err.message || err.error || r.status));
+        toast('خطأ: ' + (err.message || err.error || r.status), 'err');
       }
     }
   } catch(e) {
-    alert('❌ خطأ في الاتصال: ' + e.message);
+    toast('خطأ في الاتصال: ' + e.message, 'err');
   }
 }
 
 function handleAttachSelect(inp) {
   const file = inp.files[0];
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) { toast('⚠️ الملف أكبر من 10MB', 'err'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('الملف أكبر من 10MB', 'err'); return; }
   pendingAttachFile = file;
   const isImg = file.type.startsWith('image/');
   const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  const icoSVG = isImg
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
   const prev = document.getElementById('attachPreview');
   prev.style.display = 'block';
   prev.innerHTML = `<div class="attach-preview">
-    <span class="attach-preview-ico">${isImg ? '🖼️' : '📄'}</span>
+    <span class="attach-preview-ico">${icoSVG}</span>
     <span class="attach-preview-name">${file.name}</span>
     <span class="attach-preview-size">${sizeMB} MB</span>
-    <button class="attach-del" onclick="clearAttach()">✕</button>
+    <button class="attach-del" onclick="clearAttach()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
   </div>`;
   document.getElementById('attachZone').classList.add('has-file');
 }
@@ -1432,7 +1529,7 @@ function openDetail(id){
     editBtn.parentNode.replaceChild(newEditBtn, editBtn);
     newEditBtn.addEventListener('click', ()=>{ closeDetail(); openForm(id); });
     document.getElementById('detLawyer').innerHTML = `<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:${lc};display:inline-block"></span>${c.lawyer||'—'}</span>`;
-    document.getElementById('detStatus').innerHTML = `<span class="status-badge ${statusClass(c.status)}">${c.status||'—'}</span>${c.holdReason?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${c.holdReason}</div>`:''}`;
+    document.getElementById('detStatus').innerHTML = `<span class="status-badge ${statusClass(c.status)}">${c.status||'—'}</span>${c.holdReason?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${c.holdReason}</div>`:''}`;
     const amt = c.currency==='USD' ? `<span style="color:var(--green);font-family:'Cairo',sans-serif;font-size:18px;font-weight:900">$${fmt(c.amountUSD)}</span>` : `<span style="color:var(--gold);font-family:'Cairo',sans-serif;font-size:18px;font-weight:900">${fmt(c.amountIQD)} د.ع</span>`;
     document.getElementById('detAmount').innerHTML = amt;
     document.getElementById('detStage').textContent = c.stage||'—';
@@ -1441,7 +1538,7 @@ function openDetail(id){
     document.getElementById('detNotesRow').style.display = c.notes?'block':'none';
     document.getElementById('detNotes').textContent = c.notes||'—';
     const attachRow = document.getElementById('detAttachRow');
-    if(c.attachUrl){ attachRow.style.display='block'; document.getElementById('detAttach').innerHTML=`<a href="${c.attachUrl}" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">📎 ${c.attachName||'فتح المرفق'} ↗</a>`; }
+    if(c.attachUrl){ attachRow.style.display='block'; document.getElementById('detAttach').innerHTML=`<a href="${c.attachUrl}" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">${c.attachName||'فتح المرفق'} ↗</a>`; }
     else attachRow.style.display='none';
     // wadea checklist in detail
     const wadeaDetailRow = document.getElementById('detWadeaRow');
@@ -1452,8 +1549,11 @@ function openDetail(id){
         const all=WADEA_ITEMS;
         document.getElementById('detWadeaList').innerHTML=all.map(item=>{
           const done=checked.includes(item);
-          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:1px solid ${done?'var(--green)':'var(--border)'};background:${done?'rgba(0,196,140,.07)':'var(--surface)'};margin-bottom:5px">
-            <span style="font-size:15px">${done?'✅':'⬜'}</span>
+          const checkSVG = done
+            ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+            : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/></svg>`;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid ${done?'var(--green)':'var(--border)'};background:${done?'var(--green-g)':'var(--surface)'};margin-bottom:6px">
+            ${checkSVG}
             <span style="font-size:13px;font-weight:600;color:${done?'var(--green)':'var(--text2)'}">${item}</span>
           </div>`;
         }).join('');
@@ -1470,7 +1570,7 @@ function openDetail(id){
 function renderDetailComments(c){
   const comments = c.comments||[];
   const el = document.getElementById('detComments');
-  if(!comments.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">لا توجد تعليقات بعد</div>'; return; }
+  if(!comments.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">لا توجد تعليقات بعد</div>'; return; }
   el.innerHTML = comments.map(cm=>{
     const t = new Date(cm.time);
     const ts = t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
@@ -1480,13 +1580,18 @@ function renderDetailComments(c){
 function renderDetailTimeline(c){
   const log = c.log||[];
   const el = document.getElementById('detTimeline');
-  if(!log.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">لا يوجد سجل بعد</div>'; return; }
-  const icons={new:'🟢',edit:'✏️',status:'🔄',comment:'💬'};
-  const dotClass={new:'new',edit:'edit',status:'status',comment:'comment'};
+  if(!log.length){ el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">لا يوجد سجل بعد</div>'; return; }
+  const dotColors={
+    new:    'var(--green)',
+    edit:   'var(--gold)',
+    status: 'var(--blue2)',
+    comment:'var(--purple)'
+  };
   el.innerHTML = [...log].reverse().map(l=>{
     const t = new Date(l.time);
     const ts = t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric',year:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="tl-item"><div class="tl-dot ${dotClass[l.type]||'edit'}">${icons[l.type]||'✏️'}</div><div class="tl-content"><div class="tl-msg">${l.msg}</div><div class="tl-time">${l.user} • ${ts}</div></div></div>`;
+    const col = dotColors[l.type] || 'var(--gold)';
+    return `<div class="tl-item"><div class="tl-dot" style="border-color:${col};background:${col}22"></div><div class="tl-body"><div class="tl-txt">${l.msg}</div><div class="tl-time">${l.user} • ${ts}</div></div></div>`;
   }).join('');
 }
 function addComment(){
@@ -1548,9 +1653,18 @@ function buildReports(){
   // summary cards
   const sc = document.getElementById('repSummaryCards');
   if(sc){sc.innerHTML=`
-    <div class="stat-card" style="--accent-glow:var(--gold-glow)"><div class="stat-top"><div class="stat-ico" style="background:var(--gold-glow)">💰</div><div class="stat-tag" style="background:var(--gold-glow);color:var(--gold)">IQD</div></div><div class="stat-val iqd">${fmt(totalIQD)}</div><div class="stat-lbl">إجمالي الدينار</div></div>
-    <div class="stat-card" style="--accent-glow:rgba(0,196,140,.1)"><div class="stat-top"><div class="stat-ico" style="background:rgba(0,196,140,.1)">💵</div><div class="stat-tag" style="background:rgba(0,196,140,.1);color:var(--green)">USD</div></div><div class="stat-val" style="color:var(--green)">$${fmt(totalUSD)}</div><div class="stat-lbl">إجمالي الدولار</div></div>
-    <div class="stat-card" style="--accent-glow:var(--blue-glow)"><div class="stat-top"><div class="stat-ico" style="background:var(--blue-glow)">✅</div><div class="stat-tag" style="background:var(--blue-glow);color:var(--blue2)">${filtered.length}</div></div><div class="stat-val" style="color:var(--blue2)">${done}</div><div class="stat-lbl">معاملات منجزة</div></div>
+    <div class="stat-card"><div class="stat-top">
+      <div class="stat-ico" style="background:var(--gold-g);color:var(--gold)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="stat-tag" style="background:var(--gold-g);color:var(--gold)">IQD</div>
+    </div><div class="stat-val iqd">${fmt(totalIQD)}</div><div class="stat-lbl">إجمالي الدينار</div></div>
+    <div class="stat-card"><div class="stat-top">
+      <div class="stat-ico" style="background:var(--green-g);color:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="stat-tag" style="background:var(--green-g);color:var(--green)">USD</div>
+    </div><div class="stat-val" style="color:var(--green)">$${fmt(totalUSD)}</div><div class="stat-lbl">إجمالي الدولار</div></div>
+    <div class="stat-card"><div class="stat-top">
+      <div class="stat-ico" style="background:var(--blue-g);color:var(--blue2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="stat-tag" style="background:var(--blue-g);color:var(--blue2)">${filtered.length}</div>
+    </div><div class="stat-val" style="color:var(--blue2)">${done}</div><div class="stat-lbl">معاملات منجزة</div></div>
   `;}
   // monthly breakdown
   const months={};
@@ -1567,7 +1681,7 @@ function buildReports(){
   const maxIQD=Math.max(...sortedMonths.map(([,v])=>v.iqd),1);
   const repM=document.getElementById('repMonthly');
   if(repM){
-    if(!sortedMonths.length){repM.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">لا توجد بيانات</div>';return;}
+    if(!sortedMonths.length){repM.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا توجد بيانات</div>';return;}
     repM.innerHTML=sortedMonths.map(([,v])=>`
       <div class="month-row">
         <div class="month-lbl">${v.lbl}</div>
@@ -1617,7 +1731,7 @@ function buildReports(){
         <div class="rep-sum-lbl"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sColors[s]};margin-left:6px"></span>${s}</div>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="rep-sum-val">${n}</div>
-          <div style="font-size:11px;color:var(--muted);width:35px;text-align:left">${pct}%</div>
+          <div style="font-size:11px;color:var(--text3);width:35px;text-align:left">${pct}%</div>
         </div>
       </div>`;
     }).join('');
@@ -1627,9 +1741,9 @@ function buildReports(){
   if(repT){
     const sorted=[...filtered].sort((a,b)=>(b.amountIQD||0)-(a.amountIQD||0)).slice(0,5);
     const maxAmt=Math.max(...sorted.map(c=>c.amountIQD||0),1);
-    if(!sorted.length){repT.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">لا توجد بيانات</div>';return;}
+    if(!sorted.length){repT.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا توجد بيانات</div>';return;}
     repT.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">`+sorted.map((c,i)=>{
-      const medals=['🥇','🥈','🥉','4️⃣','5️⃣'];
+      const medals=['1','2','3','4','5'];
       const pct=Math.max((c.amountIQD||0)/maxAmt*100,4);
       return`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
         <div style="font-size:18px;margin-bottom:6px">${medals[i]}</div>
@@ -1643,7 +1757,7 @@ function buildReports(){
 }
 function exportReportPDF(){
   window.print();
-  toast('🖨️ جاري الطباعة / حفظ PDF','ok');
+  toast('جاري الطباعة','ok');
 }
 
 // ══ MOBILE FILTERS SYNC ══
@@ -1670,11 +1784,11 @@ let selRemCat = 'عام';
 let selRemColor = 'var(--gold)';
 
 const REM_CATS = {
-  'عام':  { icon:'📌', color:'var(--gold)',   bg:'rgba(240,165,0,.15)'  },
-  'أوراق':{ icon:'📄', color:'var(--blue2)',  bg:'rgba(59,126,255,.15)' },
-  'فلوس': { icon:'💰', color:'var(--green)',  bg:'rgba(0,196,140,.15)'  },
-  'موعد': { icon:'📅', color:'var(--purple)', bg:'rgba(155,109,255,.15)'},
-  'عاجل': { icon:'🔴', color:'var(--red)',    bg:'rgba(255,77,106,.15)' },
+  'عام':  { color:'var(--gold)',   bg:'var(--gold-g)'   },
+  'أوراق':{ color:'var(--blue2)', bg:'var(--blue-g)'   },
+  'فلوس': { color:'var(--green)', bg:'var(--green-g)'  },
+  'موعد': { color:'var(--purple)',bg:'var(--purple-g)' },
+  'عاجل': { color:'var(--red)',   bg:'var(--red-g)'    },
 };
 
 async function loadReminders() {
@@ -1698,10 +1812,14 @@ function renderRemList() {
   const el = document.getElementById('remList');
   if (!el) return;
   if (!reminders.length) {
-    el.innerHTML = '<div class="rem-empty"><div style="font-size:36px;margin-bottom:8px;opacity:.3">📝</div>لا توجد تذكيرات<br><span style="font-size:11px;color:var(--muted);margin-top:4px;display:inline-block">أضف تذكيرك الأول</span></div>';
+    el.innerHTML = `<div class="rem-empty">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.25;display:block;margin:0 auto 8px">
+        <path d="M11 3a1 1 0 0 1 2 0"/><path d="M12 3C8.134 3 5 6.134 5 10v4l-1.5 2.5A1 1 0 0 0 4.36 18H19.64a1 1 0 0 0 .86-1.5L19 14v-4c0-3.866-3.134-7-7-7z"/><path d="M9 18a3 3 0 0 0 6 0"/>
+      </svg>
+      لا توجد تذكيرات<br><span style="font-size:11px;color:var(--text3);margin-top:4px;display:inline-block">أضف تذكيرك الأول</span>
+    </div>`;
     return;
   }
-  // sort: undone first, then by date
   const sorted = [...reminders].sort((a,b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
     return (b.addedAt||0) - (a.addedAt||0);
@@ -1709,19 +1827,24 @@ function renderRemList() {
   const cat = REM_CATS;
   el.innerHTML = sorted.map(r => {
     const c = cat[r.cat] || cat['عام'];
-    const dateStr = r.date ? `<span class="rem-date">📅 ${r.date}</span>` : '';
+    const dateStr = r.date ? `<span class="rem-date">${r.date}</span>` : '';
+    const doneIcon = r.done
+      ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+      : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`;
     return `<div class="rem-item${r.done?' done':''}">
       <div class="rem-color" style="background:${c.color}"></div>
       <div class="rem-body">
         <div class="rem-text">${r.text}</div>
         <div class="rem-meta">
-          <span class="rem-tag" style="background:${c.bg};color:${c.color}">${c.icon} ${r.cat}</span>
+          <span class="rem-tag" style="background:${c.bg};color:${c.color}">${r.cat}</span>
           ${dateStr}
         </div>
       </div>
       <div class="rem-acts">
-        <button class="rem-act done-btn" onclick="toggleRemDone(${r.id})" title="${r.done?'تراجع':'تم'}">${r.done?'↩':'✓'}</button>
-        <button class="rem-act del" onclick="deleteRem(${r.id})" title="حذف">✕</button>
+        <button class="rem-act done-btn" onclick="toggleRemDone(${r.id})" title="${r.done?'تراجع':'تم'}">${doneIcon}</button>
+        <button class="rem-act del" onclick="deleteRem(${r.id})" title="حذف">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>`;
   }).join('');
@@ -1776,7 +1899,7 @@ function saveReminder() {
   renderRemBadge();
   closeRemForm();
   SFX.play('add');
-  toast('📝 تم حفظ التذكير','ok');
+  toast('تم حفظ التذكير','ok');
 }
 function toggleRemDone(id) {
   const r = reminders.find(x => x.id === id);
@@ -1793,7 +1916,7 @@ function deleteRem(id) {
   renderRemList();
   renderRemBadge();
   SFX.play('delete');
-  toast('🗑️ تم الحذف','ok');
+  toast('تم الحذف','ok');
 }
 
 
