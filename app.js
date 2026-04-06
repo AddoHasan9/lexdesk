@@ -747,3 +747,38 @@ document.addEventListener('click',e=>{closeAllDrops();const panel=document.getEl
   else{document.getElementById('loginOfficeSub').textContent=settings.officeName;selectRole('admin');setTimeout(()=>{const p=document.getElementById('passInp');if(p)p.focus();},300);}
   initMobile();
 })();
+
+
+// ===== SIMPLE AUTH SYSTEM =====
+function login(username){
+  localStorage.setItem('user', username);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  updateDashboard();
+}
+
+function logout(){
+  localStorage.removeItem('user');
+  location.reload();
+}
+
+function checkAuth(){
+  const u = localStorage.getItem('user');
+  if(u){
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('dashboard').style.display='block';
+    updateDashboard();
+  }
+}
+
+// ===== DASHBOARD =====
+function updateDashboard(){
+  const total = cases.length;
+  const done = cases.filter(c=>c.status==='منجزة').length;
+  const hold = cases.filter(c=>c.status==='معلقة').length;
+  document.getElementById('statCases').innerText = total;
+  document.getElementById('statDone').innerText = done;
+  document.getElementById('statHold').innerText = hold;
+}
+
+document.addEventListener('DOMContentLoaded', checkAuth);

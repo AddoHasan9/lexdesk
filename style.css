@@ -2175,3 +2175,12 @@ body { padding-bottom: 0; }
 .tag{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);}
 /* tag-item alias */
 .tag-item{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:12px;color:var(--text2);}
+
+
+.card{
+  background:var(--card);
+  padding:15px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  min-width:120px;
+}
