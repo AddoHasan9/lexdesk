@@ -163,7 +163,11 @@ async function saveData(){
     }
   },800);
 }
-function saveCfg(){try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}}
+function saveCfg(){
+  try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}
+  // ═ حفظ الإعدادات بالسيرفر عشان تكون موحدة لكل الأجهزة ═
+  sbSaveMeta('settings', settings);
+}
 // ══ DEFAULTS ══
 const DEFAULT_LAWYERS=['منتظر','مروه','علي'];
 const DEFAULT_TYPES=['تأسيس شركة','تصديق اوليات الشركة','زيادة رأس المال','اضافة نشاط','حفظ الحسابات الختامية','منح كتب تأييد للشركات','إطلاق وديعة','نقل مقر الشركات المحدودة','استمرار تعيين','بيع اسهم','تجديد شهادة تأسيس','تعديل نشاط الشركة'];
@@ -178,7 +182,20 @@ const parseAmt=s=>parseFloat((s||'').replace(/,/g,''))||0;
 
 // ══ LOAD ══
 async function loadAll(){
-  try{const s=localStorage.getItem(SK_S);settings=s?JSON.parse(s):{};}catch(e){settings={};}
+  // ═ تحميل الإعدادات: السيرفر أولاً (موحد لكل الأجهزة) ═
+  let cloudSettings = await sbLoadMeta('settings');
+  let localSettings = {};
+  try{ const s=localStorage.getItem(SK_S); localSettings=s?JSON.parse(s):{}; }catch(e){ localSettings={}; }
+
+  // السيرفر له الأولوية — لو موجود نستخدمه
+  if(cloudSettings && typeof cloudSettings === 'object' && cloudSettings.officeName){
+    settings = cloudSettings;
+    // حدّث اللوكال عشان يكون متزامن
+    try{ localStorage.setItem(SK_S, JSON.stringify(settings)); }catch(e){}
+  } else {
+    settings = localSettings;
+  }
+
   settings.officeName=settings.officeName||'مكتب المحاماة';
   settings.defCurrency=settings.defCurrency||'IQD';
   settings.lawyers=settings.lawyers||[...DEFAULT_LAWYERS];
@@ -251,10 +268,25 @@ function clearSecureSession(){try{sessionStorage.removeItem(SK_USER);}catch(e){}
 
 // ══ PASSWORD INIT ══
 async function initPasswords(){
-  if(!settings.adminPassHash){settings.adminPassHash=await hashPassword('1234');settings.mustChangeAdminPass=true;}
-  if(!settings.userPassHash){settings.userPassHash=await hashPassword('0000');settings.mustChangeUserPass=true;}
-  if(settings.adminPass){settings.adminPassHash=await hashPassword(settings.adminPass);delete settings.adminPass;saveCfg();}
-  if(settings.userPass){settings.userPassHash=await hashPassword(settings.userPass);delete settings.userPass;saveCfg();}
+  let changed = false;
+  if(!settings.adminPassHash){settings.adminPassHash=await hashPassword('1234');settings.mustChangeAdminPass=true;changed=true;}
+  if(!settings.userPassHash){settings.userPassHash=await hashPassword('0000');settings.mustChangeUserPass=true;changed=true;}
+  if(settings.adminPass){settings.adminPassHash=await hashPassword(settings.adminPass);delete settings.adminPass;changed=true;}
+  if(settings.userPass){settings.userPassHash=await hashPassword(settings.userPass);delete settings.userPass;changed=true;}
+  if(changed) saveCfg(); // يحفظ بالسيرفر + اللوكال
+}
+
+// ══ إعادة تعيين كلمة المرور للافتراضي ══
+async function resetPassword(){
+  // تأكيد مزدوج
+  const sure = confirm('هل تريد إعادة تعيين كلمة المرور؟\n\nكلمة مرور الأدمن: 1234\nكلمة مرور المستخدم: 0000');
+  if(!sure) return;
+  settings.adminPassHash = await hashPassword('1234');
+  settings.userPassHash = await hashPassword('0000');
+  settings.mustChangeAdminPass = true;
+  settings.mustChangeUserPass = true;
+  saveCfg();
+  toast('تم إعادة التعيين — أدمن: 1234 / مستخدم: 0000','ok');
 }
 
 // ══ AUTH ══

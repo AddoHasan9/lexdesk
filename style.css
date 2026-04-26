@@ -1710,6 +1710,21 @@ tr.case-row:last-child td { border-bottom:none; }
 }
 .login-btn:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(245,166,35,.5); }
 .login-btn:active { transform:translateY(0); }
+.reset-pass-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--t);
+  border-radius: 8px;
+}
+.reset-pass-btn:hover { color: var(--gold); background: var(--gold-dark); }
 @keyframes shake { 0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);} }
 
 /* ══════════ MOBILE NAV ══════════ */
