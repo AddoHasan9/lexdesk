@@ -300,12 +300,18 @@ function selectRole(role) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === role));
 }
 
+function setRole(role) {
+  _selectedRole = role;
+  document.querySelectorAll('.role-tab').forEach(b => b.classList.toggle('active', (role==='admin'&&b.id==='rtAdmin')||(role==='user'&&b.id==='rtUser')));
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === role));
+}
+
 async function doLogin(){
   if(!canAttemptLogin())return;
   const pass=document.getElementById('passInp').value;
   if(!pass)return;
   const hashed=await hashPassword(pass);
-  if(hashed===settings.adminPassHash){currentRole='admin';currentUser=ADMIN_USER;}
+  if(hashed===settings.adminPassHash && (_selectedRole==='admin' || hashed!==settings.userPassHash)){currentRole='admin';currentUser=ADMIN_USER;}
   else if(hashed===settings.userPassHash){currentRole='user';currentUser='مستخدم';}
   else {
     recordFailedLogin();
