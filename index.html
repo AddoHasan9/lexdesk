@@ -875,6 +875,10 @@
         </div>
       </div>
       <div class="detail-hd-acts">
+        <button class="btn-save" id="detConvertBtn" style="display:none;align-items:center;gap:5px;font-size:12px;padding:5px 12px;height:auto">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          تحويل لإطلاق وديعة
+        </button>
         <button class="btn-ghost" id="detEditBtn" onclick="detailEdit()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:4px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           تعديل
@@ -883,6 +887,10 @@
       </div>
     </div>
     <div class="detail-body">
+      <!-- Tasis Done Badge -->
+      <div id="detTasisBadge" style="display:none;margin-bottom:12px"></div>
+      <!-- Wadea Deadline Countdown -->
+      <div id="detWadeaDeadline" style="display:none;margin-bottom:16px"></div>
       <!-- Info Grid -->
       <div>
         <div class="detail-section-title">معلومات المعاملة</div>
@@ -942,6 +950,74 @@
   </div>
 </div>
 
+
+<!-- CONVERT TO WADEA MODAL -->
+<div class="overlay" id="cvOverlay" style="display:none" onclick="if(event.target===this)closeCvOverlay()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title">تحويل لإطلاق وديعة</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">شركة: <strong id="cvCompanyName">—</strong></div>
+      </div>
+      <button class="modal-close" onclick="closeCvOverlay()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Cert Date + Shareholder Type -->
+      <div class="fm-grid">
+        <div>
+          <label class="fm-lbl">تاريخ شهادة التأسيس *</label>
+          <input id="cvCertDate" type="date" class="fm-inp">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">من هذا التاريخ تُحسب مهلة الغرامة</div>
+        </div>
+        <div>
+          <label class="fm-lbl">نوع الشركة *</label>
+          <select id="cvShareType" class="fm-inp">
+            <option value="single">شخص واحد — 30 يوم</option>
+            <option value="multi">أكثر من شخص — 57 يوم</option>
+          </select>
+        </div>
+      </div>
+      <!-- Deadline countdown -->
+      <div id="cvDeadlineInfo" style="margin:12px 0"></div>
+      <!-- Wadea checkboxes -->
+      <div style="margin-top:4px">
+        <label class="fm-lbl">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:5px"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+          متطلبات إطلاق الوديعة
+        </label>
+        <div class="wadea-box" style="margin-top:8px">
+          <div class="wadea-checks">
+            <label class="wadea-item" id="cvcheck1" onclick="toggleCvWadea(1)">
+              <input type="checkbox" id="cv1" onclick="event.stopPropagation()">
+              <span class="wadea-item-lbl">كتاب مشاور</span>
+              <span class="wadea-tick">✓</span>
+            </label>
+            <label class="wadea-item" id="cvcheck2" onclick="toggleCvWadea(2)">
+              <input type="checkbox" id="cv2" onclick="event.stopPropagation()">
+              <span class="wadea-item-lbl">كتاب محاسب</span>
+              <span class="wadea-tick">✓</span>
+            </label>
+            <label class="wadea-item" id="cvcheck3" onclick="toggleCvWadea(3)">
+              <input type="checkbox" id="cv3" onclick="event.stopPropagation()">
+              <span class="wadea-item-lbl">أُرسلت على النظام</span>
+              <span class="wadea-tick">✓</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:10px 14px;background:var(--gold-g);border:1px solid rgba(245,166,35,.25);border-radius:8px;font-size:12px;color:var(--text2)">
+        <strong style="color:var(--gold)">ماذا سيحدث؟</strong> معاملة التأسيس ستُشطب بالقائمة وتبقى مرئية، وتُنشأ معاملة إطلاق وديعة جديدة مرتبطة بها.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeCvOverlay()">إلغاء</button>
+      <button class="btn-save" onclick="confirmConvert()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:5px"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        تحويل لإطلاق وديعة
+      </button>
+    </div>
+  </div>
+</div>
 <script src="app.js"></script>
 </body>
 </html>
