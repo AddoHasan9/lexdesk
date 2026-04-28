@@ -62,7 +62,7 @@ function sanitizeCase(c){
   const safe = {};
   const allowed = ['id','company','type','lawyer','status','currency','amountIQD','amountUSD',
     'deficiency','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
-    'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline'];
+    'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
@@ -473,9 +473,10 @@ function renderRow(c){
   let statusHtml='<span class="status-badge '+statusClass(c.status)+'" onclick="openStatusDrop(event,'+c.id+')">'+c.status+'</span>';
   if(c.status==='معلقة'&&c.holdReason)statusHtml+='<div style="font-size:10px;color:var(--text3);margin-top:3px">'+c.holdReason+'</div>';
   const attachHtml=c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> فتح</a>':'<span style="color:var(--text3);font-size:11px">—</span>';
-  return '<tr class="case-row" data-id="'+c.id+'" style="cursor:pointer'+(c.tasisDone?';opacity:.6':'')+'">'
-  +'<td><div class="td-company" style="'+(c.tasisDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'
+  return '<tr class="case-row" data-id="'+c.id+'" style="cursor:pointer'+(c.tasisDone||c.wadeaDone?';opacity:.6':'')+'">'
+  +'<td><div class="td-company" style="'+(c.tasisDone||c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'
   +(c.tasisDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ خلصت التأسيس</div>':'')
+  +(c.wadeaDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ أُكملت الوديعة</div>':'')
   +(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;cursor:pointer;font-weight:700" onclick="event.stopPropagation();openDetail('+c.tasisLinkedId+')">↑ من تأسيس</div>':'')
   +(c.notes?'<div class="td-notes">'+c.notes+'</div>':'')
   +'</td><td><div class="td-lawyer"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></td><td>'+amt+'</td><td>'+statusHtml+'</td><td><span class="type-chip">'+c.type+'</span></td><td>'+stg+'</td><td>'+attachHtml+'</td><td class="acts-cell"><div class="row-acts"><button class="act-btn" onclick="event.stopPropagation();openForm('+c.id+')" title="تعديل"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" onclick="event.stopPropagation();askDel('+c.id+')" title="حذف"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></td></tr>';
@@ -484,7 +485,7 @@ function renderRow(c){
 function renderCard(c){
   const lci=settings.lawyers.indexOf(c.lawyer);const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
   const amt=c.currency==='USD'?'$'+fmt(c.amountUSD):fmt(c.amountIQD)+' د.ع';
-  return '<div class="case-card" style="'+(c.tasisDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.tasisDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ خلصت التأسيس</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
+  return '<div class="case-card" style="'+(c.tasisDone||c.wadeaDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.tasisDone||c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ خلصت التأسيس</div>':'')+(c.wadeaDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ أُكملت الوديعة</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
 }
 // ══ STATS ══
 function updateStats(){
@@ -694,6 +695,12 @@ function openForm(id){
   document.getElementById('holdRow').style.display=selStatus==='معلقة'?'block':'none';
   document.getElementById('stageRow').style.display=(selStatus!=='منجزة'&&selStatus!=='معلقة')?'block':'none';
   const isWadea=(c.type||'')===WADEA_TYPE;document.getElementById('wadeaRow').style.display=isWadea?'block':'none';setWadeaChecks(isWadea?(c.wadeaChecks||''):'');
+  // Show complete wadea button for existing wadea cases
+  const completeRow=document.getElementById('wadeaCompleteRow');
+  if(completeRow){
+    const alreadyDone=id&&c.wadeaDone;
+    completeRow.style.display=(isWadea&&id&&!alreadyDone)?'block':'none';
+  }
   // Show "تحويل لإطلاق وديعة" button for tasis cases not yet converted
   const cvBtn=document.getElementById('formConvertBtn');
   if(cvBtn){
@@ -717,6 +724,13 @@ function populateFormTypes(){const s=document.getElementById('fType');const v=s.
 function onTypeChange(){
   const t=document.getElementById('fType').value;
   document.getElementById('wadeaRow').style.display=t===WADEA_TYPE?'block':'none';
+  // Show complete button only when editing an existing wadea case not yet completed
+  const completeRow=document.getElementById('wadeaCompleteRow');
+  if(completeRow){
+    const src=editingId?cases.find(x=>x.id===editingId):null;
+    const alreadyDone=src&&src.wadeaDone;
+    completeRow.style.display=(t===WADEA_TYPE&&editingId&&!alreadyDone)?'block':'none';
+  }
   // Show convert button only when editing a tasis case that's not yet converted
   const cvBtn=document.getElementById('formConvertBtn');
   if(cvBtn){
@@ -732,6 +746,29 @@ function formConvertToWadea(){
   // Save first, then convert
   saveCase();
   setTimeout(()=>openConvertToWadea(editingId),200);
+}
+
+function completeWadea(){
+  if(!editingId)return;
+  const c=cases.find(x=>x.id===editingId);
+  if(!c||c.type!==WADEA_TYPE)return;
+  // Save current form data first
+  saveCase();
+  // Mark as done
+  setTimeout(()=>{
+    const updated=cases.find(x=>x.id===editingId);
+    if(!updated)return;
+    updated.wadeaDone=true;
+    updated.status='منجزة';
+    // Also mark linked tasis as fully done
+    if(updated.tasisLinkedId){
+      const tasis=cases.find(x=>x.id===updated.tasisLinkedId);
+      if(tasis){tasis.tasisDone=true;tasis.wadeaLinkedId=updated.id;}
+    }
+    addLog(updated,'edit','أُكملت معاملة إطلاق الوديعة',currentUser||'الأدمن');
+    saveData();render();
+    toast('✓ أُكملت معاملة إطلاق الوديعة','ok');
+  },300);
 }
 function toggleWadea(n){const cb=document.getElementById('wc'+n);cb.checked=!cb.checked;document.getElementById('wcheck'+n).classList.toggle('checked',cb.checked);}
 function setWadeaChecks(val){const checked=(val||'').split(',').map(s=>s.trim()).filter(Boolean);WADEA_ITEMS.forEach((item,i)=>{const n=i+1;const cb=document.getElementById('wc'+n);const lbl=document.getElementById('wcheck'+n);if(!cb||!lbl)return;const isChecked=checked.includes(item);cb.checked=isChecked;lbl.classList.toggle('checked',isChecked);});}
