@@ -164,10 +164,10 @@ async function saveData(){
     }
   },800);
 }
-function saveCfg(){
+async function saveCfg(){
   try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}
-  // ═ حفظ الإعدادات بالسيرفر عشان تكون موحدة لكل الأجهزة ═
-  sbSaveMeta('settings', settings);
+  // ═ حفظ الإعدادات بالسيرفر — await عشان نضمن الحفظ قبل أي شيء ═
+  await sbSaveMeta('settings', settings);
 }
 // ══ DEFAULTS ══
 const DEFAULT_LAWYERS=['منتظر','مروه','علي'];
@@ -188,12 +188,13 @@ async function loadAll(){
   let localSettings = {};
   try{ const s=localStorage.getItem(SK_S); localSettings=s?JSON.parse(s):{}; }catch(e){ localSettings={}; }
 
-  // السيرفر له الأولوية — لو موجود نستخدمه
-  if(cloudSettings && typeof cloudSettings === 'object' && cloudSettings.officeName){
-    settings = cloudSettings;
-    // حدّث اللوكال عشان يكون متزامن
+  // ═ السيرفر له الأولوية دائماً — خصوصاً كلمات المرور ═
+  if(cloudSettings && typeof cloudSettings === 'object'){
+    // دمج: السيرفر يطغى على اللوكال في كل شيء
+    settings = {...localSettings, ...cloudSettings};
     try{ localStorage.setItem(SK_S, JSON.stringify(settings)); }catch(e){}
   } else {
+    // لا يوجد اتصال — استخدم اللوكال مؤقتاً
     settings = localSettings;
   }
 
@@ -311,6 +312,13 @@ async function doLogin(){
   if(!canAttemptLogin())return;
   const pass=document.getElementById('passInp').value;
   if(!pass)return;
+  // ═ جلب كلمات المرور الحديثة من السيرفر أولاً ═
+  const fresh=await sbLoadMeta('settings');
+  if(fresh && fresh.adminPassHash){
+    settings.adminPassHash=fresh.adminPassHash;
+    settings.userPassHash=fresh.userPassHash||settings.userPassHash;
+    try{localStorage.setItem('lexdesk_settings_v3',JSON.stringify({...settings,...fresh}));}catch(e){}
+  }
   const hashed=await hashPassword(pass);
   if(hashed===settings.adminPassHash && (_selectedRole==='admin' || hashed!==settings.userPassHash)){currentRole='admin';currentUser=ADMIN_USER;}
   else if(hashed===settings.userPassHash){currentRole='user';currentUser='مستخدم';}
@@ -818,7 +826,13 @@ async function saveOfficeSettings(){
   if(oldP||newP||newP2){const oldHash=await hashPassword(oldP);if(oldHash!==settings.adminPassHash){if(errEl){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');}return;}if(newP.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newP!==newP2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.adminPassHash=await hashPassword(newP);settings.mustChangeAdminPass=false;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('تم تغيير كلمة مرور الأدمن','ok');}
   const oldU=document.getElementById('oldUserPass').value;const newU=document.getElementById('newUserPass').value;const newU2=document.getElementById('newUserPass2').value;
   if(oldU||newU||newU2){const oldUHash=await hashPassword(oldU);if(oldUHash!==settings.userPassHash){if(errEl){errEl.textContent='كلمة مرور المستخدم الحالية غلط';errEl.classList.add('show');}return;}if(newU.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newU!==newU2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.userPassHash=await hashPassword(newU);settings.mustChangeUserPass=false;document.getElementById('oldUserPass').value='';document.getElementById('newUserPass').value='';document.getElementById('newUserPass2').value='';toast('تم تغيير كلمة مرور المستخدم','ok');}
-  saveCfg();document.getElementById('officeTitle').textContent=settings.officeName;document.title='LexDesk · '+settings.officeName;toast('تم حفظ الإعدادات','ok');
+  showSyncStatus('saving');
+  await saveCfg();
+  showSyncStatus('saved');
+  setTimeout(()=>showSyncStatus(''),2000);
+  document.getElementById('officeTitle').textContent=settings.officeName;
+  document.title='LexDesk · '+settings.officeName;
+  toast('✓ تم حفظ الإعدادات على جميع الأجهزة','ok');
 }
 function populateAllDropdowns(){const ft=document.getElementById('filterType');const fl=document.getElementById('filterLawyer');const vt=ft.value,vl=fl.value;ft.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');fl.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');ft.value=vt;fl.value=vl;populateMobFilters();}
 
