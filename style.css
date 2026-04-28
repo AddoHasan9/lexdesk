@@ -158,22 +158,14 @@ svg { flex-shrink:0; }
   min-height: 58px;
 }
 .sb-logo-icon {
-  width: 32px; height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  width: 36px; height: 36px;
+  border-radius: 0;
+  background: none;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 16px rgba(245,166,35,.25);
-  position: relative;
-  overflow: hidden;
 }
-.sb-logo-icon::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.25) 0%, transparent 60%);
-}
-.sb-logo-icon svg { width:16px; height:16px; stroke:#3a2400; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.sb-logo-icon::after { display:none; }
+.sb-logo-icon svg { width:36px; height:36px; }
 .sb-logo-text {
   font-family: var(--font-d);
   font-size: 15px;
@@ -1660,14 +1652,15 @@ tr.case-row:last-child td { border-bottom:none; }
 /* SVG logo wrapper */
 .login-logo-wrap { margin: 0 auto 16px; }
 .login-logo-svg {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  width: 140px; height: 140px;
+  background: none;
+  border: none;
+  border-radius: 0;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto;
-  box-shadow: 0 4px 18px rgba(245,166,35,.3);
+  margin: 0 auto 8px;
+  color: var(--gold);
 }
-.login-logo-svg svg { width:26px; height:26px; }
+.login-logo-svg svg { width:140px; height:140px; }
 .login-brand {
   font-family: var(--font-d);
   font-size: 26px; font-weight: 900;
