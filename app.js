@@ -694,6 +694,13 @@ function openForm(id){
   document.getElementById('holdRow').style.display=selStatus==='معلقة'?'block':'none';
   document.getElementById('stageRow').style.display=(selStatus!=='منجزة'&&selStatus!=='معلقة')?'block':'none';
   const isWadea=(c.type||'')===WADEA_TYPE;document.getElementById('wadeaRow').style.display=isWadea?'block':'none';setWadeaChecks(isWadea?(c.wadeaChecks||''):'');
+  // Show "تحويل لإطلاق وديعة" button for tasis cases not yet converted
+  const cvBtn=document.getElementById('formConvertBtn');
+  if(cvBtn){
+    const isTasis=(c.type||'')=== TASIS_TYPE;
+    const alreadyConverted=id&&(c.tasisDone||c.wadeaLinkedId);
+    cvBtn.style.display=(isTasis&&id&&!alreadyConverted)?'flex':'none';
+  }
   openOverlay('formOverlay');
 }
 function buildLawyerSel(){document.getElementById('lawyerSel').innerHTML=settings.lawyers.map((l,i)=>'<div class="lawyer-opt'+(l===selLawyer?' sel':'')+'" onclick="pickLawyer(\''+l+'\')"><div style="width:10px;height:10px;border-radius:50%;background:'+LAWYER_COLORS[i%LAWYER_COLORS.length]+'"></div>'+l+'</div>').join('');}
@@ -707,7 +714,25 @@ function buildDeptOpts(){const opts=[...settings.depts,'أخرى'];document.getE
 function pickDept(n){selDept=n;buildDeptOpts();}
 function setCur(c){selCur=c;document.getElementById('ctIQD').classList.toggle('active',c==='IQD');document.getElementById('ctUSD').classList.toggle('active',c==='USD');}
 function populateFormTypes(){const s=document.getElementById('fType');const v=s.value;s.innerHTML='<option value="">— اختر النوع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');s.value=v;s.onchange=onTypeChange;}
-function onTypeChange(){document.getElementById('wadeaRow').style.display=document.getElementById('fType').value===WADEA_TYPE?'block':'none';}
+function onTypeChange(){
+  const t=document.getElementById('fType').value;
+  document.getElementById('wadeaRow').style.display=t===WADEA_TYPE?'block':'none';
+  // Show convert button only when editing a tasis case that's not yet converted
+  const cvBtn=document.getElementById('formConvertBtn');
+  if(cvBtn){
+    const isTasis=t===TASIS_TYPE;
+    const src=editingId?cases.find(x=>x.id===editingId):null;
+    const alreadyConverted=src&&(src.tasisDone||src.wadeaLinkedId);
+    cvBtn.style.display=(isTasis&&editingId&&!alreadyConverted)?'flex':'none';
+  }
+}
+
+function formConvertToWadea(){
+  if(!editingId)return;
+  // Save first, then convert
+  saveCase();
+  setTimeout(()=>openConvertToWadea(editingId),200);
+}
 function toggleWadea(n){const cb=document.getElementById('wc'+n);cb.checked=!cb.checked;document.getElementById('wcheck'+n).classList.toggle('checked',cb.checked);}
 function setWadeaChecks(val){const checked=(val||'').split(',').map(s=>s.trim()).filter(Boolean);WADEA_ITEMS.forEach((item,i)=>{const n=i+1;const cb=document.getElementById('wc'+n);const lbl=document.getElementById('wcheck'+n);if(!cb||!lbl)return;const isChecked=checked.includes(item);cb.checked=isChecked;lbl.classList.toggle('checked',isChecked);});}
 function getWadeaValue(){return WADEA_ITEMS.filter((_,i)=>{const cb=document.getElementById('wc'+(i+1));return cb&&cb.checked;}).join('، ');}
