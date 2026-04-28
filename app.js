@@ -473,9 +473,9 @@ function renderRow(c){
   let statusHtml='<span class="status-badge '+statusClass(c.status)+'" onclick="openStatusDrop(event,'+c.id+')">'+c.status+'</span>';
   if(c.status==='معلقة'&&c.holdReason)statusHtml+='<div style="font-size:10px;color:var(--text3);margin-top:3px">'+c.holdReason+'</div>';
   const attachHtml=c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> فتح</a>':'<span style="color:var(--text3);font-size:11px">—</span>';
-  return '<tr class="case-row" data-id="'+c.id+'" style="cursor:pointer'+(c.tasisDone||c.wadeaDone?';opacity:.6':'')+'">'
-  +'<td><div class="td-company" style="'+(c.tasisDone||c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'
-  +(c.tasisDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ خلصت التأسيس</div>':'')
+  return '<tr class="case-row" data-id="'+c.id+'" style="cursor:pointer'+(c.wadeaDone?';opacity:.6':'')+'">'
+  +'<td><div class="td-company" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'
+  +(c.tasisDone&&c.type===WADEA_TYPE?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;font-weight:700">✓ اكتمل التأسيس</div>':'')
   +(c.wadeaDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ أُكملت الوديعة</div>':'')
   +(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;cursor:pointer;font-weight:700" onclick="event.stopPropagation();openDetail('+c.tasisLinkedId+')">↑ من تأسيس</div>':'')
   +(c.notes?'<div class="td-notes">'+c.notes+'</div>':'')
@@ -485,7 +485,7 @@ function renderRow(c){
 function renderCard(c){
   const lci=settings.lawyers.indexOf(c.lawyer);const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
   const amt=c.currency==='USD'?'$'+fmt(c.amountUSD):fmt(c.amountIQD)+' د.ع';
-  return '<div class="case-card" style="'+(c.tasisDone||c.wadeaDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.tasisDone||c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ خلصت التأسيس</div>':'')+(c.wadeaDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ أُكملت الوديعة</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
+  return '<div class="case-card" style="'+(c.wadeaDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone&&c.type===WADEA_TYPE?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">✓ اكتمل التأسيس</div>':'')+(c.wadeaDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ أُكملت الوديعة</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
 }
 // ══ STATS ══
 function updateStats(){
@@ -640,33 +640,21 @@ function confirmConvert(){
   const deadline=new Date(certDateObj);deadline.setDate(deadline.getDate()+days);
   // Get checks
   const checks=WADEA_ITEMS.filter((_,i)=>{const cb=document.getElementById('cv'+(i+1));return cb&&cb.checked;}).join('، ');
-  // Mark source as tasisDone
+  // ── تحويل نفس المعاملة (لا ننشئ معاملة جديدة) ──
+  src.type=WADEA_TYPE;
   src.tasisDone=true;
-  addLog(src,'edit','تم تحويل المعاملة لإطلاق وديعة',currentUser||'الأدمن');
-  // Create new wadea case
-  const newId=Date.now();
-  const newCase={
-    id:newId,company:src.company,type:WADEA_TYPE,
-    lawyer:src.lawyer,status:'قيد المعالجة',
-    currency:src.currency,amountIQD:src.amountIQD,amountUSD:src.amountUSD,
-    deficiency:'',notes:'',holdReason:'',stage:'',
-    date:certDate,addedAt:Date.now(),
-    attachUrl:'',attachName:'',log:[],comments:[],
-    wadeaChecks:checks,
-    wadeaCertDate:certDate,
-    wadeaShareholderType:shareType,
-    wadeaDeadline:deadline.toISOString(),
-    tasisLinkedId:sourceId
-  };
-  src.wadeaLinkedId=newId;
-  cases.push(newCase);
+  src.date=certDate;
+  src.wadeaChecks=checks;
+  src.wadeaCertDate=certDate;
+  src.wadeaShareholderType=shareType;
+  src.wadeaDeadline=deadline.toISOString();
+  src.status='قيد المعالجة';
+  addLog(src,'edit','تم تحويل المعاملة من تأسيس شركة إلى إطلاق وديعة',currentUser||'الأدمن');
   saveData();render();
   closeCvOverlay();
-  closeDetail();
   SFX.play('save');
-  toast('تم إنشاء معاملة إطلاق الوديعة لـ '+src.company,'ok');
-  // Open the new wadea detail
-  setTimeout(()=>openDetail(newId),300);
+  toast('✓ تم تحويل معاملة '+src.company+' لإطلاق وديعة','ok');
+  setTimeout(()=>openDetail(sourceId),300);
 }
 
 function closeCvOverlay(){
@@ -760,11 +748,6 @@ function completeWadea(){
     if(!updated)return;
     updated.wadeaDone=true;
     updated.status='منجزة';
-    // Also mark linked tasis as fully done
-    if(updated.tasisLinkedId){
-      const tasis=cases.find(x=>x.id===updated.tasisLinkedId);
-      if(tasis){tasis.tasisDone=true;tasis.wadeaLinkedId=updated.id;}
-    }
     addLog(updated,'edit','أُكملت معاملة إطلاق الوديعة',currentUser||'الأدمن');
     saveData();render();
     toast('✓ أُكملت معاملة إطلاق الوديعة','ok');
@@ -893,14 +876,12 @@ function openDetail(id){
   // Show tasis done badge & linked wadea
   const tasisBadge=document.getElementById('detTasisBadge');
   if(tasisBadge){
-    if(c.tasisDone){
+    if(c.tasisDone&&c.type===WADEA_TYPE){
       tasisBadge.style.display='block';
-      const wl=c.wadeaLinkedId?cases.find(x=>x.id===c.wadeaLinkedId):null;
-      tasisBadge.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--green-g);border:1px solid rgba(34,211,160,.3)">'
-        +'<span style="font-size:18px">✓</span>'
-        +'<div><div style="font-size:13px;font-weight:700;color:var(--green)">خلص التأسيس — تم التحويل لإطلاق الوديعة</div>'
-        +(wl?'<div style="font-size:11px;color:var(--text2);cursor:pointer;text-decoration:underline" onclick="closeDetail();setTimeout(()=>openDetail('+c.wadeaLinkedId+'),150)">فتح معاملة الوديعة ↗</div>':'')
-        +'</div></div>';
+      tasisBadge.innerHTML='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--gold-g);border:1px solid rgba(245,166,35,.25);margin-bottom:4px">'
+        +'<span style="font-size:16px">✓</span>'
+        +'<div style="font-size:13px;font-weight:700;color:var(--gold)">اكتمل التأسيس — المعاملة الآن في مرحلة إطلاق الوديعة</div>'
+        +'</div>';
     } else tasisBadge.style.display='none';
   }
   // Show wadea deadline countdown for linked wadea cases
