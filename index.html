@@ -513,6 +513,10 @@
       <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
       البيانات
     </button>
+    <button class="set-tab" data-tab="users" onclick="switchSetTab('users')" id="usersTab" style="display:none">
+      <span class="iconify" data-icon="solar:users-group-rounded-bold-duotone" data-width="18"></span>
+      المستخدمون
+    </button>
   </div>
   <div class="set-tab-content active" id="setTab_general">
     <div class="settings-grid" style="grid-template-columns:1fr">
@@ -657,6 +661,71 @@
         </div>
       </div>
     </div>
+  <div class="set-tab-content" id="setTab_users" style="display:none">
+    <div class="settings-grid" style="grid-template-columns:1fr">
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(245,166,35,.12);color:var(--gold)">
+            <span class="iconify" data-icon="solar:user-plus-bold-duotone" data-width="18"></span>
+          </div>
+          <div>
+            <div class="set-card-title">إضافة مستخدم جديد</div>
+            <div class="set-card-desc">فقط الأدمن يقدر يضيف مستخدمين</div>
+          </div>
+        </div>
+        <div class="set-card-body">
+          <div class="fm-grid" style="grid-template-columns:1fr 1fr">
+            <div>
+              <label class="fm-lbl">الاسم الكامل *</label>
+              <input id="newUserName" class="fm-inp" type="text" placeholder="مثال: أحمد محمد">
+            </div>
+            <div>
+              <label class="fm-lbl">البريد الإلكتروني *</label>
+              <input id="newUserEmail" class="fm-inp" type="email" placeholder="example@gmail.com" style="direction:ltr;text-align:left">
+            </div>
+            <div>
+              <label class="fm-lbl">كلمة المرور *</label>
+              <input id="newUserPass" class="fm-inp" type="password" placeholder="6 أحرف على الأقل">
+            </div>
+            <div>
+              <label class="fm-lbl">الصلاحية</label>
+              <select id="newUserRole" class="fm-inp">
+                <option value="user">مستخدم عادي</option>
+                <option value="admin">أدمن</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-save" style="margin-top:14px;width:100%" onclick="addNewUser()">
+            <span class="iconify" data-icon="solar:user-plus-bold-duotone" data-width="15" style="vertical-align:middle;margin-left:6px"></span>
+            إضافة المستخدم
+          </button>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(96,165,250,.12);color:var(--blue2)">
+            <span class="iconify" data-icon="solar:users-group-rounded-bold-duotone" data-width="18"></span>
+          </div>
+          <div>
+            <div class="set-card-title">المستخدمون الحاليون</div>
+            <div class="set-card-desc">قائمة بكل الحسابات المسجلة</div>
+          </div>
+          <button class="btn-ghost" onclick="loadUsersList()" style="margin-right:auto;font-size:12px">
+            <span class="iconify" data-icon="solar:refresh-bold" data-width="14" style="vertical-align:middle;margin-left:4px"></span>
+            تحديث
+          </button>
+        </div>
+        <div class="set-card-body">
+          <div id="usersListWrap">
+            <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">
+              اضغط "تحديث" لعرض المستخدمين
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
 </div>
 

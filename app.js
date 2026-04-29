@@ -470,32 +470,16 @@ function isAdmin(){ return currentRole==='admin'; }
 
 // ─ Switch login/signup modes ─
 function switchLoginMode(mode){
-  const isSignup = mode==='signup';
-  const title = document.getElementById('loginModeTitle');
-  const nameRow = document.getElementById('nameRow');
+  // Always login mode - no public signup
   const btn = document.getElementById('loginSubmitBtn');
+  const nameRow = document.getElementById('nameRow');
   const switchBtn = document.getElementById('switchModeBtn');
   const forgotBtn = document.getElementById('forgotBtn');
   const errEl = document.getElementById('passErr');
-
-  if(title) title.textContent = isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
-  if(nameRow) nameRow.style.display = isSignup ? 'block' : 'none';
-  if(btn){
-    btn.textContent = isSignup ? 'إنشاء الحساب' : 'دخول ←';
-    btn.onclick = isSignup ? doSignUp : doLogin;
-  }
-  if(switchBtn){
-    // Clear old content
-    switchBtn.innerHTML = '';
-    const txt = document.createTextNode(isSignup ? 'عندك حساب؟ ' : 'ما عندك حساب؟ ');
-    const span = document.createElement('span');
-    span.textContent = isSignup ? 'سجّل دخول' : 'أنشئ حساباً';
-    span.style.cssText = 'color:var(--gold);cursor:pointer;font-weight:700';
-    span.onclick = () => switchLoginMode(isSignup ? 'login' : 'signup');
-    switchBtn.appendChild(txt);
-    switchBtn.appendChild(span);
-  }
-  if(forgotBtn) forgotBtn.style.display = isSignup ? 'none' : 'block';
+  if(btn){ btn.textContent='دخول ←'; btn.onclick=doLogin; }
+  if(nameRow) nameRow.style.display='none';
+  if(switchBtn) switchBtn.style.display='none';
+  if(forgotBtn) forgotBtn.style.display='block';
   if(errEl) errEl.classList.remove('show');
 }
 
@@ -540,6 +524,7 @@ function showApp(){
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك','ok');
+  updateUsersTabVisibility();
 }
 
 function toggleFab(){
@@ -973,6 +958,7 @@ function loadSettingsPage(){
   document.getElementById('setOfficeName').value=settings.officeName;document.getElementById('setDefCur').value=settings.defCurrency;
   renderTags('lawyerTags',settings.lawyers,'lawyer');renderTags('typeTags',settings.types,'type');renderTags('deptTags',settings.depts,'dept');
   updateNotifUI(settings.notifEnabled!==false);
+  if(tab==='users') loadUsersList();
 }
 function renderTags(elId,arr,kind){document.getElementById(elId).innerHTML=arr.map((t,i)=>'<div class="tag">'+t+'<button class="tag-del" onclick="removeItem(\''+kind+'\','+i+')">✕</button></div>').join('');}
 function removeItem(kind,i){if(!isAdmin())return;const map={lawyer:'lawyers',type:'types',dept:'depts'};const key=map[kind];if(!key)return;if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('المحامي عنده معاملات','err');return;}if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('النوع مستخدم','err');return;}settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('تم الحذف','ok');}
@@ -1146,12 +1132,122 @@ function countUp(el,target,prefix,suffix,duration){if(!el)return;if(target===0){
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAllDrops();closeDetail();['formOverlay','confirmOverlay','importOverlay','restoreOverlay','cvOverlay'].forEach(closeOverlay);document.getElementById('notifPanel').classList.remove('open');document.getElementById('remPanel').classList.remove('open');}if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openForm(null);}});
 document.addEventListener('click',e=>{closeAllDrops();const panel=document.getElementById('notifPanel');const bell=document.getElementById('notifBell');if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target))panel.classList.remove('open');const rp=document.getElementById('remPanel');const rb=document.getElementById('remBell');if(rp&&rb&&!rp.contains(e.target)&&!rb.contains(e.target))rp.classList.remove('open');});
 
+
+// ══ USERS MANAGEMENT (Admin only) ══
+
+async function addNewUser(){
+  if(!isAdmin()){ toast('صلاحية الأدمن فقط','err'); return; }
+  const name  = (document.getElementById('newUserName')?.value||'').trim();
+  const email = (document.getElementById('newUserEmail')?.value||'').trim();
+  const pass  = (document.getElementById('newUserPass')?.value||'').trim();
+  const role  = document.getElementById('newUserRole')?.value||'user';
+
+  if(!name||!email||!pass){ toast('أكمل جميع الحقول','warn'); return; }
+  if(pass.length < 6){ toast('كلمة المرور 6 أحرف على الأقل','warn'); return; }
+
+  const btn = document.querySelector('[onclick="addNewUser()"]');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
+
+  try{
+    // Use Supabase Admin API via service role — but we only have anon key
+    // So we use the regular signup endpoint (email confirmation disabled)
+    const r = await sbFetch(SB_URL+'/auth/v1/signup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({
+        email, password:pass,
+        data:{ full_name:name, role }
+      })
+    });
+    const d = await r.json();
+
+    if(d.error){
+      toast('خطأ: '+(d.error.message||d.msg||JSON.stringify(d.error)),'err');
+    } else {
+      toast('✓ تم إضافة '+name+' بنجاح','ok');
+      document.getElementById('newUserName').value='';
+      document.getElementById('newUserEmail').value='';
+      document.getElementById('newUserPass').value='';
+      setTimeout(loadUsersList, 500);
+    }
+  } catch(e){
+    toast('خطأ في الاتصال: '+e.message,'err');
+  }
+
+  if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+}
+
+async function loadUsersList(){
+  const wrap = document.getElementById('usersListWrap');
+  if(!wrap) return;
+  if(!isAdmin()){ wrap.innerHTML='<div style="color:var(--text3);padding:16px;text-align:center">صلاحية الأدمن فقط</div>'; return; }
+
+  wrap.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">جاري التحميل...</div>';
+
+  try{
+    // Fetch users list using admin endpoint
+    const r = await sbFetch(SB_URL+'/auth/v1/admin/users',{
+      method:'GET',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+(_sbSession||SB_KEY)
+      }
+    });
+    const d = await r.json();
+
+    if(d.error || !d.users){
+      // Fallback: show message to check Supabase dashboard
+      wrap.innerHTML=`<div style="padding:16px;font-size:13px;color:var(--text2);background:var(--bg3);border-radius:8px;border:0.5px solid var(--border2)">
+        <div style="font-weight:700;margin-bottom:8px">⚠ لعرض المستخدمين</div>
+        <div>روح Supabase → Authentication → Users لإدارة الحسابات يدوياً</div>
+        <div style="margin-top:8px;color:var(--text3)">ملاحظة: عرض القائمة يحتاج Service Role Key</div>
+      </div>`;
+      return;
+    }
+
+    const users = d.users||[];
+    if(!users.length){
+      wrap.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا يوجد مستخدمون بعد</div>';
+      return;
+    }
+
+    wrap.innerHTML = users.map(u => {
+      const meta = u.user_metadata||{};
+      const role = meta.role||'user';
+      const name = meta.full_name||u.email.split('@')[0];
+      const isAdminUser = role==='admin';
+      const created = new Date(u.created_at).toLocaleDateString('ar-IQ');
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:50%;background:${isAdminUser?'rgba(245,166,35,.15)':'var(--bg3)'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${isAdminUser?'var(--gold)':'var(--text2)'};font-size:14px;flex-shrink:0">${name[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
+          <div style="font-size:11px;color:var(--text3);direction:ltr;text-align:right">${u.email}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span style="font-size:10px;padding:2px 8px;border-radius:6px;font-weight:700;background:${isAdminUser?'rgba(245,166,35,.15)':'rgba(96,165,250,.12)'};color:${isAdminUser?'var(--gold)':'var(--blue2)'}">${isAdminUser?'أدمن':'مستخدم'}</span>
+          <span style="font-size:10px;color:var(--text3)">${created}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e){
+    wrap.innerHTML='<div style="color:var(--red);padding:16px">خطأ: '+e.message+'</div>';
+  }
+}
+
+// Show users tab only for admin
+function updateUsersTabVisibility(){
+  const tab = document.getElementById('usersTab');
+  if(tab) tab.style.display = isAdmin() ? 'flex' : 'none';
+}
+
 // ══ INIT ══
 (async()=>{
   initTheme();
   await loadAll();
   const sessionOk = await restoreSbSession();
-  if(sessionOk){ showApp(); }
+  if(sessionOk){ showApp(); updateUsersTabVisibility(); }
   else{
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('appWrap').style.display='none';
