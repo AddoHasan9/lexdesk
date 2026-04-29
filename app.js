@@ -7,6 +7,7 @@ const SB_CONFIG={
 const SB_URL=SB_CONFIG.url;
 const SB_KEY=SB_CONFIG.key;
 const SB_H={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+function getSbH(){ return {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+(_sbSession||SB_KEY)}; }
 
 // ══ SECURITY: LOGIN RATE LIMITER ══
 const LOGIN_RATE={maxAttempts:5,lockoutMs:60000,attempts:0,lockedUntil:0};
@@ -292,50 +293,194 @@ async function resetPassword(){
 }
 
 // ══ AUTH ══
-const ADMIN_USER='منتظر';
-let currentUser=null;
-let currentRole=null;
-let _selectedRole = 'admin';
+// ══ SUPABASE AUTH ══
+let currentUser = null;   // email
+let currentUserName = ''; // display name
+let currentRole = null;   // 'admin' | 'user'
+let _sbSession = null;    // supabase session token
 
-function selectRole(role) {
-  _selectedRole = role;
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === role));
+// ─ Sign Up ─
+async function doSignUp(){
+  if(!canAttemptLogin())return;
+  const email = (document.getElementById('emailInp').value||'').trim();
+  const pass  = (document.getElementById('passInp').value||'').trim();
+  const name  = (document.getElementById('nameInp').value||'').trim();
+  if(!email||!pass||!name){ toast('أكمل جميع الحقول','warn'); return; }
+  if(pass.length < 6){ toast('كلمة المرور 6 أحرف على الأقل','warn'); return; }
+  setLoginLoading(true);
+  try{
+    const r = await sbFetch(SB_URL+'/auth/v1/signup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({ email, password:pass, data:{ full_name:name, role:'user' } })
+    });
+    const d = await r.json();
+    // Show exact error from Supabase
+    if(d.error){
+      const msg = d.error.message||d.msg||JSON.stringify(d.error);
+      toast('خطأ: '+msg,'err');
+      setLoginLoading(false);
+      return;
+    }
+    // If email confirmation required
+    if(d.user && !d.session){
+      toast('✓ تم إنشاء الحساب — راجع إيميلك للتأكيد ثم سجّل دخول','ok');
+      switchLoginMode('login');
+    } else if(d.access_token){
+      // Auto-login if no confirmation required
+      _sbSession = d.access_token;
+      const meta = d.user?.user_metadata||{};
+      currentUser     = d.user.email;
+      currentUserName = meta.full_name||name;
+      currentRole     = meta.role==='admin'?'admin':'user';
+      try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+        token:d.access_token, refresh:d.refresh_token,
+        user:currentUser, name:currentUserName, role:currentRole,
+        expires: Date.now()+(d.expires_in||3600)*1000
+      }));}catch(e){}
+      toast('✓ أهلاً '+currentUserName,'ok');
+      showApp();
+    } else {
+      // Unknown response - show it
+      toast('رد غير متوقع: '+JSON.stringify(d).substring(0,100),'warn');
+    }
+  } catch(e){ toast('خطأ في الاتصال: '+e.message,'err'); }
+  setLoginLoading(false);
 }
 
-function setRole(role) {
-  _selectedRole = role;
-  document.querySelectorAll('.role-tab').forEach(b => b.classList.toggle('active', (role==='admin'&&b.id==='rtAdmin')||(role==='user'&&b.id==='rtUser')));
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.toggle('active', b.dataset.role === role));
-}
-
+// ─ Sign In ─
 async function doLogin(){
   if(!canAttemptLogin())return;
-  const pass=document.getElementById('passInp').value;
-  if(!pass)return;
-  // ═ جلب كلمات المرور الحديثة من السيرفر أولاً ═
-  const fresh=await sbLoadMeta('settings');
-  if(fresh && fresh.adminPassHash){
-    settings.adminPassHash=fresh.adminPassHash;
-    settings.userPassHash=fresh.userPassHash||settings.userPassHash;
-    try{localStorage.setItem('lexdesk_settings_v3',JSON.stringify({...settings,...fresh}));}catch(e){}
-  }
-  const hashed=await hashPassword(pass);
-  if(hashed===settings.adminPassHash && (_selectedRole==='admin' || hashed!==settings.userPassHash)){currentRole='admin';currentUser=ADMIN_USER;}
-  else if(hashed===settings.userPassHash){currentRole='user';currentUser='مستخدم';}
-  else {
-    recordFailedLogin();
-    document.getElementById('passErr').classList.add('show');
-    document.getElementById('passInp').value='';
-    document.getElementById('passInp').focus();
-    const b=document.querySelector('.login-box');b.style.animation='none';b.offsetHeight;b.style.animation='shake .4s';
-    return;
-  }
-  resetLoginAttempts();
-  document.getElementById('passErr').classList.remove('show');
-  setSecureSession(currentUser,currentRole);
-  SFX.play('login');showApp();
-  if(currentRole==='admin'&&settings.mustChangeAdminPass) setTimeout(()=>toast('غيّر كلمة مرور الأدمن الافتراضية من الإعدادات!','warn'),2000);
-  if(currentRole==='user'&&settings.mustChangeUserPass) setTimeout(()=>toast('غيّر كلمة مرور المستخدم الافتراضية من الإعدادات!','warn'),2000);
+  const email = (document.getElementById('emailInp').value||'').trim();
+  const pass  = (document.getElementById('passInp').value||'').trim();
+  if(!email||!pass){ toast('أدخل الإيميل وكلمة المرور','warn'); return; }
+  setLoginLoading(true);
+  try{
+    const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({ email, password:pass })
+    });
+    const d = await r.json();
+    if(d.error || !d.access_token){
+      recordFailedLogin();
+      const errEl = document.getElementById('passErr');
+      if(errEl){ errEl.textContent = 'الإيميل أو كلمة المرور غلط'; errEl.classList.add('show'); }
+      const b = document.querySelector('.login-box');
+      if(b){ b.style.animation='none'; b.offsetHeight; b.style.animation='shake .4s'; }
+      setLoginLoading(false);
+      return;
+    }
+    resetLoginAttempts();
+    _sbSession = d.access_token;
+    const meta = d.user?.user_metadata || {};
+    currentUser     = d.user.email;
+    currentUserName = meta.full_name || email.split('@')[0];
+    currentRole     = meta.role === 'admin' ? 'admin' : 'user';
+    // persist session
+    try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+      token: d.access_token,
+      refresh: d.refresh_token,
+      user: currentUser,
+      name: currentUserName,
+      role: currentRole,
+      expires: Date.now() + (d.expires_in||3600)*1000
+    })); }catch(e){}
+    SFX.play('login');
+    document.getElementById('passErr')?.classList.remove('show');
+    showApp();
+  } catch(e){ toast('خطأ في الاتصال','err'); }
+  setLoginLoading(false);
+}
+
+// ─ Forgot Password ─
+async function doForgotPass(){
+  const email = (document.getElementById('emailInp').value||'').trim();
+  if(!email){ toast('أدخل إيميلك أولاً','warn'); return; }
+  setLoginLoading(true);
+  try{
+    await sbFetch(SB_URL+'/auth/v1/recover',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({ email })
+    });
+    toast('✓ تم إرسال رابط إعادة التعيين على إيميلك','ok');
+  } catch(e){ toast('خطأ','err'); }
+  setLoginLoading(false);
+}
+
+// ─ Restore session on load ─
+async function restoreSbSession(){
+  try{
+    const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+    if(!saved || Date.now() > saved.expires - 60000){
+      // try refresh
+      if(saved?.refresh){
+        const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','apikey':SB_KEY},
+          body: JSON.stringify({ refresh_token: saved.refresh })
+        });
+        const d = await r.json();
+        if(d.access_token){
+          _sbSession = d.access_token;
+          const meta = d.user?.user_metadata||{};
+          currentUser     = d.user.email;
+          currentUserName = meta.full_name || currentUser.split('@')[0];
+          currentRole     = meta.role==='admin'?'admin':'user';
+          try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+            token:d.access_token, refresh:d.refresh_token||saved.refresh,
+            user:currentUser, name:currentUserName, role:currentRole,
+            expires: Date.now()+(d.expires_in||3600)*1000
+          }));}catch(e){}
+          return true;
+        }
+      }
+      return false;
+    }
+    _sbSession      = saved.token;
+    currentUser     = saved.user;
+    currentUserName = saved.name;
+    currentRole     = saved.role;
+    return true;
+  } catch(e){ return false; }
+}
+
+// ─ Logout ─
+function logout(){
+  currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
+  try{ localStorage.removeItem('lexdesk_sb_session'); }catch(e){}
+  document.getElementById('emailInp').value='';
+  document.getElementById('passInp').value='';
+  document.getElementById('passErr')?.classList.remove('show');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appWrap').style.display='none';
+  const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
+  const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
+  switchLoginMode('login');
+}
+
+function isAdmin(){ return currentRole==='admin'; }
+
+// ─ Switch login/signup modes ─
+function switchLoginMode(mode){
+  const isSignup = mode==='signup';
+  document.getElementById('loginModeTitle').textContent = isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
+  document.getElementById('nameRow').style.display   = isSignup ? 'block' : 'none';
+  document.getElementById('loginSubmitBtn').textContent = isSignup ? 'إنشاء الحساب' : 'دخول ←';
+  document.getElementById('loginSubmitBtn').onclick = isSignup ? doSignUp : doLogin;
+  document.getElementById('switchModeBtn').innerHTML = isSignup
+    ? 'عندك حساب؟ <span onclick="switchLoginMode('login')" style="color:var(--gold);cursor:pointer;font-weight:700">سجّل دخول</span>'
+    : 'ما عندك حساب؟ <span onclick="switchLoginMode('signup')" style="color:var(--gold);cursor:pointer;font-weight:700">أنشئ حساباً</span>';
+  document.getElementById('forgotBtn').style.display = isSignup ? 'none' : 'block';
+  document.getElementById('passErr')?.classList.remove('show');
+}
+
+function setLoginLoading(on){
+  const btn = document.getElementById('loginSubmitBtn');
+  if(!btn)return;
+  btn.disabled = on;
+  btn.style.opacity = on ? '.6' : '1';
 }
 
 function isAdmin(){return currentRole==='admin';}
@@ -359,10 +504,12 @@ function showApp(){
   const mb=document.getElementById('mobThemeBtn');if(mb)mb.style.display='flex';
   const fab=document.getElementById('fabWrap');if(fab)fab.style.display='flex';
   const sui=document.getElementById('sbUserInfo');if(sui)sui.style.display='flex';
-  const suav=document.getElementById('sbUserAv');if(suav)suav.textContent=isAdmin()?'م':'ع';
-  const sun=document.getElementById('sbUserName');if(sun)sun.textContent=isAdmin()?ADMIN_USER:'مستخدم';
-  const upn=document.getElementById('userPillName');if(upn)upn.textContent=isAdmin()?ADMIN_USER:'مستخدم';
-  const uav=document.querySelector('.user-av');if(uav)uav.textContent=isAdmin()?'م':'ع';
+  const _displayName = currentUserName || (isAdmin()?'أدمن':'مستخدم');
+  const _initials = _displayName.trim()[0]||'م';
+  const suav=document.getElementById('sbUserAv');if(suav)suav.textContent=_initials;
+  const sun=document.getElementById('sbUserName');if(sun)sun.textContent=_displayName;
+  const upn=document.getElementById('userPillName');if(upn)upn.textContent=_displayName;
+  const uav=document.querySelector('.user-av');if(uav)uav.textContent=_initials;
   const officeName=settings.officeName||'مكتب المحاماة';
   const tb=document.getElementById('officeTitle');if(tb)tb.textContent=officeName;
   const ls=document.getElementById('loginOfficeSub');if(ls)ls.textContent=officeName;
@@ -990,9 +1137,15 @@ document.addEventListener('click',e=>{closeAllDrops();const panel=document.getEl
 (async()=>{
   initTheme();
   await loadAll();
-  await initPasswords();
-  const session=getSecureSession();
-  if(session&&session.user&&session.role){currentUser=session.user;currentRole=session.role;showApp();}
-  else{document.getElementById('loginOfficeSub').textContent=settings.officeName;selectRole('admin');setTimeout(()=>{const p=document.getElementById('passInp');if(p)p.focus();},300);}
+  const sessionOk = await restoreSbSession();
+  if(sessionOk){ showApp(); }
+  else{
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('appWrap').style.display='none';
+    const officeSub=document.getElementById('loginOfficeSub');
+    if(officeSub) officeSub.textContent=settings.officeName||'مكتب المحاماة';
+    switchLoginMode('login');
+    setTimeout(()=>{ const e=document.getElementById('emailInp'); if(e)e.focus(); },300);
+  }
   initMobile();
 })();
