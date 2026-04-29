@@ -350,9 +350,14 @@ async function doSignUp(){
 
 // ─ Sign In ─
 async function doLogin(){
+  console.log('doLogin called');
+  try {
   if(!canAttemptLogin())return;
-  const email = (document.getElementById('emailInp').value||'').trim();
-  const pass  = (document.getElementById('passInp').value||'').trim();
+  const emailEl = document.getElementById('emailInp');
+  const passEl  = document.getElementById('passInp');
+  if(!emailEl||!passEl){ console.error('inputs not found'); toast('خطأ: الحقول غير موجودة','err'); return; }
+  const email = (emailEl.value||'').trim();
+  const pass  = (passEl.value||'').trim();
   if(!email||!pass){ toast('أدخل الإيميل وكلمة المرور','warn'); return; }
   setLoginLoading(true);
   try{
@@ -391,6 +396,7 @@ async function doLogin(){
     showApp();
   } catch(e){ toast('خطأ في الاتصال','err'); }
   setLoginLoading(false);
+  } catch(fatalErr){ console.error('doLogin fatal:', fatalErr); toast('خطأ: '+fatalErr.message,'err'); setLoginLoading(false); }
 }
 
 // ─ Forgot Password ─
@@ -465,15 +471,32 @@ function isAdmin(){ return currentRole==='admin'; }
 // ─ Switch login/signup modes ─
 function switchLoginMode(mode){
   const isSignup = mode==='signup';
-  document.getElementById('loginModeTitle').textContent = isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
-  document.getElementById('nameRow').style.display   = isSignup ? 'block' : 'none';
-  document.getElementById('loginSubmitBtn').textContent = isSignup ? 'إنشاء الحساب' : 'دخول ←';
-  document.getElementById('loginSubmitBtn').onclick = isSignup ? doSignUp : doLogin;
-  document.getElementById('switchModeBtn').innerHTML = isSignup
-    ? 'عندك حساب؟ <span onclick="switchLoginMode('login')" style="color:var(--gold);cursor:pointer;font-weight:700">سجّل دخول</span>'
-    : 'ما عندك حساب؟ <span onclick="switchLoginMode('signup')" style="color:var(--gold);cursor:pointer;font-weight:700">أنشئ حساباً</span>';
-  document.getElementById('forgotBtn').style.display = isSignup ? 'none' : 'block';
-  document.getElementById('passErr')?.classList.remove('show');
+  const title = document.getElementById('loginModeTitle');
+  const nameRow = document.getElementById('nameRow');
+  const btn = document.getElementById('loginSubmitBtn');
+  const switchBtn = document.getElementById('switchModeBtn');
+  const forgotBtn = document.getElementById('forgotBtn');
+  const errEl = document.getElementById('passErr');
+
+  if(title) title.textContent = isSignup ? 'إنشاء حساب جديد' : 'تسجيل الدخول';
+  if(nameRow) nameRow.style.display = isSignup ? 'block' : 'none';
+  if(btn){
+    btn.textContent = isSignup ? 'إنشاء الحساب' : 'دخول ←';
+    btn.onclick = isSignup ? doSignUp : doLogin;
+  }
+  if(switchBtn){
+    // Clear old content
+    switchBtn.innerHTML = '';
+    const txt = document.createTextNode(isSignup ? 'عندك حساب؟ ' : 'ما عندك حساب؟ ');
+    const span = document.createElement('span');
+    span.textContent = isSignup ? 'سجّل دخول' : 'أنشئ حساباً';
+    span.style.cssText = 'color:var(--gold);cursor:pointer;font-weight:700';
+    span.onclick = () => switchLoginMode(isSignup ? 'login' : 'signup');
+    switchBtn.appendChild(txt);
+    switchBtn.appendChild(span);
+  }
+  if(forgotBtn) forgotBtn.style.display = isSignup ? 'none' : 'block';
+  if(errEl) errEl.classList.remove('show');
 }
 
 function setLoginLoading(on){
@@ -527,16 +550,6 @@ function toggleFab(){
   btn.innerHTML=open
     ?'<svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
     :'<svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-}
-
-function logout(){
-  currentUser=null;currentRole=null;clearSecureSession();
-  document.getElementById('passInp').value='';
-  document.getElementById('passErr').classList.remove('show');
-  document.getElementById('loginScreen').style.display='flex';
-  document.getElementById('appWrap').style.display='none';
-  const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
-  const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
 }
 
 // ══ NOTIFICATIONS ══
