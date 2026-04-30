@@ -613,8 +613,16 @@ function render(){
   const body=document.getElementById('casesBody');
   document.getElementById('caseCount').textContent=fil.length;
   if(!fil.length){body.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="empty-txt">لا توجد معاملات مطابقة</div><div class="empty-sub">جرّب تغيير الفلاتر أو أضف معاملة جديدة</div><button class="empty-btn" onclick="openForm(null)">＋ إضافة معاملة</button></div>';updateStats();return;}
+  if(currentView==='kanban'){body.innerHTML=buildKanban(fil);updateStats();initKanbanDrag();return;}
   if(currentView==='cards')body.innerHTML='<div class="cards-grid">'+fil.map(renderCard).join('')+'</div>';
-  else body.innerHTML='<div class="tbl-wrap"><table><thead><tr><th>الشركة</th><th>المحامي</th><th>المبلغ</th><th>الحالة</th><th>نوع المعاملة</th><th>وين واصلة</th><th></th><th></th></tr></thead><tbody>'+fil.map(renderRow).join('')+'</tbody></table></div>';
+  else body.innerHTML='<div class="tbl-wrap"><table><thead><tr>'
+    +'<th style="width:34px;padding-right:14px"><input type="checkbox" class="bulk-cb-all" onclick="toggleSelectAll(this)" title="تحديد الكل"></th>'
+    +'<th>الشركة</th><th>المحامي</th><th>المبلغ</th><th>الحالة</th><th>نوع المعاملة</th><th>وين واصلة</th><th></th><th></th>'
+    +'</tr></thead><tbody>'+fil.map(renderRow).join('')+'</tbody></table></div>';
+  // restore selections
+  if(selectedCases.length){
+    selectedCases.forEach(id=>{const cb=document.querySelector('.bulk-cb[data-id="'+id+'"]');if(cb){cb.checked=true;cb.closest('tr')?.classList.add('selected');}});
+  }
   updateStats();
 }
 
@@ -627,8 +635,10 @@ function renderRow(c){
   let statusHtml='<span class="status-badge '+statusClass(c.status)+'" onclick="openStatusDrop(event,'+c.id+')">'+c.status+'</span>';
   if(c.status==='معلقة'&&c.holdReason)statusHtml+='<div style="font-size:10px;color:var(--text3);margin-top:3px">'+c.holdReason+'</div>';
   const attachHtml=c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> فتح</a>':'<span style="color:var(--text3);font-size:11px">—</span>';
-  return '<tr class="case-row" data-id="'+c.id+'" style="cursor:pointer'+(c.wadeaDone?';opacity:.6':'')+'">'
-  +'<td><div class="td-company" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'
+  const isSelected=selectedCases.includes(c.id);
+  return '<tr class="case-row'+(isSelected?' selected':'')+'" data-id="'+c.id+'" style="cursor:pointer'+(c.wadeaDone?';opacity:.6':'')+'">'
+  +'<td class="bulk-cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" data-id="'+c.id+'"'+(isSelected?' checked':'')+' onclick="event.stopPropagation();toggleSelect('+c.id+')" /></td>'
+  +'<td><div class="td-company" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'"><span class="company-link" onclick="event.stopPropagation();openClientProfile(\''+c.company.replace(/'/g,"\\'")+'\')" style="cursor:pointer">'+c.company+'</span></div>'
   +(c.tasisDone&&c.type===WADEA_TYPE?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;font-weight:700">✓ اكتمل التأسيس</div>':'')
   +(c.wadeaDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ أُكملت الوديعة</div>':'')
   +(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;cursor:pointer;font-weight:700" onclick="event.stopPropagation();openDetail('+c.tasisLinkedId+')">↑ من تأسيس</div>':'')
@@ -978,7 +988,14 @@ function askClearAll(){
 }
 
 // ══ VIEW / PAGES ══
-function setView(v){currentView=v;document.getElementById('vtList').classList.toggle('active',v==='list');document.getElementById('vtCards').classList.toggle('active',v==='cards');render();}
+function setView(v){
+  currentView=v;
+  document.getElementById('vtList').classList.toggle('active',v==='list');
+  document.getElementById('vtCards').classList.toggle('active',v==='cards');
+  const vk=document.getElementById('vtKanban');if(vk)vk.classList.toggle('active',v==='kanban');
+  clearSelection();
+  render();
+}
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
   ['dash','charts','reports','settings'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg)pg.classList.toggle('active',x===p);const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',settings:'sbSettings'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
@@ -1169,7 +1186,11 @@ const SFX={_ctx:null,_get(){if(!this._ctx)this._ctx=new(window.AudioContext||win
 function countUp(el,target,prefix,suffix,duration){if(!el)return;if(target===0){el.textContent=(prefix||'')+'0'+(suffix||'');return;}const startTime=performance.now();function update(now){const elapsed=now-startTime;const progress=Math.min(elapsed/duration,1);const eased=1-Math.pow(1-progress,3);const current=Math.round(target*eased);if(!el)return;el.textContent=(prefix||'')+current.toLocaleString('en-US')+(suffix||'');if(progress<1)requestAnimationFrame(update);else el.textContent=(prefix||'')+target.toLocaleString('en-US')+(suffix||'');}requestAnimationFrame(update);}
 
 // ══ KEYBOARD ══
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAllDrops();closeDetail();['formOverlay','confirmOverlay','importOverlay','restoreOverlay','cvOverlay'].forEach(closeOverlay);document.getElementById('notifPanel').classList.remove('open');document.getElementById('remPanel').classList.remove('open');}if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openForm(null);}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAllDrops();closeDetail();['formOverlay','confirmOverlay','importOverlay','restoreOverlay','cvOverlay'].forEach(closeOverlay);document.getElementById('notifPanel').classList.remove('open');document.getElementById('remPanel').classList.remove('open');}if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openForm(null);}
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openCmd();}
+  if(e.key==='Escape'&&document.getElementById('cmdOverlay').classList.contains('open'))closeCmd();
+  if(e.key==='Escape'&&document.getElementById('aiPanel').classList.contains('open'))toggleAI();
+});
 document.addEventListener('click',e=>{closeAllDrops();const panel=document.getElementById('notifPanel');const bell=document.getElementById('notifBell');if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target))panel.classList.remove('open');const rp=document.getElementById('remPanel');const rb=document.getElementById('remBell');if(rp&&rb&&!rp.contains(e.target)&&!rb.contains(e.target))rp.classList.remove('open');});
 
 
@@ -1335,3 +1356,516 @@ function closeDetail(){
 function closeDetailIfBg(e){
   if(e.target===document.getElementById('detailOverlay'))closeDetail();
 }
+
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  ★★★  LexDesk v5.0 — 5 Advanced Features                  ║
+   ║  1. Command Palette (Ctrl+K)                                ║
+   ║  2. Kanban Board                                            ║
+   ║  3. Client Profile                                          ║
+   ║  4. Bulk Actions                                            ║
+   ║  5. AI Assistant — LexBot                                   ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+// ══════════════════════════════════════════════
+// ★ 1. COMMAND PALETTE
+// ══════════════════════════════════════════════
+const CMD_ACTIONS = [
+  {icon:'➕', label:'إضافة معاملة جديدة',     keys:'ctrl+n', fn:()=>openForm(null)},
+  {icon:'📊', label:'التحليلات والرسوم البيانية', keys:'',      fn:()=>goPage('charts')},
+  {icon:'📄', label:'التقارير المالية',        keys:'',      fn:()=>goPage('reports')},
+  {icon:'⚙️', label:'الإعدادات',              keys:'',      fn:()=>goPage('settings')},
+  {icon:'🌙', label:'تبديل الوضع (فاتح/داكن)',  keys:'',      fn:()=>toggleTheme()},
+  {icon:'📋', label:'تصدير إكسل',             keys:'',      fn:()=>exportExcel()},
+  {icon:'🖨️', label:'طباعة',                 keys:'',      fn:()=>window.print()},
+  {icon:'🤖', label:'فتح LexBot المساعد الذكي',keys:'',      fn:()=>toggleAI()},
+  {icon:'📦', label:'عرض قائمة',             keys:'',      fn:()=>setView('list')},
+  {icon:'🃏', label:'عرض البطاقات',           keys:'',      fn:()=>setView('cards')},
+  {icon:'📌', label:'عرض Kanban',            keys:'',      fn:()=>setView('kanban')},
+];
+let cmdIdx=0;
+
+function openCmd(){
+  const el=document.getElementById('cmdOverlay');
+  el.classList.add('open');
+  requestAnimationFrame(()=>document.getElementById('cmdInp').focus());
+  handleCmdSearch();
+}
+function closeCmd(){
+  document.getElementById('cmdOverlay').classList.remove('open');
+  document.getElementById('cmdInp').value='';
+}
+function handleCmdSearch(){
+  const q=(document.getElementById('cmdInp').value||'').trim();
+  const ql=q.toLowerCase();
+  const res=document.getElementById('cmdResults');
+  cmdIdx=0;
+  let html='';
+  // Actions
+  const acts=CMD_ACTIONS.filter(a=>!q||a.label.includes(q)||a.label.toLowerCase().includes(ql));
+  if(acts.length){
+    html+='<div class="cmd-section">الإجراءات السريعة</div>';
+    acts.slice(0,6).forEach((a,i)=>{
+      const ai=CMD_ACTIONS.indexOf(a);
+      html+='<div class="cmd-item'+(i===0&&!q?' active':'')+'" onclick="runCmdAction('+ai+')">'
+        +'<div class="cmd-item-ico">'+a.icon+'</div>'
+        +'<div class="cmd-item-lbl">'+a.label+(a.keys?'<span class="cmd-item-sub"> ('+a.keys+')</span>':'')+'</div>'
+        +'<div class="cmd-item-hint">↵</div>'
+        +'</div>';
+    });
+  }
+  // Case search
+  if(q.length>=1){
+    const matched=(typeof cases!=='undefined'?cases:[])
+      .filter(c=>c.company.toLowerCase().includes(ql)||c.type.toLowerCase().includes(ql)||(c.lawyer||'').toLowerCase().includes(ql))
+      .slice(0,7);
+    if(matched.length){
+      html+='<div class="cmd-section">المعاملات</div>';
+      matched.forEach(c=>{
+        const smap={s:'s-pending','قيد المعالجة':'s-active','منجزة':'s-done','معلقة':'s-hold','مراجعة':'s-pending','ناقصة':'s-def'};
+        html+='<div class="cmd-item" onclick="closeCmd();setTimeout(()=>openDetail('+c.id+'),120)">'
+          +'<div class="cmd-item-ico">📁</div>'
+          +'<div class="cmd-item-lbl">'+c.company+'<span class="cmd-item-sub"> — '+c.type+'</span></div>'
+          +'<span class="cmd-item-stat '+(smap[c.status]||'s-pending')+'">'+c.status+'</span>'
+          +'</div>';
+      });
+    }
+    // Companies
+    const cos=[...new Set((typeof cases!=='undefined'?cases:[]).map(c=>c.company))]
+      .filter(co=>co.toLowerCase().includes(ql)).slice(0,4);
+    if(cos.length){
+      html+='<div class="cmd-section">ملف العميل</div>';
+      cos.forEach(co=>{
+        html+='<div class="cmd-item" onclick="closeCmd();setTimeout(()=>openClientProfile(\''+co.replace(/'/g,"\\'")+'\'),120)">'
+          +'<div class="cmd-item-ico">🏢</div>'
+          +'<div class="cmd-item-lbl">'+co+'</div>'
+          +'<div class="cmd-item-hint">ملف العميل</div>'
+          +'</div>';
+      });
+    }
+  }
+  if(!html) html='<div class="cmd-empty">لا نتائج — جرّب كلمة أخرى</div>';
+  res.innerHTML=html;
+  updateCmdIdx();
+}
+function runCmdAction(i){
+  if(CMD_ACTIONS[i])CMD_ACTIONS[i].fn();
+  closeCmd();
+}
+function handleCmdKey(e){
+  const items=document.querySelectorAll('#cmdResults .cmd-item');
+  if(e.key==='ArrowDown'){e.preventDefault();cmdIdx=Math.min(cmdIdx+1,items.length-1);updateCmdIdx();}
+  else if(e.key==='ArrowUp'){e.preventDefault();cmdIdx=Math.max(cmdIdx-1,0);updateCmdIdx();}
+  else if(e.key==='Enter'){e.preventDefault();items[cmdIdx]?.click();}
+  else if(e.key==='Escape'){closeCmd();}
+}
+function updateCmdIdx(){
+  document.querySelectorAll('#cmdResults .cmd-item').forEach((el,i)=>el.classList.toggle('active',i===cmdIdx));
+  document.querySelector('#cmdResults .cmd-item.active')?.scrollIntoView({block:'nearest'});
+}
+
+
+// ══════════════════════════════════════════════
+// ★ 2. KANBAN BOARD
+// ══════════════════════════════════════════════
+const KANBAN_COLS = ['قيد المعالجة','منجزة','معلقة','مراجعة','ناقصة'];
+const KANBAN_COLORS = {
+  'قيد المعالجة':'var(--gold)',
+  'منجزة':'var(--green)',
+  'معلقة':'var(--red)',
+  'مراجعة':'var(--blue2)',
+  'ناقصة':'var(--purple)',
+};
+let _dragId=null;
+
+function buildKanban(fil){
+  let html='<div class="kanban-board">';
+  KANBAN_COLS.forEach(status=>{
+    const col=fil.filter(c=>c.status===status);
+    const color=KANBAN_COLORS[status]||'var(--text2)';
+    html+=`<div class="kanban-col" data-status="${status}">
+      <div class="kanban-col-hd" style="border-top:3px solid ${color}">
+        <span class="kanban-col-title">${status}</span>
+        <span class="kanban-col-count" style="background:${color}20;color:${color}">${col.length}</span>
+      </div>
+      <div class="kanban-col-body">`;
+    col.forEach(c=>{
+      const lci=(typeof settings!=='undefined'?settings.lawyers:[]).indexOf(c.lawyer);
+      const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length]||'var(--gold)';
+      const amt=c.currency==='USD'?'$'+fmt(c.amountUSD||0):fmt(c.amountIQD||0)+' د.ع';
+      html+=`<div class="kanban-card" draggable="true" data-id="${c.id}" onclick="openDetail(${c.id})">
+        <div class="kc-name">${c.company}</div>
+        <div class="kc-type">${c.type}</div>
+        <div class="kc-foot">
+          <div class="kc-lawyer"><div class="lawyer-dot" style="background:${lc}"></div>${c.lawyer}</div>
+          <div class="kc-amt">${amt}</div>
+        </div>
+        ${c.deficiency||c.status==='ناقصة'?'<span class="kc-flag kc-flag-def">⚠ ناقصة</span>':''}
+        ${c.wadeaDone?'<span class="kc-flag kc-flag-done">✓ مكتملة</span>':''}
+      </div>`;
+    });
+    html+=`<button class="kanban-add-btn" onclick="openForm(null);event.stopPropagation()">＋ إضافة معاملة</button>`;
+    html+='</div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function initKanbanDrag(){
+  document.querySelectorAll('.kanban-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      _dragId=Number(card.dataset.id);
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  });
+  document.querySelectorAll('.kanban-col').forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('dragover');});
+    col.addEventListener('dragleave',()=>col.classList.remove('dragover'));
+    col.addEventListener('drop',e=>{
+      e.preventDefault();
+      col.classList.remove('dragover');
+      if(!_dragId)return;
+      const status=col.dataset.status;
+      const c=cases.find(x=>x.id===_dragId);
+      if(c&&c.status!==status){
+        const old=c.status;
+        c.status=status;
+        c.log=[...(c.log||[]),{id:Date.now(),type:'edit',msg:'نُقلت من "'+old+'" إلى "'+status+'"',user:(typeof currentUser!=='undefined'?currentUser:'الأدمن'),time:new Date().toISOString()}];
+        if(status==='معلقة')addNotif('hold','معاملة معلقة: '+c.company);
+        saveData();render();
+        toast('✓ نُقلت "'+c.company+'" إلى '+status,'ok');
+      }
+      _dragId=null;
+    });
+  });
+}
+
+
+// ══════════════════════════════════════════════
+// ★ 3. CLIENT PROFILE
+// ══════════════════════════════════════════════
+function openClientProfile(company){
+  const clientCases=cases.filter(c=>c.company===company);
+  if(!clientCases.length){toast('لا توجد معاملات لهذا العميل','warn');return;}
+  document.getElementById('clientAvatar').textContent=company.trim().charAt(0)||'ك';
+  document.getElementById('clientName').textContent=company;
+  document.getElementById('clientMeta').textContent=clientCases.length+' معاملة مسجّلة';
+  // Stats
+  const total=clientCases.length;
+  const done=clientCases.filter(c=>c.status==='منجزة').length;
+  const active=clientCases.filter(c=>c.status==='قيد المعالجة').length;
+  const totalIQD=clientCases.reduce((s,c)=>s+(c.amountIQD||0),0);
+  const totalUSD=clientCases.reduce((s,c)=>s+(c.amountUSD||0),0);
+  const amtStr=totalIQD>0?fmt(totalIQD)+' د.ع':'$'+fmt(totalUSD);
+  document.getElementById('clientStatsRow').innerHTML=`
+    <div class="client-stat">
+      <div class="client-stat-val">${total}</div>
+      <div class="client-stat-lbl">إجمالي المعاملات</div>
+    </div>
+    <div class="client-stat">
+      <div class="client-stat-val" style="color:var(--green)">${done}</div>
+      <div class="client-stat-lbl">منجزة</div>
+    </div>
+    <div class="client-stat">
+      <div class="client-stat-val" style="color:var(--gold)">${active}</div>
+      <div class="client-stat-lbl">قيد المعالجة</div>
+    </div>
+    <div class="client-stat" style="grid-column:1/-1">
+      <div class="client-stat-val" style="font-size:17px">${amtStr}</div>
+      <div class="client-stat-lbl">إجمالي المبالغ</div>
+    </div>`;
+  // Cases list
+  const STATUS_DOT={'قيد المعالجة':'var(--gold)','منجزة':'var(--green)','معلقة':'var(--red)','مراجعة':'var(--blue2)','ناقصة':'var(--purple)'};
+  const sorted=[...clientCases].sort((a,b)=>(b.addedAt||0)-(a.addedAt||0));
+  document.getElementById('clientCasesList').innerHTML=sorted.map((c,i)=>{
+    const dotColor=STATUS_DOT[c.status]||'var(--text3)';
+    const amt=c.currency==='USD'?'$'+fmt(c.amountUSD||0):fmt(c.amountIQD||0)+' د.ع';
+    const dt=c.addedAt?new Date(c.addedAt).toLocaleDateString('ar-IQ',{year:'numeric',month:'short',day:'numeric'}):'—';
+    return `<div class="client-case-item" style="animation-delay:${i*0.05}s" onclick="closeClientProfile();setTimeout(()=>openDetail(${c.id}),150)">
+      <div class="cci-dot" style="background:${dotColor}"></div>
+      <div class="cci-info">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${c.type}</div>
+        <div class="cci-lawyer">${c.lawyer} • ${c.status}</div>
+      </div>
+      <div class="cci-right">
+        <div class="cci-amt">${amt}</div>
+        <div class="cci-date">${dt}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const el=document.getElementById('clientOverlay');
+  el.style.display='flex';
+  requestAnimationFrame(()=>el.classList.add('open'));
+}
+function closeClientProfile(){
+  const el=document.getElementById('clientOverlay');
+  el.classList.remove('open');
+  setTimeout(()=>el.style.display='none',280);
+}
+
+
+// ══════════════════════════════════════════════
+// ★ 4. BULK ACTIONS
+// ══════════════════════════════════════════════
+let selectedCases=[];
+
+function toggleSelect(id){
+  const idx=selectedCases.indexOf(id);
+  const row=document.querySelector('tr.case-row[data-id="'+id+'"]');
+  if(idx===-1){
+    selectedCases.push(id);
+    row?.classList.add('selected');
+  } else {
+    selectedCases.splice(idx,1);
+    row?.classList.remove('selected');
+  }
+  updateBulkBar();
+}
+function toggleSelectAll(cb){
+  const cbs=document.querySelectorAll('.bulk-cb');
+  if(cb.checked){
+    cbs.forEach(el=>{
+      const id=Number(el.dataset.id);
+      if(!selectedCases.includes(id))selectedCases.push(id);
+      el.checked=true;
+      el.closest('tr')?.classList.add('selected');
+    });
+  } else {
+    cbs.forEach(el=>{
+      const id=Number(el.dataset.id);
+      const idx=selectedCases.indexOf(id);
+      if(idx!==-1)selectedCases.splice(idx,1);
+      el.checked=false;
+      el.closest('tr')?.classList.remove('selected');
+    });
+  }
+  updateBulkBar();
+}
+function clearSelection(){
+  selectedCases=[];
+  document.querySelectorAll('tr.case-row.selected').forEach(r=>r.classList.remove('selected'));
+  document.querySelectorAll('.bulk-cb').forEach(cb=>cb.checked=false);
+  const allCb=document.querySelector('.bulk-cb-all');
+  if(allCb)allCb.checked=false;
+  updateBulkBar();
+}
+function updateBulkBar(){
+  const bar=document.getElementById('bulkBar');
+  const cnt=document.getElementById('bulkCount');
+  if(!bar)return;
+  if(selectedCases.length>0){
+    bar.classList.add('show');
+    if(cnt)cnt.textContent=selectedCases.length;
+  } else {
+    bar.classList.remove('show');
+  }
+}
+function bulkDelete(){
+  if(!selectedCases.length)return;
+  if(!confirm('هل تريد حذف '+selectedCases.length+' معاملة؟ لا يمكن التراجع عن هذا الإجراء.'))return;
+  const toDelete=[...selectedCases];
+  cases=cases.filter(c=>!toDelete.includes(c.id));
+  toDelete.forEach(id=>sbDeleteCase(id));
+  selectedCases=[];
+  saveData();render();
+  toast('تم حذف '+toDelete.length+' معاملة','warn');
+}
+function bulkChangeStatus(status){
+  if(!status||!selectedCases.length)return;
+  const ids=[...selectedCases];
+  cases.forEach(c=>{
+    if(ids.includes(c.id)){
+      const old=c.status;
+      c.status=status;
+      c.log=[...(c.log||[]),{id:Date.now(),type:'edit',msg:'تغيير جماعي: "'+old+'" → "'+status+'"',user:(typeof currentUser!=='undefined'?currentUser:'الأدمن'),time:new Date().toISOString()}];
+    }
+  });
+  saveData();render();
+  toast('تم تغيير حالة '+ids.length+' معاملة إلى "'+status+'"','ok');
+}
+function bulkExport(){
+  if(!selectedCases.length)return;
+  const sel=cases.filter(c=>selectedCases.includes(c.id));
+  const rows=sel.map(c=>({
+    'الشركة':c.company,'المحامي':c.lawyer,'المبلغ (IQD)':c.amountIQD||0,'المبلغ (USD)':c.amountUSD||0,
+    'الحالة':c.status,'النوع':c.type,'المرحلة':c.stage||'—','ملاحظات':c.notes||'',
+  }));
+  if(typeof XLSX==='undefined'){toast('مكتبة Excel غير محملة','err');return;}
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,'المحدد',ws);
+  XLSX.writeFile(wb,'LexDesk_selected_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('تم تصدير '+sel.length+' معاملة','ok');
+}
+
+
+// ══════════════════════════════════════════════
+// ★ 5. AI ASSISTANT — LexBot
+// ══════════════════════════════════════════════
+let aiOpen=false;
+let aiHistory=[];
+
+function toggleAI(){
+  const panel=document.getElementById('aiPanel');
+  const fab=document.getElementById('aiFab');
+  aiOpen=!aiOpen;
+  panel.classList.toggle('open',aiOpen);
+  const btn=document.getElementById('aiTopbarBtn');
+  if(btn)btn.classList.toggle('active',aiOpen);
+  if(aiOpen&&aiHistory.length===0){
+    setTimeout(()=>addAIMessage('bot',
+      'مرحباً! أنا LexBot مساعدك الذكي في LexDesk 🤖\n\n'
+      +'يمكنني تحليل معاملاتك والإجابة على أسئلتك. جرّب إحدى الأسئلة أدناه أو اسألني أي شيء!'
+    ),300);
+  }
+}
+function askAI(q){
+  document.getElementById('aiInp').value=q;
+  sendAIMessage();
+}
+function sendAIMessage(){
+  const inp=document.getElementById('aiInp');
+  const msg=(inp.value||'').trim();
+  if(!msg)return;
+  inp.value='';
+  addAIMessage('user',msg);
+  aiHistory.push({role:'user',content:msg});
+  // Typing indicator
+  const typingId='typing_'+Date.now();
+  const msgs=document.getElementById('aiMsgs');
+  const typing=document.createElement('div');
+  typing.className='ai-msg bot';typing.id=typingId;
+  typing.innerHTML='<div class="ai-typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(typing);
+  msgs.scrollTop=msgs.scrollHeight;
+  setTimeout(()=>{
+    const t=document.getElementById(typingId);if(t)t.remove();
+    const reply=processAIQuery(msg);
+    addAIMessage('bot',reply);
+    aiHistory.push({role:'assistant',content:reply});
+  },600+Math.random()*600);
+}
+function addAIMessage(role,text){
+  const msgs=document.getElementById('aiMsgs');
+  if(!msgs)return;
+  const div=document.createElement('div');
+  div.className='ai-msg '+role;
+  const now=new Date().toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML=`<div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div><div class="ai-time">${now}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function processAIQuery(q){
+  if(typeof cases==='undefined'||!cases)return 'لا توجد بيانات متاحة حالياً.';
+  const ql=q.toLowerCase();
+  const all=cases;
+  const total=all.length;
+  if(!total)return 'لا توجد معاملات مسجّلة في النظام بعد.';
+
+  // إحصائيات عامة
+  if(/كم معاملة|عدد المعاملات|إجمالي المعاملات|كم ملف/.test(ql)){
+    const byStatus={};
+    all.forEach(c=>{byStatus[c.status]=(byStatus[c.status]||0)+1;});
+    const lines=Object.entries(byStatus).map(([s,n])=>`• ${s}: ${n} معاملة`).join('\n');
+    return `يوجد في النظام حالياً **${total} معاملة** موزعة كالتالي:\n\n${lines}`;
+  }
+
+  // المعلقة
+  if(/معلقة|معلق/.test(ql)){
+    const held=all.filter(c=>c.status==='معلقة');
+    if(!held.length)return 'لا توجد معاملات معلقة حالياً — هذا جيد! ✅';
+    const list=held.slice(0,8).map(c=>`• ${c.company} — ${c.lawyer}${c.holdReason?' ('+c.holdReason+')':''}`).join('\n');
+    return `يوجد **${held.length} معاملة معلقة** حالياً:\n\n${list}${held.length>8?'\n...والمزيد':''}`;
+  }
+
+  // قيد المعالجة
+  if(/قيد المعالجة|نشطة|جارية/.test(ql)){
+    const active=all.filter(c=>c.status==='قيد المعالجة');
+    return `يوجد **${active.length} معاملة** قيد المعالجة حالياً من أصل ${total}.`;
+  }
+
+  // منجزة
+  if(/منجزة|مكتملة|أُنجزت/.test(ql)){
+    const done=all.filter(c=>c.status==='منجزة');
+    const pct=((done.length/total)*100).toFixed(0);
+    return `تم إنجاز **${done.length} معاملة** (${pct}% من الإجمالي). رائع! 🏆`;
+  }
+
+  // أفضل محامي
+  if(/محامي|محامين|أفضل|أكثر إنتاجاً|أعلى/.test(ql)){
+    const byLawyer={};
+    all.forEach(c=>{byLawyer[c.lawyer]=(byLawyer[c.lawyer]||0)+1;});
+    const sorted=Object.entries(byLawyer).sort((a,b)=>b[1]-a[1]);
+    if(!sorted.length)return 'لا توجد بيانات محامين.';
+    const top3=sorted.slice(0,3).map(([n,c],i)=>`${i===0?'🥇':i===1?'🥈':'🥉'} ${n}: ${c} معاملة`).join('\n');
+    return `أفضل المحامين إنتاجاً:\n\n${top3}\n\nالمحامي الأكثر إنتاجاً هو **${sorted[0][0]}** بـ ${sorted[0][1]} معاملة.`;
+  }
+
+  // الإيرادات
+  if(/إيرادات|مبالغ|أموال|مالية|IQD|دينار|دولار/.test(ql)){
+    const totalIQD=all.reduce((s,c)=>s+(c.amountIQD||0),0);
+    const totalUSD=all.reduce((s,c)=>s+(c.amountUSD||0),0);
+    const doneIQD=all.filter(c=>c.status==='منجزة').reduce((s,c)=>s+(c.amountIQD||0),0);
+    return `💰 **الإيرادات الإجمالية:**\n\n`
+      +`• دينار عراقي: ${fmt(totalIQD)} د.ع\n`
+      +`• دولار: $${fmt(totalUSD)}\n\n`
+      +`📦 المنجزة: ${fmt(doneIQD)} د.ع`;
+  }
+
+  // عملاء
+  if(/شركة|شركات|عميل|عملاء/.test(ql)){
+    const companies=[...new Set(all.map(c=>c.company))];
+    const top=Object.entries(
+      all.reduce((acc,c)=>{acc[c.company]=(acc[c.company]||0)+1;return acc;},{})
+    ).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    return `يوجد **${companies.length} شركة/عميل** في النظام.\n\nأكثر العملاء معاملاتٍ:\n`
+      +top.map(([co,n])=>`• ${co}: ${n} معاملة`).join('\n');
+  }
+
+  // تقرير سريع
+  if(/تقرير|ملخص|وضع|overview/.test(ql)){
+    const done=all.filter(c=>c.status==='منجزة').length;
+    const active=all.filter(c=>c.status==='قيد المعالجة').length;
+    const held=all.filter(c=>c.status==='معلقة').length;
+    const def=all.filter(c=>c.status==='ناقصة').length;
+    const totalIQD=all.reduce((s,c)=>s+(c.amountIQD||0),0);
+    const companies=[...new Set(all.map(c=>c.company))].length;
+    const byLawyer={};all.forEach(c=>{byLawyer[c.lawyer]=(byLawyer[c.lawyer]||0)+1;});
+    const topLawyer=Object.entries(byLawyer).sort((a,b)=>b[1]-a[1])[0];
+    return `📋 **تقرير سريع عن مكتبك:**\n\n`
+      +`📁 إجمالي المعاملات: **${total}**\n`
+      +`✅ منجزة: ${done} | 🔄 نشطة: ${active} | ⏸ معلقة: ${held} | ⚠ ناقصة: ${def}\n\n`
+      +`🏢 عدد العملاء: **${companies}**\n`
+      +`💰 إجمالي المبالغ: **${fmt(totalIQD)} د.ع**\n`
+      +(topLawyer?`🏆 أفضل محامي: **${topLawyer[0]}** (${topLawyer[1]} معاملة)`:'')+'\n\n'
+      +(held>3?`⚠️ تنبيه: يوجد ${held} معاملة معلقة تحتاج اهتمامك.`:'✅ الوضع جيد — استمر!');
+  }
+
+  // بحث عن شركة
+  if(q.length>2){
+    const found=all.filter(c=>c.company.includes(q)||c.lawyer.includes(q)||c.type.includes(q));
+    if(found.length){
+      return `وجدت **${found.length} نتيجة** تتعلق بـ "${q}":\n\n`
+        +found.slice(0,6).map(c=>`• ${c.company} — ${c.type} — ${c.status}`).join('\n');
+    }
+  }
+
+  // Default
+  const replies=[
+    `الآن يوجد **${total} معاملة** في النظام. هل تريد تفاصيل محددة؟`,
+    `يمكنني مساعدتك في:\n• الإحصائيات والتقارير\n• البحث عن معاملة\n• أداء المحامين\n• الإيرادات\n\nماذا تريد أن تعرف؟`,
+    `سؤال جيد! جرّب أسئلة مثل:\n• "كم معاملة معلقة؟"\n• "من أفضل محامي؟"\n• "كم إجمالي الإيرادات؟"`,
+  ];
+  return replies[Math.floor(Math.random()*replies.length)];
+}
+
+// ── Company link hover shortcut ──
+document.addEventListener('click',e=>{
+  const link=e.target.closest('.company-link');
+  if(link&&e.shiftKey){
+    e.stopPropagation();
+    openClientProfile(link.textContent.trim());
+  }
+});

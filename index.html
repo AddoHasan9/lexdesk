@@ -220,6 +220,16 @@
       <div class="user-av">م</div>
       <span id="userPillName">الأدمن</span>
     </div>
+    <!-- Ctrl+K Command Palette -->
+    <button class="cmd-topbar-btn" onclick="openCmd()" title="بحث سريع (Ctrl+K)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <kbd>⌘K</kbd>
+    </button>
+    <!-- AI Assistant -->
+    <button class="ai-topbar-btn" onclick="toggleAI()" title="LexBot — المساعد الذكي" id="aiTopbarBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
+      LexBot
+    </button>
     <!-- زر إضافة: ديسكتوب فقط -->
     <button class="add-btn" onclick="openForm(null)">＋ معاملة جديدة</button>
   </div>
@@ -316,6 +326,10 @@
               <button class="vt" id="vtCards" onclick="setView('cards')">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-left:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 بطاقات
+              </button>
+              <button class="vt" id="vtKanban" onclick="setView('kanban')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-left:4px"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="15" rx="1"/></svg>
+                Kanban
               </button>
             </div>
             <button class="btn-ghost" onclick="openForm(null)">＋ إضافة</button>
@@ -1122,6 +1136,112 @@
     </div>
   </div>
 </div>
+<!-- ══════════════════════════════════
+     ★ COMMAND PALETTE (Ctrl+K)
+══════════════════════════════════ -->
+<div class="cmd-overlay" id="cmdOverlay" onclick="if(event.target===this)closeCmd()">
+  <div class="cmd-box">
+    <div class="cmd-input-wrap">
+      <svg class="cmd-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="cmd-inp" id="cmdInp" placeholder="ابحث عن معاملة، شركة، أو إجراء..." oninput="handleCmdSearch()" onkeydown="handleCmdKey(event)" autocomplete="off" dir="rtl">
+      <kbd class="cmd-esc">Esc</kbd>
+    </div>
+    <div class="cmd-results" id="cmdResults"></div>
+    <div class="cmd-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> تنقل</span>
+      <span><kbd>↵</kbd> تنفيذ</span>
+      <span><kbd>Esc</kbd> إغلاق</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     ★ CLIENT PROFILE OVERLAY
+══════════════════════════════════ -->
+<div class="client-overlay" id="clientOverlay" style="display:none" onclick="if(event.target===this)closeClientProfile()">
+  <div class="client-modal">
+    <div class="client-modal-hd">
+      <div class="client-hd-left">
+        <div class="client-avatar" id="clientAvatar">ك</div>
+        <div>
+          <div class="client-name" id="clientName">شركة</div>
+          <div class="client-meta" id="clientMeta">0 معاملات</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeClientProfile()">✕</button>
+    </div>
+    <div class="client-modal-body">
+      <div class="client-stats-row" id="clientStatsRow"></div>
+      <div class="client-section-title">تاريخ المعاملات</div>
+      <div class="client-cases-list" id="clientCasesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     ★ BULK ACTIONS BAR
+══════════════════════════════════ -->
+<div class="bulk-bar" id="bulkBar">
+  <div class="bulk-info">
+    <span class="bulk-count" id="bulkCount">0</span>
+    <span class="bulk-label">محدد</span>
+  </div>
+  <div class="bulk-acts">
+    <select class="bulk-sel" onchange="bulkChangeStatus(this.value);this.value=''">
+      <option value="">تغيير الحالة...</option>
+      <option>قيد المعالجة</option><option>منجزة</option>
+      <option>معلقة</option><option>مراجعة</option><option>ناقصة</option>
+    </select>
+    <button class="bulk-btn bulk-export" onclick="bulkExport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Excel
+    </button>
+    <button class="bulk-btn bulk-delete" onclick="bulkDelete()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      حذف
+    </button>
+    <button class="bulk-btn bulk-clear" onclick="clearSelection()">✕ إلغاء</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     ★ AI ASSISTANT — LexBot
+══════════════════════════════════ -->
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-hd">
+    <div class="ai-hd-left">
+      <div class="ai-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <div class="ai-name">LexBot</div>
+        <div class="ai-status" id="aiStatusLbl">مساعدك الذكي — جاهز</div>
+      </div>
+    </div>
+    <button class="ai-close" onclick="toggleAI()">✕</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-suggestions">
+    <button class="ai-sug" onclick="askAI('كم معاملة عندنا؟')">📊 الإحصائيات</button>
+    <button class="ai-sug" onclick="askAI('من هو المحامي الأكثر إنتاجاً؟')">🏆 أفضل محامي</button>
+    <button class="ai-sug" onclick="askAI('ما هي المعاملات المعلقة؟')">⏸ المعلقة</button>
+    <button class="ai-sug" onclick="askAI('كم إجمالي الإيرادات؟')">💰 الإيرادات</button>
+    <button class="ai-sug" onclick="askAI('أعطني تقرير سريع عن وضع المكتب')">📋 تقرير سريع</button>
+  </div>
+  <div class="ai-inp-wrap">
+    <input class="ai-inp" id="aiInp" placeholder="اسألني عن معاملاتك..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}" dir="rtl">
+    <button class="ai-send" onclick="sendAIMessage()" title="إرسال">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- AI Floating Button -->
+<button class="ai-fab" id="aiFab" onclick="toggleAI()" title="LexBot — المساعد الذكي">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
+  <span>LexBot</span>
+</button>
+
 <script src="app.js"></script>
 </body>
 </html>
