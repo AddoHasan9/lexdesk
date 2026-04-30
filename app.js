@@ -1323,6 +1323,300 @@ function updateUsersTabVisibility(){
   if(tab) tab.style.display = isAdmin() ? 'flex' : 'none';
 }
 
+
+// ══ TOOLS PAGE ══
+
+// ─ helpers ─
+function fmtSize(bytes){
+  if(bytes<1024)return bytes+'B';
+  if(bytes<1048576)return (bytes/1024).toFixed(1)+'KB';
+  return (bytes/1048576).toFixed(1)+'MB';
+}
+function setProgress(barId, msgId, pct, msg){
+  const bar=document.getElementById(barId);
+  const msgEl=document.getElementById(msgId);
+  if(bar) bar.style.width=pct+'%';
+  if(msgEl) msgEl.textContent=msg;
+}
+function showToolProgress(progressId, show){
+  const el=document.getElementById(progressId);
+  if(el) el.style.display=show?'block':'none';
+}
+
+// ══ 1. IMAGE → PDF ══
+let imgToPdfFiles=[];
+
+function handleImgToPdfDrop(e){
+  e.preventDefault();
+  document.getElementById('imgToPdfDrop').classList.remove('drag-over');
+  handleImgToPdf(e.dataTransfer.files);
+}
+
+function handleImgToPdf(files){
+  imgToPdfFiles=[...files].filter(f=>f.type.startsWith('image/'));
+  if(!imgToPdfFiles.length){toast('اختر صور صالحة','warn');return;}
+  const list=document.getElementById('imgToPdfList');
+  const items=document.getElementById('imgToPdfItems');
+  list.style.display='block';
+  items.innerHTML=imgToPdfFiles.map((f,i)=>`
+    <div class="tool-file-item">
+      <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="14" style="color:var(--gold);flex-shrink:0"></span>
+      <span class="tool-file-name">${f.name}</span>
+      <span class="tool-file-size">${fmtSize(f.size)}</span>
+    </div>`).join('');
+  if(typeof Iconify!=='undefined') Iconify.scan(items);
+}
+
+async function convertImgToPdf(){
+  if(!imgToPdfFiles.length){toast('اختر صور أولاً','warn');return;}
+  showToolProgress('imgToPdfProgress',true);
+  setProgress('imgToPdfBar','imgToPdfMsg',10,'جاري التحميل...');
+  try{
+    const {jsPDF}=window.jspdf;
+    const pageSize=document.getElementById('imgToPdfSize').value;
+    let pdf=null;
+    for(let i=0;i<imgToPdfFiles.length;i++){
+      const pct=10+(i/imgToPdfFiles.length)*80;
+      setProgress('imgToPdfBar','imgToPdfMsg',pct,`معالجة صورة ${i+1} من ${imgToPdfFiles.length}...`);
+      const img=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=e=>res(e.target.result);
+        r.onerror=rej;
+        r.readAsDataURL(imgToPdfFiles[i]);
+      });
+      const imgEl=await new Promise((res,rej)=>{
+        const el=new Image();
+        el.onload=()=>res(el);
+        el.onerror=rej;
+        el.src=img;
+      });
+      const iw=imgEl.naturalWidth, ih=imgEl.naturalHeight;
+      let pw,ph;
+      if(pageSize==='a4'){pw=210;ph=297;}
+      else{pw=iw*25.4/96;ph=ih*25.4/96;}
+      const orientation=iw>ih?'landscape':'portrait';
+      if(!pdf) pdf=new jsPDF({orientation,unit:'mm',format:pageSize==='a4'?'a4':[pw,ph]});
+      else pdf.addPage(pageSize==='a4'?'a4':[pw,ph],orientation);
+      // Fit image to page
+      const ratio=Math.min(pw/iw,ph/ih);
+      const fw=iw*ratio, fh=ih*ratio;
+      const x=(pw-fw)/2, y=(ph-fh)/2;
+      pdf.addImage(img,'JPEG',x,y,fw,fh);
+    }
+    setProgress('imgToPdfBar','imgToPdfMsg',95,'جاري الحفظ...');
+    pdf.save('lexdesk_images.pdf');
+    setProgress('imgToPdfBar','imgToPdfMsg',100,'✓ تم التحويل بنجاح!');
+    toast('✓ تم تحويل '+imgToPdfFiles.length+' صورة إلى PDF','ok');
+    setTimeout(()=>{showToolProgress('imgToPdfProgress',false);},2000);
+  } catch(e){
+    toast('خطأ: '+e.message,'err');
+    showToolProgress('imgToPdfProgress',false);
+  }
+}
+
+// ══ 2. PDF → IMAGES ══
+let pdfToImgFile=null;
+
+function handlePdfToImgDrop(e){
+  e.preventDefault();
+  document.getElementById('pdfToImgDrop').classList.remove('drag-over');
+  handlePdfToImg(e.dataTransfer.files[0]);
+}
+
+function handlePdfToImg(file){
+  if(!file||file.type!=='application/pdf'){toast('اختر ملف PDF','warn');return;}
+  pdfToImgFile=file;
+  document.getElementById('pdfToImgInfo').style.display='block';
+  document.getElementById('pdfToImgName').innerHTML=`
+    <div class="tool-file-item">
+      <span class="iconify" data-icon="solar:document-bold-duotone" data-width="14" style="color:var(--blue2);flex-shrink:0"></span>
+      <span class="tool-file-name">${file.name}</span>
+      <span class="tool-file-size">${fmtSize(file.size)}</span>
+    </div>`;
+  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('pdfToImgName'));
+}
+
+async function convertPdfToImg(){
+  if(!pdfToImgFile){toast('اختر ملف PDF أولاً','warn');return;}
+  showToolProgress('pdfToImgProgress',true);
+  setProgress('pdfToImgBar','pdfToImgMsg',5,'جاري قراءة الملف...');
+  try{
+    const scale=parseFloat(document.getElementById('pdfToImgQuality').value)||2;
+    const arrayBuffer=await pdfToImgFile.arrayBuffer();
+    // Use PDF.js
+    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
+    if(!pdfjsLib){toast('مكتبة PDF غير محملة، حاول مرة ثانية','err');showToolProgress('pdfToImgProgress',false);return;}
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    const total=pdf.numPages;
+    setProgress('pdfToImgBar','pdfToImgMsg',10,`الملف فيه ${total} صفحة`);
+    for(let i=1;i<=total;i++){
+      const pct=10+(i/total)*85;
+      setProgress('pdfToImgBar','pdfToImgMsg',pct,`تحويل صفحة ${i} من ${total}...`);
+      const page=await pdf.getPage(i);
+      const viewport=page.getViewport({scale});
+      const canvas=document.createElement('canvas');
+      canvas.width=viewport.width; canvas.height=viewport.height;
+      const ctx=canvas.getContext('2d');
+      await page.render({canvasContext:ctx,viewport}).promise;
+      // Download
+      const link=document.createElement('a');
+      link.download=`page_${String(i).padStart(3,'0')}.jpg`;
+      link.href=canvas.toDataURL('image/jpeg',0.92);
+      link.click();
+      await new Promise(r=>setTimeout(r,300));
+    }
+    setProgress('pdfToImgBar','pdfToImgMsg',100,`✓ تم تحويل ${total} صفحة!`);
+    toast('✓ تم تحويل '+total+' صفحة إلى صور','ok');
+    setTimeout(()=>{showToolProgress('pdfToImgProgress',false);},2000);
+  }catch(e){
+    toast('خطأ: '+e.message,'err');
+    showToolProgress('pdfToImgProgress',false);
+  }
+}
+
+// ══ 3. COMPRESS IMAGES ══
+let compImgFiles=[];
+
+function handleCompImgDrop(e){
+  e.preventDefault();
+  handleCompImg(e.dataTransfer.files);
+}
+
+function handleCompImg(files){
+  compImgFiles=[...files].filter(f=>f.type.match(/image\/(jpeg|png)/));
+  if(!compImgFiles.length){toast('اختر صور JPG أو PNG','warn');return;}
+  document.getElementById('compImgSettings').style.display='block';
+  document.getElementById('compImgItems').innerHTML=compImgFiles.map(f=>`
+    <div class="tool-file-item">
+      <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="14" style="color:var(--green);flex-shrink:0"></span>
+      <span class="tool-file-name">${f.name}</span>
+      <span class="tool-file-size">${fmtSize(f.size)}</span>
+    </div>`).join('');
+  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('compImgItems'));
+}
+
+async function compressImages(){
+  if(!compImgFiles.length){toast('اختر صور أولاً','warn');return;}
+  const quality=parseInt(document.getElementById('compImgQuality').value)/100;
+  showToolProgress('compImgProgress',true);
+  try{
+    for(let i=0;i<compImgFiles.length;i++){
+      const f=compImgFiles[i];
+      const pct=((i+1)/compImgFiles.length)*100;
+      setProgress('compImgBar','compImgMsg',pct,`ضغط ${f.name}...`);
+      const result=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=e=>{
+          const img=new Image();
+          img.onload=()=>{
+            const canvas=document.createElement('canvas');
+            canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+            canvas.getContext('2d').drawImage(img,0,0);
+            const mime=f.type==='image/png'&&quality>0.85?'image/png':'image/jpeg';
+            canvas.toBlob(blob=>{
+              const link=document.createElement('a');
+              const ext=mime==='image/png'?'.png':'.jpg';
+              link.download='compressed_'+f.name.replace(/\.[^.]+$/,'')+ext;
+              link.href=URL.createObjectURL(blob);
+              link.click();
+              URL.revokeObjectURL(link.href);
+              res({orig:f.size,comp:blob.size});
+            },mime,quality);
+          };
+          img.onerror=rej;
+          img.src=e.target.result;
+        };
+        r.onerror=rej;
+        r.readAsDataURL(f);
+      });
+      const saved=Math.round((1-result.comp/result.orig)*100);
+      setProgress('compImgBar','compImgMsg',pct,`✓ ${f.name} — وُفّر ${saved}%`);
+      await new Promise(r=>setTimeout(r,200));
+    }
+    setProgress('compImgBar','compImgMsg',100,'✓ تم ضغط جميع الصور!');
+    toast('✓ تم ضغط '+compImgFiles.length+' صورة','ok');
+    setTimeout(()=>{showToolProgress('compImgProgress',false);},2000);
+  }catch(e){
+    toast('خطأ: '+e.message,'err');
+    showToolProgress('compImgProgress',false);
+  }
+}
+
+// ══ 4. COMPRESS PDF ══
+let compPdfFile=null;
+
+function handleCompPdfDrop(e){
+  e.preventDefault();
+  handleCompPdf(e.dataTransfer.files[0]);
+}
+
+function handleCompPdf(file){
+  if(!file||file.type!=='application/pdf'){toast('اختر ملف PDF','warn');return;}
+  compPdfFile=file;
+  document.getElementById('compPdfInfo').style.display='block';
+  document.getElementById('compPdfName').innerHTML=`
+    <div class="tool-file-item">
+      <span class="iconify" data-icon="solar:document-bold-duotone" data-width="14" style="color:var(--red);flex-shrink:0"></span>
+      <span class="tool-file-name">${file.name}</span>
+      <span class="tool-file-size">${fmtSize(file.size)}</span>
+    </div>`;
+  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('compPdfName'));
+}
+
+async function compressPdf(){
+  if(!compPdfFile){toast('اختر ملف PDF أولاً','warn');return;}
+  showToolProgress('compPdfProgress',true);
+  setProgress('compPdfBar','compPdfMsg',20,'جاري قراءة الملف...');
+  try{
+    // PDF compression via re-rendering pages at lower quality
+    const level=document.getElementById('compPdfLevel').value;
+    const scaleMap={screen:0.8, ebook:1.0, printer:1.5};
+    const qualMap={screen:0.6, ebook:0.75, printer:0.9};
+    const scale=scaleMap[level]||1.0;
+    const imgQuality=qualMap[level]||0.75;
+
+    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
+    if(!pdfjsLib){
+      // Fallback: just download as-is with note
+      toast('ضغط PDF يحتاج وقت التحميل — حاول بعد ثانية','warn');
+      showToolProgress('compPdfProgress',false);
+      return;
+    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const arrayBuffer=await compPdfFile.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+    const total=pdf.numPages;
+    const {jsPDF}=window.jspdf;
+    let newPdf=null;
+
+    for(let i=1;i<=total;i++){
+      const pct=20+(i/total)*70;
+      setProgress('compPdfBar','compPdfMsg',pct,`معالجة صفحة ${i} من ${total}...`);
+      const page=await pdf.getPage(i);
+      const vp=page.getViewport({scale});
+      const canvas=document.createElement('canvas');
+      canvas.width=vp.width; canvas.height=vp.height;
+      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+      const imgData=canvas.toDataURL('image/jpeg',imgQuality);
+      const pw=vp.width*25.4/96, ph=vp.height*25.4/96;
+      const ori=vp.width>vp.height?'landscape':'portrait';
+      if(!newPdf) newPdf=new jsPDF({orientation:ori,unit:'mm',format:[pw,ph]});
+      else newPdf.addPage([pw,ph],ori);
+      newPdf.addImage(imgData,'JPEG',0,0,pw,ph);
+    }
+
+    setProgress('compPdfBar','compPdfMsg',95,'جاري الحفظ...');
+    const origSize=compPdfFile.size;
+    newPdf.save('compressed_'+compPdfFile.name);
+    setProgress('compPdfBar','compPdfMsg',100,'✓ تم الضغط بنجاح!');
+    toast('✓ تم ضغط الملف وتنزيله','ok');
+    setTimeout(()=>{showToolProgress('compPdfProgress',false);},2000);
+  }catch(e){
+    toast('خطأ: '+e.message,'err');
+    showToolProgress('compPdfProgress',false);
+  }
+}
 // ══ INIT ══
 (async()=>{
   initTheme();
