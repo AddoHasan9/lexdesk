@@ -491,7 +491,6 @@ function setLoginLoading(on){
   btn.style.opacity = on ? '.6' : '1';
 }
 
-function isAdmin(){return currentRole==='admin';}
 
 function applyRoleUI(){
   const sbSet=document.getElementById('sbSettings');if(sbSet)sbSet.style.display=isAdmin()?'flex':'none';
@@ -1677,19 +1676,8 @@ function undoDelete(){
 }
 
 // ── Close Detail with animation (override) ──
-function closeDetail(){
-  const ov=document.getElementById('detailOverlay');
-  if(!ov||ov.style.display==='none'||ov.style.display==='')return;
-  ov.classList.add('closing');
-  setTimeout(()=>{
-    ov.classList.remove('closing');
-    ov.style.display='none';
-    if(typeof detailCaseId!=='undefined')detailCaseId=null;
-  },250);
-}
-function closeDetailIfBg(e){
-  if(e.target===document.getElementById('detailOverlay'))closeDetail();
-}
+
+
 
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  ★★★  LexDesk v5.0 — 5 Advanced Features                  ║
