@@ -1017,6 +1017,7 @@ function loadSettingsPage(){
   renderTags('lawyerTags',settings.lawyers,'lawyer');renderTags('typeTags',settings.types,'type');renderTags('deptTags',settings.depts,'dept');
   updateNotifUI(settings.notifEnabled!==false);
   if(tab==='users') loadUsersList();
+  if(tab==='tools'){} // tools are self-contained
 }
 function renderTags(elId,arr,kind){document.getElementById(elId).innerHTML=arr.map((t,i)=>'<div class="tag">'+t+'<button class="tag-del" onclick="removeItem(\''+kind+'\','+i+')">✕</button></div>').join('');}
 function removeItem(kind,i){if(!isAdmin())return;const map={lawyer:'lawyers',type:'types',dept:'depts'};const key=map[kind];if(!key)return;if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('المحامي عنده معاملات','err');return;}if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('النوع مستخدم','err');return;}settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('تم الحذف','ok');}

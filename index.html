@@ -154,12 +154,6 @@
 
   <div class="sb-bottom">
     <div class="sb-sep"></div>
-    <!-- Tools -->
-    <button class="sb-btn" id="sbTools" onclick="goPage('tools')">
-      <span class="iconify" data-icon="solar:widget-5-bold-duotone" data-width="18"></span>
-      <span class="sb-lbl">الأدوات</span>
-      <span class="tip">الأدوات</span>
-    </button>
     <!-- Settings -->
     <button class="sb-btn" id="sbSettings" onclick="goPage('settings')">
       <span class="iconify" data-icon="solar:settings-bold-duotone" data-width="18"></span>
@@ -537,6 +531,10 @@
       <span class="iconify" data-icon="solar:users-group-rounded-bold-duotone" data-width="18"></span>
       المستخدمون
     </button>
+    <button class="set-tab" data-tab="tools" onclick="switchSetTab('tools')">
+      <span class="iconify" data-icon="solar:widget-5-bold-duotone" data-width="18"></span>
+      الأدوات
+    </button>
   </div>
   <div class="set-tab-content active" id="setTab_general">
     <div class="settings-grid" style="grid-template-columns:1fr">
@@ -745,179 +743,171 @@
         </div>
       </div>
     </div>
-  </div>
-  </div>
-</div>
+  <div class="set-tab-content" id="setTab_tools" style="display:none">
+    <div class="settings-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
 
-
-<!-- ══ TOOLS PAGE ══ -->
-<div class="page" id="toolsPage" style="display:none;flex-direction:column;overflow-y:auto">
-  <div class="page-hd">
-    <div class="page-title">
-      <span class="iconify" data-icon="solar:widget-5-bold-duotone" data-width="22" style="vertical-align:middle;margin-left:8px;color:var(--gold)"></span>
-      الأدوات
-    </div>
-  </div>
-
-  <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
-
-    <!-- Tool 1: Image to PDF -->
-    <div class="set-card">
-      <div class="set-card-header">
-        <div class="set-ico" style="background:rgba(245,166,35,.12);color:var(--gold)">
-          <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="18"></span>
+      <!-- Tool 1: Image to PDF -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(245,166,35,.12);color:var(--gold)">
+            <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="18"></span>
+          </div>
+          <div>
+            <div class="set-card-title">صورة إلى PDF</div>
+            <div class="set-card-desc">حوّل صورة أو أكثر إلى ملف PDF</div>
+          </div>
         </div>
-        <div>
-          <div class="set-card-title">صورة إلى PDF</div>
-          <div class="set-card-desc">حوّل صورة أو أكثر إلى ملف PDF</div>
+        <div class="set-card-body">
+          <div class="tool-drop-zone" id="imgToPdfDrop" onclick="document.getElementById('imgToPdfInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleImgToPdfDrop(event)">
+            <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب صور هنا أو اضغط للاختيار</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">JPG، PNG، WEBP</div>
+          </div>
+          <input type="file" id="imgToPdfInp" multiple accept="image/*" style="display:none" onchange="handleImgToPdf(this.files)">
+          <div id="imgToPdfList" style="margin-top:10px;display:none">
+            <div id="imgToPdfItems" style="max-height:140px;overflow-y:auto;margin-bottom:10px"></div>
+            <div style="display:flex;gap:8px">
+              <select id="imgToPdfSize" class="fm-inp" style="flex:1">
+                <option value="a4">A4</option>
+                <option value="fit">مناسب للصورة</option>
+              </select>
+              <button class="btn-save" style="flex:1" onclick="convertImgToPdf()">
+                <span class="iconify" data-icon="solar:file-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
+                تحويل وتنزيل
+              </button>
+            </div>
+          </div>
+          <div id="imgToPdfProgress" style="display:none;margin-top:10px">
+            <div class="tool-progress-bar"><div class="tool-progress-fill" id="imgToPdfBar"></div></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="imgToPdfMsg"></div>
+          </div>
         </div>
       </div>
-      <div class="set-card-body">
-        <div class="tool-drop-zone" id="imgToPdfDrop" onclick="document.getElementById('imgToPdfInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleImgToPdfDrop(event)">
-          <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
-          <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب صور هنا أو اضغط للاختيار</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">JPG، PNG، WEBP</div>
+
+      <!-- Tool 2: PDF to Images -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(96,165,250,.12);color:var(--blue2)">
+            <span class="iconify" data-icon="solar:document-bold-duotone" data-width="18"></span>
+          </div>
+          <div>
+            <div class="set-card-title">PDF إلى صور</div>
+            <div class="set-card-desc">حوّل صفحات PDF إلى صور JPG</div>
+          </div>
         </div>
-        <input type="file" id="imgToPdfInp" multiple accept="image/*" style="display:none" onchange="handleImgToPdf(this.files)">
-        <div id="imgToPdfList" style="margin-top:10px;display:none">
-          <div id="imgToPdfItems" style="max-height:140px;overflow-y:auto;margin-bottom:10px"></div>
-          <div style="display:flex;gap:8px">
-            <select id="imgToPdfSize" class="fm-inp" style="flex:1">
-              <option value="a4">A4</option>
-              <option value="fit">مناسب للصورة</option>
-            </select>
-            <button class="btn-save" style="flex:1" onclick="convertImgToPdf()">
-              <span class="iconify" data-icon="solar:file-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
+        <div class="set-card-body">
+          <div class="tool-drop-zone" id="pdfToImgDrop" onclick="document.getElementById('pdfToImgInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handlePdfToImgDrop(event)">
+            <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب ملف PDF هنا أو اضغط</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF فقط</div>
+          </div>
+          <input type="file" id="pdfToImgInp" accept=".pdf" style="display:none" onchange="handlePdfToImg(this.files[0])">
+          <div id="pdfToImgInfo" style="display:none;margin-top:10px">
+            <div id="pdfToImgName" style="margin-bottom:8px"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <label class="fm-lbl" style="margin:0;white-space:nowrap">جودة الصورة:</label>
+              <select id="pdfToImgQuality" class="fm-inp" style="flex:1">
+                <option value="1.5">عادي</option>
+                <option value="2" selected>عالي</option>
+                <option value="3">عالي جداً</option>
+              </select>
+            </div>
+            <button class="btn-save" style="width:100%" onclick="convertPdfToImg()">
+              <span class="iconify" data-icon="solar:gallery-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
               تحويل وتنزيل
             </button>
           </div>
-        </div>
-        <div id="imgToPdfProgress" style="display:none;margin-top:10px">
-          <div class="tool-progress-bar"><div class="tool-progress-fill" id="imgToPdfBar"></div></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="imgToPdfMsg">جاري المعالجة...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tool 2: PDF to Images -->
-    <div class="set-card">
-      <div class="set-card-header">
-        <div class="set-ico" style="background:rgba(96,165,250,.12);color:var(--blue2)">
-          <span class="iconify" data-icon="solar:document-bold-duotone" data-width="18"></span>
-        </div>
-        <div>
-          <div class="set-card-title">PDF إلى صور</div>
-          <div class="set-card-desc">حوّل صفحات PDF إلى صور JPG</div>
-        </div>
-      </div>
-      <div class="set-card-body">
-        <div class="tool-drop-zone" id="pdfToImgDrop" onclick="document.getElementById('pdfToImgInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handlePdfToImgDrop(event)">
-          <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
-          <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب ملف PDF هنا أو اضغط</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF فقط</div>
-        </div>
-        <input type="file" id="pdfToImgInp" accept=".pdf" style="display:none" onchange="handlePdfToImg(this.files[0])">
-        <div id="pdfToImgInfo" style="display:none;margin-top:10px">
-          <div id="pdfToImgName" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-            <label class="fm-lbl" style="margin:0;white-space:nowrap">جودة الصورة:</label>
-            <select id="pdfToImgQuality" class="fm-inp" style="flex:1">
-              <option value="1.5">عادي (سريع)</option>
-              <option value="2" selected>عالي</option>
-              <option value="3">عالي جداً (بطيء)</option>
-            </select>
+          <div id="pdfToImgProgress" style="display:none;margin-top:10px">
+            <div class="tool-progress-bar"><div class="tool-progress-fill" id="pdfToImgBar"></div></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="pdfToImgMsg"></div>
           </div>
-          <button class="btn-save" style="width:100%" onclick="convertPdfToImg()">
-            <span class="iconify" data-icon="solar:gallery-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
-            تحويل وتنزيل
-          </button>
-        </div>
-        <div id="pdfToImgProgress" style="display:none;margin-top:10px">
-          <div class="tool-progress-bar"><div class="tool-progress-fill" id="pdfToImgBar"></div></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="pdfToImgMsg">جاري المعالجة...</div>
         </div>
       </div>
-    </div>
 
-    <!-- Tool 3: Compress Image -->
-    <div class="set-card">
-      <div class="set-card-header">
-        <div class="set-ico" style="background:rgba(34,211,160,.12);color:var(--green)">
-          <span class="iconify" data-icon="solar:zip-file-bold-duotone" data-width="18"></span>
-        </div>
-        <div>
-          <div class="set-card-title">ضغط الصور</div>
-          <div class="set-card-desc">قلّل حجم الصور مع الحفاظ على الجودة</div>
-        </div>
-      </div>
-      <div class="set-card-body">
-        <div class="tool-drop-zone" onclick="document.getElementById('compImgInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleCompImgDrop(event)">
-          <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
-          <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب صورة هنا أو اضغط</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">JPG، PNG</div>
-        </div>
-        <input type="file" id="compImgInp" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleCompImg(this.files)">
-        <div id="compImgSettings" style="display:none;margin-top:10px">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <label class="fm-lbl" style="margin:0;white-space:nowrap">الجودة:</label>
-            <input type="range" id="compImgQuality" min="10" max="95" value="70" style="flex:1" oninput="document.getElementById('compQualVal').textContent=this.value+'%'">
-            <span id="compQualVal" style="font-size:12px;color:var(--gold);font-weight:700;min-width:35px">70%</span>
+      <!-- Tool 3: Compress Images -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(34,211,160,.12);color:var(--green)">
+            <span class="iconify" data-icon="solar:zip-file-bold-duotone" data-width="18"></span>
           </div>
-          <div id="compImgItems" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
-          <button class="btn-save" style="width:100%" onclick="compressImages()">
-            <span class="iconify" data-icon="solar:zip-file-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
-            ضغط وتنزيل
-          </button>
-        </div>
-        <div id="compImgProgress" style="display:none;margin-top:10px">
-          <div class="tool-progress-bar"><div class="tool-progress-fill" id="compImgBar"></div></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="compImgMsg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tool 4: Compress PDF -->
-    <div class="set-card">
-      <div class="set-card-header">
-        <div class="set-ico" style="background:rgba(255,85,114,.12);color:var(--red)">
-          <span class="iconify" data-icon="solar:file-corrupted-bold-duotone" data-width="18"></span>
-        </div>
-        <div>
-          <div class="set-card-title">ضغط PDF</div>
-          <div class="set-card-desc">قلّل حجم ملفات PDF</div>
-        </div>
-      </div>
-      <div class="set-card-body">
-        <div class="tool-drop-zone" onclick="document.getElementById('compPdfInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleCompPdfDrop(event)">
-          <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
-          <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب ملف PDF هنا أو اضغط</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF فقط</div>
-        </div>
-        <input type="file" id="compPdfInp" accept=".pdf" style="display:none" onchange="handleCompPdf(this.files[0])">
-        <div id="compPdfInfo" style="display:none;margin-top:10px">
-          <div id="compPdfName" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-            <label class="fm-lbl" style="margin:0;white-space:nowrap">مستوى الضغط:</label>
-            <select id="compPdfLevel" class="fm-inp" style="flex:1">
-              <option value="screen">عالي (أصغر حجم)</option>
-              <option value="ebook" selected>متوسط</option>
-              <option value="printer">منخفض (أفضل جودة)</option>
-            </select>
+          <div>
+            <div class="set-card-title">ضغط الصور</div>
+            <div class="set-card-desc">قلّل حجم الصور مع الحفاظ على الجودة</div>
           </div>
-          <button class="btn-save" style="width:100%" onclick="compressPdf()">
-            <span class="iconify" data-icon="solar:file-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
-            ضغط وتنزيل
-          </button>
         </div>
-        <div id="compPdfProgress" style="display:none;margin-top:10px">
-          <div class="tool-progress-bar"><div class="tool-progress-fill" id="compPdfBar"></div></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="compPdfMsg"></div>
+        <div class="set-card-body">
+          <div class="tool-drop-zone" onclick="document.getElementById('compImgInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleCompImgDrop(event)">
+            <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب صورة هنا أو اضغط</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">JPG، PNG</div>
+          </div>
+          <input type="file" id="compImgInp" multiple accept="image/jpeg,image/png" style="display:none" onchange="handleCompImg(this.files)">
+          <div id="compImgSettings" style="display:none;margin-top:10px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <label class="fm-lbl" style="margin:0;white-space:nowrap">الجودة:</label>
+              <input type="range" id="compImgQuality" min="10" max="95" value="70" style="flex:1" oninput="document.getElementById('compQualVal').textContent=this.value+'%'">
+              <span id="compQualVal" style="font-size:13px;color:var(--gold);font-weight:700;min-width:38px">70%</span>
+            </div>
+            <div id="compImgItems" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
+            <button class="btn-save" style="width:100%" onclick="compressImages()">
+              <span class="iconify" data-icon="solar:zip-file-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
+              ضغط وتنزيل
+            </button>
+          </div>
+          <div id="compImgProgress" style="display:none;margin-top:10px">
+            <div class="tool-progress-bar"><div class="tool-progress-fill" id="compImgBar"></div></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="compImgMsg"></div>
+          </div>
         </div>
       </div>
-    </div>
 
+      <!-- Tool 4: Compress PDF -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <div class="set-ico" style="background:rgba(255,85,114,.12);color:var(--red)">
+            <span class="iconify" data-icon="solar:file-corrupted-bold-duotone" data-width="18"></span>
+          </div>
+          <div>
+            <div class="set-card-title">ضغط PDF</div>
+            <div class="set-card-desc">قلّل حجم ملفات PDF</div>
+          </div>
+        </div>
+        <div class="set-card-body">
+          <div class="tool-drop-zone" onclick="document.getElementById('compPdfInp').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleCompPdfDrop(event)">
+            <span class="iconify" data-icon="solar:upload-bold-duotone" data-width="28" style="color:var(--text3)"></span>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">اسحب ملف PDF هنا أو اضغط</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF فقط</div>
+          </div>
+          <input type="file" id="compPdfInp" accept=".pdf" style="display:none" onchange="handleCompPdf(this.files[0])">
+          <div id="compPdfInfo" style="display:none;margin-top:10px">
+            <div id="compPdfName" style="margin-bottom:8px"></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <label class="fm-lbl" style="margin:0;white-space:nowrap">مستوى الضغط:</label>
+              <select id="compPdfLevel" class="fm-inp" style="flex:1">
+                <option value="screen">عالي (أصغر حجم)</option>
+                <option value="ebook" selected>متوسط</option>
+                <option value="printer">منخفض (أفضل جودة)</option>
+              </select>
+            </div>
+            <button class="btn-save" style="width:100%" onclick="compressPdf()">
+              <span class="iconify" data-icon="solar:file-download-bold-duotone" data-width="14" style="vertical-align:middle;margin-left:5px"></span>
+              ضغط وتنزيل
+            </button>
+          </div>
+          <div id="compPdfProgress" style="display:none;margin-top:10px">
+            <div class="tool-progress-bar"><div class="tool-progress-fill" id="compPdfBar"></div></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center" id="compPdfMsg"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
   </div>
 </div>
+
+
 </div><!-- end .main -->
 </div><!-- end .app -->
 
