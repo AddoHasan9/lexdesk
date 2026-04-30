@@ -584,15 +584,21 @@ function updateNotifUI(on){
   else if(p==='default')pl.textContent='لم تُطلب الإذن بعد';
   else pl.textContent='غير مدعومة في هذا المتصفح';
 }
+// ══ BULK ACTIONS STATE (declared here — used in render/renderRow below) ══
+let selectedCases = [];
+
 // ══ TABLE ROW DELEGATION ══
 document.addEventListener('DOMContentLoaded', ()=>{
   const body = document.getElementById('casesBody');
   if(!body) return;
   body.addEventListener('click', e=>{
-    if(e.target.closest('.acts-cell')) return;
+    if(e.target.closest('.acts-cell'))    return;
     if(e.target.closest('.status-badge')) return;
-    if(e.target.closest('.stage-chip')) return;
-    if(e.target.closest('a')) return;
+    if(e.target.closest('.stage-chip'))   return;
+    if(e.target.closest('.bulk-cb-cell')) return;  // ★ bulk checkbox cell
+    if(e.target.closest('.bulk-cb'))      return;  // ★ bulk checkbox itself
+    if(e.target.closest('.company-link')) return;  // ★ client-profile link
+    if(e.target.closest('a'))             return;
     const row = e.target.closest('tr.case-row');
     if(!row) return;
     const id = Number(row.dataset.id);
@@ -1186,10 +1192,24 @@ const SFX={_ctx:null,_get(){if(!this._ctx)this._ctx=new(window.AudioContext||win
 function countUp(el,target,prefix,suffix,duration){if(!el)return;if(target===0){el.textContent=(prefix||'')+'0'+(suffix||'');return;}const startTime=performance.now();function update(now){const elapsed=now-startTime;const progress=Math.min(elapsed/duration,1);const eased=1-Math.pow(1-progress,3);const current=Math.round(target*eased);if(!el)return;el.textContent=(prefix||'')+current.toLocaleString('en-US')+(suffix||'');if(progress<1)requestAnimationFrame(update);else el.textContent=(prefix||'')+target.toLocaleString('en-US')+(suffix||'');}requestAnimationFrame(update);}
 
 // ══ KEYBOARD ══
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeAllDrops();closeDetail();['formOverlay','confirmOverlay','importOverlay','restoreOverlay','cvOverlay'].forEach(closeOverlay);document.getElementById('notifPanel').classList.remove('open');document.getElementById('remPanel').classList.remove('open');}if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openForm(null);}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    // Close command palette first (highest priority)
+    if(document.getElementById('cmdOverlay').classList.contains('open')){closeCmd();return;}
+    // Close AI panel
+    if(document.getElementById('aiPanel').classList.contains('open')){toggleAI();return;}
+    // Close client profile
+    const cp=document.getElementById('clientOverlay');if(cp&&cp.classList.contains('open')){closeClientProfile();return;}
+    // Default closes
+    closeAllDrops();
+    closeDetail();
+    ['formOverlay','confirmOverlay','importOverlay','restoreOverlay','cvOverlay'].forEach(closeOverlay);
+    document.getElementById('notifPanel').classList.remove('open');
+    document.getElementById('remPanel').classList.remove('open');
+    clearSelection();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openForm(null);}
   if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openCmd();}
-  if(e.key==='Escape'&&document.getElementById('cmdOverlay').classList.contains('open'))closeCmd();
-  if(e.key==='Escape'&&document.getElementById('aiPanel').classList.contains('open'))toggleAI();
 });
 document.addEventListener('click',e=>{closeAllDrops();const panel=document.getElementById('notifPanel');const bell=document.getElementById('notifBell');if(panel&&bell&&!panel.contains(e.target)&&!bell.contains(e.target))panel.classList.remove('open');const rp=document.getElementById('remPanel');const rb=document.getElementById('remBell');if(rp&&rb&&!rp.contains(e.target)&&!rb.contains(e.target))rp.classList.remove('open');});
 
@@ -1595,20 +1615,16 @@ function openClientProfile(company){
     </div>`;
   }).join('');
   const el=document.getElementById('clientOverlay');
-  el.style.display='flex';
   requestAnimationFrame(()=>el.classList.add('open'));
 }
 function closeClientProfile(){
-  const el=document.getElementById('clientOverlay');
-  el.classList.remove('open');
-  setTimeout(()=>el.style.display='none',280);
+  document.getElementById('clientOverlay').classList.remove('open');
 }
 
 
 // ══════════════════════════════════════════════
 // ★ 4. BULK ACTIONS
 // ══════════════════════════════════════════════
-let selectedCases=[];
 
 function toggleSelect(id){
   const idx=selectedCases.indexOf(id);
