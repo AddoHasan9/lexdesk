@@ -2172,3 +2172,191 @@ body { padding-bottom:0; }
 .search-box-wrap input {
   padding-right: 30px;
 }
+
+/* ══════════════════════════════════════
+   ★ PREMIUM ENHANCEMENTS v4.1
+   Animations · Transitions · Undo UX
+══════════════════════════════════════ */
+
+/* ── Smooth Theme Transition (more elements) ── */
+.sidebar, .topbar, .main, .modal, .overlay,
+.detail-modal, .rem-panel, .notif-panel,
+.login-box, .login-screen, .hero-kpi, .stat-mini,
+.cases-panel, .set-card, .chart-card, .rp-card,
+.case-card, .tb-search, .fm-inp, .sf-inp, .pass-inp,
+.sb-btn, .act-btn, .add-btn, .role-btn,
+.status-badge, .type-chip, .stage-chip {
+  transition:
+    background var(--t-slow),
+    border-color var(--t-slow),
+    color var(--t-slow),
+    box-shadow var(--t-slow);
+}
+
+/* ── Page Transitions ── */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page.active {
+  animation: pageIn .32s var(--ease) both;
+}
+
+/* ── Modal Close Animation ── */
+@keyframes modalOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(.93) translateY(18px); }
+}
+@keyframes overlayFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.overlay.closing {
+  display: flex !important;
+  pointer-events: none;
+  animation: overlayFadeOut .22s var(--ease) forwards;
+}
+.overlay.closing .modal,
+.overlay.closing .confirm-modal {
+  animation: modalOut .22s var(--ease) forwards;
+}
+
+/* ── Detail Modal Close Animation ── */
+@keyframes detailSlideOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(.96) translateY(14px); }
+}
+#detailOverlay.closing {
+  pointer-events: none;
+  animation: overlayFadeOut .24s var(--ease) forwards;
+}
+#detailOverlay.closing .detail-modal {
+  animation: detailSlideOut .24s var(--ease) forwards;
+}
+
+/* ── Convert Overlay Close ── */
+#cvOverlay.closing {
+  pointer-events: none;
+  animation: overlayFadeOut .22s var(--ease) forwards;
+}
+#cvOverlay.closing .modal {
+  animation: modalOut .22s var(--ease) forwards;
+}
+
+/* ── New Row / Card Highlight (gold flash) ── */
+@keyframes rowHighlight {
+  0%   { background: rgba(245,166,35,.22); box-shadow: 0 0 0 2px rgba(245,166,35,.35); }
+  55%  { background: rgba(245,166,35,.09); box-shadow: none; }
+  100% { background: transparent; box-shadow: none; }
+}
+tr.case-row.row-new           { animation: rowHighlight 1.9s var(--ease) forwards !important; }
+.case-card.row-new            { animation: rowHighlight 1.9s var(--ease) forwards !important; }
+
+/* ── Active Status Badge Pulse ── */
+@keyframes activePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(245,166,35,0); }
+  50%     { box-shadow: 0 0 0 5px rgba(245,166,35,.14); }
+}
+.s-active { animation: activePulse 3s ease-in-out infinite; }
+
+/* ── Hold Status Badge Pulse ── */
+@keyframes holdPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,85,114,0); }
+  50%     { box-shadow: 0 0 0 4px rgba(255,85,114,.13); }
+}
+.s-hold { animation: holdPulse 3.5s ease-in-out infinite; }
+
+/* ── Undo Toast ── */
+.toast-undo {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg2);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--sh-lg);
+  animation: toastIn .3s var(--ease-bounce);
+  pointer-events: all;
+  backdrop-filter: blur(var(--glass-blur));
+  min-width: 210px;
+  white-space: nowrap;
+}
+.toast-undo-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255,85,114,.12);
+  color: var(--red);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.toast-undo-icon svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.2; }
+.toast-undo-text { flex: 1; }
+.toast-undo-btn {
+  padding: 5px 13px;
+  background: var(--gold-dark);
+  border: 1px solid rgba(245,166,35,.3);
+  border-radius: 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  font-family: var(--font);
+}
+.toast-undo-btn:hover { background: var(--gold-g); box-shadow: var(--gold-glow); }
+.toast-undo-bar {
+  position: absolute;
+  bottom: 0; right: 0;
+  height: 2px;
+  background: var(--red);
+  border-radius: 0 0 14px 14px;
+  animation: undoBar 5s linear forwards;
+  opacity: .55;
+}
+@keyframes undoBar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ── Extended Card Stagger ── */
+.case-row:nth-child(7),  .case-card:nth-child(7)  { animation-delay: .22s; }
+.case-row:nth-child(8),  .case-card:nth-child(8)  { animation-delay: .25s; }
+.case-row:nth-child(9),  .case-card:nth-child(9)  { animation-delay: .27s; }
+.case-row:nth-child(10), .case-card:nth-child(10) { animation-delay: .29s; }
+.case-row:nth-child(n+11), .case-card:nth-child(n+11) { animation-delay: .30s; }
+
+/* ── Topbar Search Smooth Expand ── */
+.tb-search {
+  transition: width var(--t-slow), border-color var(--t), background var(--t-slow);
+}
+.tb-search:focus-within { width: 256px; }
+
+/* ── Smooth Scroll ── */
+.dash-center, .tbl-wrap, .cards-grid, .page { scroll-behavior: smooth; }
+
+/* ── Input Focus Transition ── */
+.fm-inp, .sf-inp, .pass-inp, .comment-inp, .rem-form textarea {
+  transition: border-color var(--t), box-shadow var(--t), background var(--t-slow);
+}
+
+/* ── Mobile Close Animation ── */
+@media(max-width:768px){
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .overlay .modal { animation: slideUp .32s var(--ease) both; }
+  .overlay.closing .modal {
+    animation: none !important;
+    transform: translateY(100%) !important;
+    opacity: 0 !important;
+    transition: transform .22s var(--ease), opacity .22s var(--ease) !important;
+  }
+}

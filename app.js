@@ -178,7 +178,8 @@ const SK_D='lexdesk_cases_v3',SK_S='lexdesk_settings_v3',SK_USER='lexdesk_user',
 const SEED=[{id:1,company:'كهرمانة',type:'تأسيس شركة',lawyer:'منتظر',status:'قيد المعالجة',currency:'IQD',amountIQD:6600000,amountUSD:0,deficiency:'',notes:'',holdReason:'',stage:'',date:'',addedAt:1},{id:2,company:'الضوء القادم',type:'تأسيس شركة',lawyer:'مروه',status:'قيد المعالجة',currency:'IQD',amountIQD:6600000,amountUSD:0,deficiency:'',notes:'',holdReason:'',stage:'',date:'',addedAt:2},{id:3,company:'سحر الالوان',type:'تأسيس شركة',lawyer:'علي',status:'قيد المعالجة',currency:'IQD',amountIQD:6600000,amountUSD:0,deficiency:'',notes:'',holdReason:'',stage:'',date:'',addedAt:3}];
 const LAWYER_COLORS=['#F0A500','#3B7EFF','#00C48C','#FF4D6A','#9B6DFF','#FF8C42'];
 const STATUS_MAP={'قيد المعالجة':'s-active','منجزة':'s-done','معلقة':'s-hold','مراجعة':'s-pending','ناقصة':'s-def'};
-let cases=[],settings={},editingId=null,currentView='list',importRows=[];
+let cases=[],settings={},editingId=null,currentView='list',importRows=[],_lastAddedId=null;
+let _undoCase=null,_undoEl=null,_undoTimer=null;
 const fmt=n=>(Math.round(n||0)).toLocaleString('en-US');
 const parseAmt=s=>parseFloat((s||'').replace(/,/g,''))||0;
 
@@ -638,7 +639,7 @@ function renderRow(c){
 function renderCard(c){
   const lci=settings.lawyers.indexOf(c.lawyer);const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
   const amt=c.currency==='USD'?'$'+fmt(c.amountUSD):fmt(c.amountIQD)+' د.ع';
-  return '<div class="case-card" style="'+(c.wadeaDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone&&c.type===WADEA_TYPE?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">✓ اكتمل التأسيس</div>':'')+(c.wadeaDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ أُكملت الوديعة</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
+  return '<div class="case-card" data-id="'+c.id+'" style="'+(c.wadeaDone?'opacity:.65':'')+'">'+'<div class="cc-clickarea" onclick="openDetail('+c.id+')" style="cursor:pointer"><div class="cc-top"><div><div class="cc-name" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'">'+c.company+'</div>'+(c.tasisDone&&c.type===WADEA_TYPE?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">✓ اكتمل التأسيس</div>':'')+(c.wadeaDone?'<div style="font-size:10px;color:var(--green);font-weight:700;margin-top:2px">✓ أُكملت الوديعة</div>':'')+(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="font-size:10px;color:var(--gold);font-weight:700;margin-top:2px">↑ من تأسيس</div>':'')+'<div style="margin-top:4px"><span class="type-chip">'+c.type+'</span></div></div><span class="status-badge '+statusClass(c.status)+'" onclick="event.stopPropagation();openStatusDrop(event,'+c.id+')">'+c.status+'</span></div><div class="cc-meta"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><div class="lawyer-dot" style="background:'+lc+'"></div>'+c.lawyer+'</div></div><div class="cc-amt">'+amt+'</div></div><div class="cc-foot">'+(c.stage?'<span class="stage-chip">'+c.stage+'</span>':'<span></span>')+(c.attachUrl?'<a href="'+c.attachUrl+'" target="_blank" class="attach-badge" style="margin-right:4px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></a>':'')+'<div style="display:flex;gap:4px"><button class="act-btn" title="تعديل" onclick="openForm('+c.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="act-btn del" title="حذف" onclick="askDel('+c.id+')"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div></div>';
 }
 // ══ STATS ══
 function updateStats(){
@@ -921,18 +922,52 @@ async function saveCase(){
   const stageVal=selDept==='أخرى'?(document.getElementById('fStageOther').value.trim()||'أخرى'):selDept;
   const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():''};
   if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1){const old=cases[idx];const logEntry={id:Date.now(),type:'edit',msg:'تم تعديل المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()};if(old.status!==data.status)logEntry.msg='تغيير الحالة: '+old.status+' → '+data.status;cases[idx]={...old,...data,log:[...(old.log||[]),logEntry],comments:old.comments||[]};if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','معاملة معلقة: '+data.company);else addNotif('edit','تعديل: '+data.company);}toast('تم التعديل','ok');}
-  else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
+  else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);_lastAddedId=newCase.id;addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
   if(pendingAttachFile){const url=await uploadAttachment(pendingAttachFile, data.company);if(url){data.attachUrl=url;data.attachName=pendingAttachFile.name;if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1)cases[idx]={...cases[idx],...data};}else cases[cases.length-1]={...cases[cases.length-1],...data};}}
   saveData();render();closeForm();SFX.play('save');
+  if(_lastAddedId){
+    const _hid=_lastAddedId;_lastAddedId=null;
+    setTimeout(()=>{
+      const _hel=document.querySelector('[data-id="'+_hid+'"]');
+      if(_hel){_hel.classList.add('row-new');setTimeout(()=>_hel&&_hel.classList.remove('row-new'),1900);}
+    },80);
+  }
 }
-// ══ DELETE ══
+// ══ DELETE WITH UNDO ══
 function askDel(id){
   const c=cases.find(x=>x.id===id);if(!c)return;
-  const det=document.getElementById('detailOverlay');if(det&&det.classList.contains('open'))closeDetail();
-  document.getElementById('confirmTitle').textContent='حذف المعاملة';
-  document.getElementById('confirmSub').textContent='هل تريد حذف "'+c.company+'"؟ لا يمكن التراجع.';
-  document.getElementById('confirmBtn').onclick=async()=>{cases=cases.filter(x=>x.id!==id);sbDeleteCase(id);if(c.attachUrl){try{const path=c.attachUrl.split('/object/public/'+SB_BUCKET+'/')[1];if(path)await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});}catch(e){}}localStorage.setItem(SK_D,JSON.stringify(cases));render();closeOverlay('confirmOverlay');SFX.play('delete');toast('تم الحذف','err');};
-  openOverlay('confirmOverlay');
+  const det=document.getElementById('detailOverlay');
+  if(det&&(det.style.display!=='none'&&det.style.display!=''))closeDetail();
+  // Immediately remove from UI
+  cases=cases.filter(x=>x.id!==id);
+  render();
+  SFX.play('delete');
+  // Cancel any previous undo timer
+  if(_undoTimer){
+    clearTimeout(_undoTimer);
+    if(_undoCase){sbDeleteCase(_undoCase.id);saveData();}
+    if(_undoEl){const _pe=_undoEl;_undoEl=null;_pe.style.opacity='0';_pe.style.transform='translateY(8px)';_pe.style.transition='all .25s';setTimeout(()=>_pe.remove(),280);}
+  }
+  _undoCase=c;
+  // Show undo toast
+  const wrap=document.getElementById('toastWrap');
+  const div=document.createElement('div');
+  div.className='toast-undo';
+  div.innerHTML='<div class="toast-undo-icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></div>'
+    +'<span class="toast-undo-text">حُذف "'+c.company+'"</span>'
+    +'<button class="toast-undo-btn" onclick="undoDelete()">تراجع</button>'
+    +'<div class="toast-undo-bar"></div>';
+  wrap.appendChild(div);
+  _undoEl=div;
+  // After 5 seconds, permanently delete
+  _undoTimer=setTimeout(async()=>{
+    if(!_undoCase||_undoCase.id!==id)return;
+    const _dc=_undoCase;_undoCase=null;_undoTimer=null;
+    sbDeleteCase(_dc.id);
+    if(_dc.attachUrl){try{const path=_dc.attachUrl.split('/object/public/'+SB_BUCKET+'/')[1];if(path)await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+path,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});}catch(e){}}
+    saveData();
+    if(_undoEl){const e=_undoEl;_undoEl=null;e.style.opacity='0';e.style.transform='translateY(8px)';e.style.transition='all .3s';setTimeout(()=>e.remove(),310);}
+  },5000);
 }
 function askClearAll(){
   if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
@@ -984,7 +1019,12 @@ function populateAllDropdowns(){const ft=document.getElementById('filterType');c
 
 // ══ OVERLAYS ══
 function openOverlay(id){document.getElementById(id).classList.add('open');}
-function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+function closeOverlay(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.add('closing');
+  setTimeout(()=>{el.classList.remove('open');el.classList.remove('closing');},230);
+}
 // ══ TOAST ══
 let toastTimer;
 const TOAST_ICONS={ok:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',err:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',warn:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',info:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'};
@@ -1258,3 +1298,40 @@ function updateUsersTabVisibility(){
   }
   initMobile();
 })();
+
+// ══════════════════════════════════════
+// ★ PREMIUM ENHANCEMENTS v4.1
+// ══════════════════════════════════════
+
+// ── Undo Delete ──
+function undoDelete(){
+  if(!_undoCase)return;
+  clearTimeout(_undoTimer);
+  const restored=_undoCase;
+  _undoCase=null;_undoTimer=null;
+  cases.push(restored);
+  cases.sort((a,b)=>(a.addedAt||0)-(b.addedAt||0));
+  render();
+  toast('تم التراجع عن الحذف','ok');
+  if(_undoEl){
+    const e=_undoEl;_undoEl=null;
+    e.style.opacity='0';e.style.transform='translateY(8px)';
+    e.style.transition='all .3s';
+    setTimeout(()=>e.remove(),310);
+  }
+}
+
+// ── Close Detail with animation (override) ──
+function closeDetail(){
+  const ov=document.getElementById('detailOverlay');
+  if(!ov||ov.style.display==='none'||ov.style.display==='')return;
+  ov.classList.add('closing');
+  setTimeout(()=>{
+    ov.classList.remove('closing');
+    ov.style.display='none';
+    if(typeof detailCaseId!=='undefined')detailCaseId=null;
+  },250);
+}
+function closeDetailIfBg(e){
+  if(e.target===document.getElementById('detailOverlay'))closeDetail();
+}
