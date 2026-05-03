@@ -2779,6 +2779,15 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   .cmd-topbar-btn { display:none; }
   .ai-topbar-btn { padding:6px 10px; font-size:11px; }
   .tools-grid { grid-template-columns:1fr; gap:14px; padding:0 14px 30px; }
+
+  /* ── Tools page mobile ── */
+  #pageTools .tools-grid {
+    grid-template-columns: 1fr !important;
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+  .tool-dropzone { padding: 20px 12px; }
+
 }
 
 /* ══════════════════════════════════════════════
