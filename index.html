@@ -11,6 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link rel="stylesheet" href="style.css">
 <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
@@ -923,6 +925,7 @@
       الأدوات
     </div>
   </div>
+  <div id="toolLibsWarn" style="display:none;margin:0 16px 8px;padding:10px 14px;background:rgba(255,85,114,.1);border:0.5px solid rgba(255,85,114,.3);border-radius:8px;font-size:13px;color:var(--red)"></div>
   <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
 
     <!-- Tool 1: Image to PDF -->
@@ -1570,9 +1573,6 @@
 </button>
 
 <!-- PDF libs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

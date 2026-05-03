@@ -491,6 +491,7 @@ function setLoginLoading(on){
   btn.style.opacity = on ? '.6' : '1';
 }
 
+function isAdmin(){return currentRole==='admin';}
 
 function applyRoleUI(){
   const sbSet=document.getElementById('sbSettings');if(sbSet)sbSet.style.display=isAdmin()?'flex':'none';
@@ -1015,6 +1016,7 @@ function goPage(p){
   if(p==='settings')loadSettingsPage();
   if(p==='charts')setTimeout(buildCharts,100);
   if(p==='reports')setTimeout(buildReports,50);
+  if(p==='tools')setTimeout(checkToolLibs,500);
 }
 function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',reports:'mnReports',settings:'mnSet'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
@@ -1343,6 +1345,20 @@ function updateUsersTabVisibility(){
 }
 
 
+
+// ══ TOOLS: Library checker ══
+function checkToolLibs(){
+  const jspdfOk = !!(window.jspdf||window.jsPDF);
+  const pdfjsOk = !!(window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist);
+  const warn = document.getElementById('toolLibsWarn');
+  if(!warn) return;
+  if(!jspdfOk||!pdfjsOk){
+    warn.style.display='block';
+    warn.innerHTML='⚠ بعض المكتبات لم تحمل بعد. <span style="cursor:pointer;text-decoration:underline;color:var(--gold)" onclick="location.reload()">أعد تحديث الصفحة</span>';
+  } else {
+    warn.style.display='none';
+  }
+}
 // ══ TOOLS PAGE ══
 
 // ─ helpers ─
@@ -1388,10 +1404,12 @@ function handleImgToPdf(files){
 
 async function convertImgToPdf(){
   if(!imgToPdfFiles.length){toast('اختر صور أولاً','warn');return;}
+  // Check jsPDF loaded
+  if(!window.jspdf&&!window.jsPDF){toast('المكتبة لم تحمل بعد، أعد تحديث الصفحة','err');return;}
   showToolProgress('imgToPdfProgress',true);
   setProgress('imgToPdfBar','imgToPdfMsg',10,'جاري التحميل...');
   try{
-    const {jsPDF}=window.jspdf;
+    const {jsPDF}=window.jspdf||{jsPDF:window.jsPDF};
     const pageSize=document.getElementById('imgToPdfSize').value;
     let pdf=null;
     for(let i=0;i<imgToPdfFiles.length;i++){
@@ -1463,8 +1481,8 @@ async function convertPdfToImg(){
     const scale=parseFloat(document.getElementById('pdfToImgQuality').value)||2;
     const arrayBuffer=await pdfToImgFile.arrayBuffer();
     // Use PDF.js
-    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
-    if(!pdfjsLib){toast('مكتبة PDF غير محملة، حاول مرة ثانية','err');showToolProgress('pdfToImgProgress',false);return;}
+    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist;
+    if(!pdfjsLib){toast('مكتبة PDF غير محملة، أعد تحديث الصفحة','err');showToolProgress('pdfToImgProgress',false);return;}
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
     const total=pdf.numPages;
@@ -1595,10 +1613,9 @@ async function compressPdf(){
     const scale=scaleMap[level]||1.0;
     const imgQuality=qualMap[level]||0.75;
 
-    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
+    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist;
     if(!pdfjsLib){
-      // Fallback: just download as-is with note
-      toast('ضغط PDF يحتاج وقت التحميل — حاول بعد ثانية','warn');
+      toast('مكتبة PDF غير محملة، أعد تحديث الصفحة','warn');
       showToolProgress('compPdfProgress',false);
       return;
     }
@@ -1606,7 +1623,7 @@ async function compressPdf(){
     const arrayBuffer=await compPdfFile.arrayBuffer();
     const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
     const total=pdf.numPages;
-    const {jsPDF}=window.jspdf;
+    const {jsPDF}=window.jspdf||{jsPDF:window.jsPDF};
     let newPdf=null;
 
     for(let i=1;i<=total;i++){
@@ -1676,8 +1693,19 @@ function undoDelete(){
 }
 
 // ── Close Detail with animation (override) ──
-
-
+function closeDetail(){
+  const ov=document.getElementById('detailOverlay');
+  if(!ov||ov.style.display==='none'||ov.style.display==='')return;
+  ov.classList.add('closing');
+  setTimeout(()=>{
+    ov.classList.remove('closing');
+    ov.style.display='none';
+    if(typeof detailCaseId!=='undefined')detailCaseId=null;
+  },250);
+}
+function closeDetailIfBg(e){
+  if(e.target===document.getElementById('detailOverlay'))closeDetail();
+}
 
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  ★★★  LexDesk v5.0 — 5 Advanced Features                  ║
