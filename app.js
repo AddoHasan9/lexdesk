@@ -497,7 +497,6 @@ function applyRoleUI(){
   const sbSet=document.getElementById('sbSettings');if(sbSet)sbSet.style.display=isAdmin()?'flex':'none';
   const mnSet=document.getElementById('mnSet');if(mnSet)mnSet.style.display=isAdmin()?'flex':'none';
   const sbReports=document.getElementById('sbReports');if(sbReports)sbReports.style.display=isAdmin()?'flex':'none';
-  const sbTools=document.getElementById('sbTools');if(sbTools)sbTools.style.display='flex';
   const mnReports=document.getElementById('mnReports');if(mnReports)mnReports.style.display=isAdmin()?'flex':'none';
   document.querySelectorAll('[onclick="exportExcel()"]').forEach(b=>b.style.display=isAdmin()?'flex':'none');
   document.querySelectorAll('[onclick="window.print()"]').forEach(b=>b.style.display=isAdmin()?'flex':'none');
@@ -1005,39 +1004,19 @@ function setView(v){
 }
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
-  const pageIdMap={dash:'pageDash',charts:'pageCharts',reports:'pageReports',settings:'pageSettings',tools:'ToolsPage'};
-  const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',settings:'sbSettings',tools:'sbTools'};
-  Object.keys(pageIdMap).forEach(x=>{
-    const pg=document.getElementById(pageIdMap[x]);
-    if(pg){ pg.style.display=(x===p)?'flex':'none'; pg.classList.toggle('active',x===p); }
-    const sb=document.getElementById(sbMap[x]);
-    if(sb)sb.classList.toggle('active',x===p);
-  });
-  if(p==='settings')loadSettingsPage();
-  if(p==='charts')setTimeout(buildCharts,100);
-  if(p==='reports')setTimeout(buildReports,50);
-  if(p==='tools')setTimeout(checkToolLibs,500);
+  ['dash','charts','reports','tools','settings'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg)pg.classList.toggle('active',x===p);const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
+  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);
 }
 function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',reports:'mnReports',settings:'mnSet'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
 // ══ SETTINGS ══
-function switchSetTab(tab){
-  document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
-  document.querySelectorAll('.set-tab-content').forEach(c=>{
-    c.classList.remove('active');
-    c.style.display='none';
-  });
-  const el=document.getElementById('setTab_'+tab);
-  if(el){ el.classList.add('active'); el.style.display='block'; }
-  if(tab==='users') loadUsersList();
-}
+function switchSetTab(tab){document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));document.querySelectorAll('.set-tab-content').forEach(c=>c.classList.remove('active'));const el=document.getElementById('setTab_'+tab);if(el)el.classList.add('active');}
 function loadSettingsPage(){
   if(!isAdmin()){goPage('dash');toast('الإعدادات للأدمن فقط','err');return;}
   document.getElementById('setOfficeName').value=settings.officeName;document.getElementById('setDefCur').value=settings.defCurrency;
   renderTags('lawyerTags',settings.lawyers,'lawyer');renderTags('typeTags',settings.types,'type');renderTags('deptTags',settings.depts,'dept');
   updateNotifUI(settings.notifEnabled!==false);
   if(tab==='users') loadUsersList();
-  if(tab==='tools'){} // tools are self-contained
 }
 function renderTags(elId,arr,kind){document.getElementById(elId).innerHTML=arr.map((t,i)=>'<div class="tag">'+t+'<button class="tag-del" onclick="removeItem(\''+kind+'\','+i+')">✕</button></div>').join('');}
 function removeItem(kind,i){if(!isAdmin())return;const map={lawyer:'lawyers',type:'types',dept:'depts'};const key=map[kind];if(!key)return;if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('المحامي عنده معاملات','err');return;}if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('النوع مستخدم','err');return;}settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('تم الحذف','ok');}
@@ -1344,315 +1323,6 @@ function updateUsersTabVisibility(){
   if(tab) tab.style.display = isAdmin() ? 'flex' : 'none';
 }
 
-
-
-// ══ TOOLS: Library checker ══
-function checkToolLibs(){
-  const jspdfOk = !!(window.jspdf||window.jsPDF);
-  const pdfjsOk = !!(window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist);
-  const warn = document.getElementById('toolLibsWarn');
-  if(!warn) return;
-  if(!jspdfOk||!pdfjsOk){
-    warn.style.display='block';
-    warn.innerHTML='⚠ بعض المكتبات لم تحمل بعد. <span style="cursor:pointer;text-decoration:underline;color:var(--gold)" onclick="location.reload()">أعد تحديث الصفحة</span>';
-  } else {
-    warn.style.display='none';
-  }
-}
-// ══ TOOLS PAGE ══
-
-// ─ helpers ─
-function fmtSize(bytes){
-  if(bytes<1024)return bytes+'B';
-  if(bytes<1048576)return (bytes/1024).toFixed(1)+'KB';
-  return (bytes/1048576).toFixed(1)+'MB';
-}
-function setProgress(barId, msgId, pct, msg){
-  const bar=document.getElementById(barId);
-  const msgEl=document.getElementById(msgId);
-  if(bar) bar.style.width=pct+'%';
-  if(msgEl) msgEl.textContent=msg;
-}
-function showToolProgress(progressId, show){
-  const el=document.getElementById(progressId);
-  if(el) el.style.display=show?'block':'none';
-}
-
-// ══ 1. IMAGE → PDF ══
-let imgToPdfFiles=[];
-
-function handleImgToPdfDrop(e){
-  e.preventDefault();
-  document.getElementById('imgToPdfDrop').classList.remove('drag-over');
-  handleImgToPdf(e.dataTransfer.files);
-}
-
-function handleImgToPdf(files){
-  imgToPdfFiles=[...files].filter(f=>f.type.startsWith('image/'));
-  if(!imgToPdfFiles.length){toast('اختر صور صالحة','warn');return;}
-  const list=document.getElementById('imgToPdfList');
-  const items=document.getElementById('imgToPdfItems');
-  list.style.display='block';
-  items.innerHTML=imgToPdfFiles.map((f,i)=>`
-    <div class="tool-file-item">
-      <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="14" style="color:var(--gold);flex-shrink:0"></span>
-      <span class="tool-file-name">${f.name}</span>
-      <span class="tool-file-size">${fmtSize(f.size)}</span>
-    </div>`).join('');
-  if(typeof Iconify!=='undefined') Iconify.scan(items);
-}
-
-async function convertImgToPdf(){
-  if(!imgToPdfFiles.length){toast('اختر صور أولاً','warn');return;}
-  // Check jsPDF loaded
-  if(!window.jspdf&&!window.jsPDF){toast('المكتبة لم تحمل بعد، أعد تحديث الصفحة','err');return;}
-  showToolProgress('imgToPdfProgress',true);
-  setProgress('imgToPdfBar','imgToPdfMsg',10,'جاري التحميل...');
-  try{
-    const {jsPDF}=window.jspdf||{jsPDF:window.jsPDF};
-    const pageSize=document.getElementById('imgToPdfSize').value;
-    let pdf=null;
-    for(let i=0;i<imgToPdfFiles.length;i++){
-      const pct=10+(i/imgToPdfFiles.length)*80;
-      setProgress('imgToPdfBar','imgToPdfMsg',pct,`معالجة صورة ${i+1} من ${imgToPdfFiles.length}...`);
-      const img=await new Promise((res,rej)=>{
-        const r=new FileReader();
-        r.onload=e=>res(e.target.result);
-        r.onerror=rej;
-        r.readAsDataURL(imgToPdfFiles[i]);
-      });
-      const imgEl=await new Promise((res,rej)=>{
-        const el=new Image();
-        el.onload=()=>res(el);
-        el.onerror=rej;
-        el.src=img;
-      });
-      const iw=imgEl.naturalWidth, ih=imgEl.naturalHeight;
-      let pw,ph;
-      if(pageSize==='a4'){pw=210;ph=297;}
-      else{pw=iw*25.4/96;ph=ih*25.4/96;}
-      const orientation=iw>ih?'landscape':'portrait';
-      if(!pdf) pdf=new jsPDF({orientation,unit:'mm',format:pageSize==='a4'?'a4':[pw,ph]});
-      else pdf.addPage(pageSize==='a4'?'a4':[pw,ph],orientation);
-      // Fit image to page
-      const ratio=Math.min(pw/iw,ph/ih);
-      const fw=iw*ratio, fh=ih*ratio;
-      const x=(pw-fw)/2, y=(ph-fh)/2;
-      pdf.addImage(img,'JPEG',x,y,fw,fh);
-    }
-    setProgress('imgToPdfBar','imgToPdfMsg',95,'جاري الحفظ...');
-    pdf.save('lexdesk_images.pdf');
-    setProgress('imgToPdfBar','imgToPdfMsg',100,'✓ تم التحويل بنجاح!');
-    toast('✓ تم تحويل '+imgToPdfFiles.length+' صورة إلى PDF','ok');
-    setTimeout(()=>{showToolProgress('imgToPdfProgress',false);},2000);
-  } catch(e){
-    toast('خطأ: '+e.message,'err');
-    showToolProgress('imgToPdfProgress',false);
-  }
-}
-
-// ══ 2. PDF → IMAGES ══
-let pdfToImgFile=null;
-
-function handlePdfToImgDrop(e){
-  e.preventDefault();
-  document.getElementById('pdfToImgDrop').classList.remove('drag-over');
-  handlePdfToImg(e.dataTransfer.files[0]);
-}
-
-function handlePdfToImg(file){
-  if(!file||file.type!=='application/pdf'){toast('اختر ملف PDF','warn');return;}
-  pdfToImgFile=file;
-  document.getElementById('pdfToImgInfo').style.display='block';
-  document.getElementById('pdfToImgName').innerHTML=`
-    <div class="tool-file-item">
-      <span class="iconify" data-icon="solar:document-bold-duotone" data-width="14" style="color:var(--blue2);flex-shrink:0"></span>
-      <span class="tool-file-name">${file.name}</span>
-      <span class="tool-file-size">${fmtSize(file.size)}</span>
-    </div>`;
-  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('pdfToImgName'));
-}
-
-async function convertPdfToImg(){
-  if(!pdfToImgFile){toast('اختر ملف PDF أولاً','warn');return;}
-  showToolProgress('pdfToImgProgress',true);
-  setProgress('pdfToImgBar','pdfToImgMsg',5,'جاري قراءة الملف...');
-  try{
-    const scale=parseFloat(document.getElementById('pdfToImgQuality').value)||2;
-    const arrayBuffer=await pdfToImgFile.arrayBuffer();
-    // Use PDF.js
-    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist;
-    if(!pdfjsLib){toast('مكتبة PDF غير محملة، أعد تحديث الصفحة','err');showToolProgress('pdfToImgProgress',false);return;}
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
-    const total=pdf.numPages;
-    setProgress('pdfToImgBar','pdfToImgMsg',10,`الملف فيه ${total} صفحة`);
-    for(let i=1;i<=total;i++){
-      const pct=10+(i/total)*85;
-      setProgress('pdfToImgBar','pdfToImgMsg',pct,`تحويل صفحة ${i} من ${total}...`);
-      const page=await pdf.getPage(i);
-      const viewport=page.getViewport({scale});
-      const canvas=document.createElement('canvas');
-      canvas.width=viewport.width; canvas.height=viewport.height;
-      const ctx=canvas.getContext('2d');
-      await page.render({canvasContext:ctx,viewport}).promise;
-      // Download
-      const link=document.createElement('a');
-      link.download=`page_${String(i).padStart(3,'0')}.jpg`;
-      link.href=canvas.toDataURL('image/jpeg',0.92);
-      link.click();
-      await new Promise(r=>setTimeout(r,300));
-    }
-    setProgress('pdfToImgBar','pdfToImgMsg',100,`✓ تم تحويل ${total} صفحة!`);
-    toast('✓ تم تحويل '+total+' صفحة إلى صور','ok');
-    setTimeout(()=>{showToolProgress('pdfToImgProgress',false);},2000);
-  }catch(e){
-    toast('خطأ: '+e.message,'err');
-    showToolProgress('pdfToImgProgress',false);
-  }
-}
-
-// ══ 3. COMPRESS IMAGES ══
-let compImgFiles=[];
-
-function handleCompImgDrop(e){
-  e.preventDefault();
-  handleCompImg(e.dataTransfer.files);
-}
-
-function handleCompImg(files){
-  compImgFiles=[...files].filter(f=>f.type.match(/image\/(jpeg|png)/));
-  if(!compImgFiles.length){toast('اختر صور JPG أو PNG','warn');return;}
-  document.getElementById('compImgSettings').style.display='block';
-  document.getElementById('compImgItems').innerHTML=compImgFiles.map(f=>`
-    <div class="tool-file-item">
-      <span class="iconify" data-icon="solar:gallery-bold-duotone" data-width="14" style="color:var(--green);flex-shrink:0"></span>
-      <span class="tool-file-name">${f.name}</span>
-      <span class="tool-file-size">${fmtSize(f.size)}</span>
-    </div>`).join('');
-  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('compImgItems'));
-}
-
-async function compressImages(){
-  if(!compImgFiles.length){toast('اختر صور أولاً','warn');return;}
-  const quality=parseInt(document.getElementById('compImgQuality').value)/100;
-  showToolProgress('compImgProgress',true);
-  try{
-    for(let i=0;i<compImgFiles.length;i++){
-      const f=compImgFiles[i];
-      const pct=((i+1)/compImgFiles.length)*100;
-      setProgress('compImgBar','compImgMsg',pct,`ضغط ${f.name}...`);
-      const result=await new Promise((res,rej)=>{
-        const r=new FileReader();
-        r.onload=e=>{
-          const img=new Image();
-          img.onload=()=>{
-            const canvas=document.createElement('canvas');
-            canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
-            canvas.getContext('2d').drawImage(img,0,0);
-            const mime=f.type==='image/png'&&quality>0.85?'image/png':'image/jpeg';
-            canvas.toBlob(blob=>{
-              const link=document.createElement('a');
-              const ext=mime==='image/png'?'.png':'.jpg';
-              link.download='compressed_'+f.name.replace(/\.[^.]+$/,'')+ext;
-              link.href=URL.createObjectURL(blob);
-              link.click();
-              URL.revokeObjectURL(link.href);
-              res({orig:f.size,comp:blob.size});
-            },mime,quality);
-          };
-          img.onerror=rej;
-          img.src=e.target.result;
-        };
-        r.onerror=rej;
-        r.readAsDataURL(f);
-      });
-      const saved=Math.round((1-result.comp/result.orig)*100);
-      setProgress('compImgBar','compImgMsg',pct,`✓ ${f.name} — وُفّر ${saved}%`);
-      await new Promise(r=>setTimeout(r,200));
-    }
-    setProgress('compImgBar','compImgMsg',100,'✓ تم ضغط جميع الصور!');
-    toast('✓ تم ضغط '+compImgFiles.length+' صورة','ok');
-    setTimeout(()=>{showToolProgress('compImgProgress',false);},2000);
-  }catch(e){
-    toast('خطأ: '+e.message,'err');
-    showToolProgress('compImgProgress',false);
-  }
-}
-
-// ══ 4. COMPRESS PDF ══
-let compPdfFile=null;
-
-function handleCompPdfDrop(e){
-  e.preventDefault();
-  handleCompPdf(e.dataTransfer.files[0]);
-}
-
-function handleCompPdf(file){
-  if(!file||file.type!=='application/pdf'){toast('اختر ملف PDF','warn');return;}
-  compPdfFile=file;
-  document.getElementById('compPdfInfo').style.display='block';
-  document.getElementById('compPdfName').innerHTML=`
-    <div class="tool-file-item">
-      <span class="iconify" data-icon="solar:document-bold-duotone" data-width="14" style="color:var(--red);flex-shrink:0"></span>
-      <span class="tool-file-name">${file.name}</span>
-      <span class="tool-file-size">${fmtSize(file.size)}</span>
-    </div>`;
-  if(typeof Iconify!=='undefined') Iconify.scan(document.getElementById('compPdfName'));
-}
-
-async function compressPdf(){
-  if(!compPdfFile){toast('اختر ملف PDF أولاً','warn');return;}
-  showToolProgress('compPdfProgress',true);
-  setProgress('compPdfBar','compPdfMsg',20,'جاري قراءة الملف...');
-  try{
-    // PDF compression via re-rendering pages at lower quality
-    const level=document.getElementById('compPdfLevel').value;
-    const scaleMap={screen:0.8, ebook:1.0, printer:1.5};
-    const qualMap={screen:0.6, ebook:0.75, printer:0.9};
-    const scale=scaleMap[level]||1.0;
-    const imgQuality=qualMap[level]||0.75;
-
-    const pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib||window.pdfjsDist;
-    if(!pdfjsLib){
-      toast('مكتبة PDF غير محملة، أعد تحديث الصفحة','warn');
-      showToolProgress('compPdfProgress',false);
-      return;
-    }
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const arrayBuffer=await compPdfFile.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
-    const total=pdf.numPages;
-    const {jsPDF}=window.jspdf||{jsPDF:window.jsPDF};
-    let newPdf=null;
-
-    for(let i=1;i<=total;i++){
-      const pct=20+(i/total)*70;
-      setProgress('compPdfBar','compPdfMsg',pct,`معالجة صفحة ${i} من ${total}...`);
-      const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale});
-      const canvas=document.createElement('canvas');
-      canvas.width=vp.width; canvas.height=vp.height;
-      await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
-      const imgData=canvas.toDataURL('image/jpeg',imgQuality);
-      const pw=vp.width*25.4/96, ph=vp.height*25.4/96;
-      const ori=vp.width>vp.height?'landscape':'portrait';
-      if(!newPdf) newPdf=new jsPDF({orientation:ori,unit:'mm',format:[pw,ph]});
-      else newPdf.addPage([pw,ph],ori);
-      newPdf.addImage(imgData,'JPEG',0,0,pw,ph);
-    }
-
-    setProgress('compPdfBar','compPdfMsg',95,'جاري الحفظ...');
-    const origSize=compPdfFile.size;
-    newPdf.save('compressed_'+compPdfFile.name);
-    setProgress('compPdfBar','compPdfMsg',100,'✓ تم الضغط بنجاح!');
-    toast('✓ تم ضغط الملف وتنزيله','ok');
-    setTimeout(()=>{showToolProgress('compPdfProgress',false);},2000);
-  }catch(e){
-    toast('خطأ: '+e.message,'err');
-    showToolProgress('compPdfProgress',false);
-  }
-}
 // ══ INIT ══
 (async()=>{
   initTheme();
@@ -1723,6 +1393,7 @@ const CMD_ACTIONS = [
   {icon:'➕', label:'إضافة معاملة جديدة',     keys:'ctrl+n', fn:()=>openForm(null)},
   {icon:'📊', label:'التحليلات والرسوم البيانية', keys:'',      fn:()=>goPage('charts')},
   {icon:'📄', label:'التقارير المالية',        keys:'',      fn:()=>goPage('reports')},
+  {icon:'🗂️', label:'أدوات الملفات — تحويل وضغط', keys:'',   fn:()=>goPage('tools')},
   {icon:'⚙️', label:'الإعدادات',              keys:'',      fn:()=>goPage('settings')},
   {icon:'🌙', label:'تبديل الوضع (فاتح/داكن)',  keys:'',      fn:()=>toggleTheme()},
   {icon:'📋', label:'تصدير إكسل',             keys:'',      fn:()=>exportExcel()},
@@ -2215,3 +1886,250 @@ document.addEventListener('click',e=>{
     openClientProfile(link.textContent.trim());
   }
 });
+
+
+// ══════════════════════════════════════════════
+// ★ 6. FILE TOOLS — Convert & Compress
+// ══════════════════════════════════════════════
+
+const _toolDropFiles={};
+
+function fileToDataUrl(file){
+  return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
+}
+
+function toolDrop(event,inputId,zoneId){
+  event.preventDefault();
+  document.getElementById(zoneId).classList.remove('drag');
+  _toolDropFiles[inputId]=event.dataTransfer.files;
+  const files=_toolDropFiles[inputId];
+  if(!files||!files.length)return;
+  const lblId=zoneId.replace('Zone','Label');
+  const lbl=document.getElementById(lblId);
+  if(lbl)lbl.textContent=Array.from(files).map(f=>f.name).join('، ');
+  document.getElementById(zoneId).classList.add('has-file');
+}
+
+function updateDropLabel(zoneId,inp){
+  if(inp.id)delete _toolDropFiles[inp.id];
+  const files=inp.files;
+  if(!files||!files.length)return;
+  const lblId=zoneId.replace('Zone','Label');
+  const lbl=document.getElementById(lblId);
+  if(lbl)lbl.textContent=Array.from(files).map(f=>f.name).join('، ');
+  document.getElementById(zoneId).classList.add('has-file');
+}
+
+function getToolFiles(inputId){
+  if(_toolDropFiles[inputId]&&_toolDropFiles[inputId].length)return _toolDropFiles[inputId];
+  const inp=document.getElementById(inputId);
+  return inp?inp.files:null;
+}
+
+function toolSetResult(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+
+function fmtBytes(b){
+  if(b<1024)return b+' B';
+  if(b<1048576)return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(2)+' MB';
+}
+
+// إعداد PDF.js مع حل مشكلة cross-origin worker
+function initPdfJs(){
+  const lib=window.pdfjsLib;
+  if(!lib)return null;
+  if(!lib.GlobalWorkerOptions.workerSrc){
+    // نبني blob worker لتجنب قيود cross-origin
+    try{
+      const ver=lib.version||'2.16.105';
+      const src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/'+ver+'/pdf.worker.min.js';
+      const blob=new Blob(['importScripts("'+src+'");'],{type:'text/javascript'});
+      lib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(blob);
+    }catch(e){
+      lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+  }
+  return lib;
+}
+
+// تحويل صورة إلى JPEG عبر canvas (يضمن التوافق مع jsPDF)
+function imgToJpegDataUrl(img,quality){
+  quality=quality||0.92;
+  const c=document.createElement('canvas');
+  c.width=img.naturalWidth||img.width;
+  c.height=img.naturalHeight||img.height;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(img,0,0);
+  return c.toDataURL('image/jpeg',quality);
+}
+
+// ── ① صورة → PDF ──
+async function imgToPdf(){
+  const files=getToolFiles('itpInput');
+  if(!files||!files.length){toast('اختر صورة أولاً','err');return;}
+  if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد تحميل الصفحة','err');return;}
+  toolSetResult('itpResult','<div class="tool-progress">جاري التحويل...</div>');
+  try{
+    const {jsPDF}=window.jspdf;
+    const size=document.getElementById('itpSize').value;
+    const ori=document.getElementById('itpOri').value;
+    const pdf=new jsPDF(ori,'mm',size);
+    const W=pdf.internal.pageSize.getWidth();
+    const H=pdf.internal.pageSize.getHeight();
+    const mg=8;const maxW=W-mg*2;const maxH=H-mg*2;
+    for(let i=0;i<files.length;i++){
+      if(i>0)pdf.addPage(size,ori);
+      // تحميل الصورة
+      const objectUrl=URL.createObjectURL(files[i]);
+      const imgEl=new Image();
+      imgEl.src=objectUrl;
+      await new Promise((res,rej)=>{imgEl.onload=res;imgEl.onerror=rej;});
+      // تحويل إلى JPEG عبر canvas لضمان التوافق
+      const jpegUrl=imgToJpegDataUrl(imgEl,0.92);
+      URL.revokeObjectURL(objectUrl);
+      const iw=imgEl.naturalWidth;const ih=imgEl.naturalHeight;
+      const ratio=Math.min(maxW/iw,maxH/ih,1);
+      const dw=iw*ratio;const dh=ih*ratio;
+      const dx=(W-dw)/2;const dy=(H-dh)/2;
+      pdf.addImage(jpegUrl,'JPEG',dx,dy,dw,dh);
+    }
+    pdf.save('lexdesk-images.pdf');
+    toolSetResult('itpResult','<div class="tool-ok">✓ تم إنشاء PDF ('+files.length+(files.length===1?' صفحة':' صفحات')+')</div>');
+    toast('تم تحويل الصور إلى PDF','ok');
+  }catch(e){
+    toolSetResult('itpResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+    toast('فشل التحويل','err');
+  }
+}
+
+// ── ② PDF → صورة ──
+async function pdfToImg(){
+  const files=getToolFiles('ptiInput');
+  if(!files||!files.length){toast('اختر ملف PDF أولاً','err');return;}
+  const lib=initPdfJs();
+  if(!lib){toast('مكتبة PDF.js لم تكتمل، أعد تحميل الصفحة','err');return;}
+  toolSetResult('ptiResult','<div class="tool-progress">جاري قراءة PDF...</div>');
+  try{
+    const scale=parseFloat(document.getElementById('ptiQuality').value);
+    const imgFmt=document.getElementById('ptiFormat').value;
+    const mimeType='image/'+imgFmt;
+    const ab=await files[0].arrayBuffer();
+    const loadTask=lib.getDocument({data:new Uint8Array(ab)});
+    const pdfDoc=await loadTask.promise;
+    const n=pdfDoc.numPages;
+    toolSetResult('ptiResult','<div class="tool-progress">تحويل '+n+' صفحة...</div>');
+    const links=[];
+    for(let i=1;i<=n;i++){
+      const page=await pdfDoc.getPage(i);
+      const vp=page.getViewport({scale:scale});
+      const cv=document.createElement('canvas');
+      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);
+      const ctx=cv.getContext('2d');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const blob=await new Promise(res=>cv.toBlob(res,mimeType,0.92));
+      if(!blob)throw new Error('فشل تحويل الصفحة '+i);
+      const url=URL.createObjectURL(blob);
+      links.push({url,name:'page_'+String(i).padStart(2,'0')+'.'+imgFmt,num:i,size:blob.size});
+    }
+    const dlHtml=links.map(l=>'<a class="tool-dl-link" href="'+l.url+'" download="'+l.name+'">⬇ صفحة '+l.num+' ('+fmtBytes(l.size)+')</a>').join('');
+    toolSetResult('ptiResult','<div class="tool-ok">✓ تم تحويل '+n+' صفحة</div><div class="tool-dl-row">'+dlHtml+'</div>');
+    toast('تم تحويل PDF إلى '+n+' صورة','ok');
+  }catch(e){
+    toolSetResult('ptiResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+    toast('فشل التحويل','err');
+  }
+}
+
+// ── ③ ضغط الصور ──
+async function compressImg(){
+  const files=getToolFiles('ciInput');
+  if(!files||!files.length){toast('اختر صورة أولاً','err');return;}
+  toolSetResult('ciResult','<div class="tool-progress">جاري الضغط...</div>');
+  try{
+    const quality=parseInt(document.getElementById('ciQuality').value)/100;
+    const maxW=parseInt(document.getElementById('ciMaxW').value)||0;
+    const file=files[0];const origSize=file.size;
+    const objectUrl=URL.createObjectURL(file);
+    const img=new Image();img.src=objectUrl;
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;});
+    URL.revokeObjectURL(objectUrl);
+    let w=img.naturalWidth;let h=img.naturalHeight;
+    if(maxW>0&&w>maxW){const r=maxW/w;w=Math.round(w*r);h=Math.round(h*r);}
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h);
+    ctx.drawImage(img,0,0,w,h);
+    const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',quality));
+    const saved=Math.max(0,Math.round((1-blob.size/origSize)*100));
+    const url=URL.createObjectURL(blob);
+    const baseName=file.name.replace(/\.[^.]+$/,'');
+    toolSetResult('ciResult',
+      '<div class="tool-ok">✓ تم الضغط'+(saved>0?' — وفّرنا '+saved+'%':'')+'</div>'+
+      '<div class="tool-size-row"><span>قبل: '+fmtBytes(origSize)+'</span><span>←</span><span>بعد: '+fmtBytes(blob.size)+'</span></div>'+
+      '<a class="tool-dl-link" href="'+url+'" download="compressed_'+baseName+'.jpg">⬇ تحميل الصورة المضغوطة</a>'
+    );
+    toast('تم ضغط الصورة'+(saved>0?' — توفير '+saved+'%':''),'ok');
+  }catch(e){
+    toolSetResult('ciResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+    toast('فشل الضغط','err');
+  }
+}
+
+// ── ④ ضغط PDF ──
+async function compressPdf(){
+  const files=getToolFiles('cpInput');
+  if(!files||!files.length){toast('اختر ملف PDF أولاً','err');return;}
+  const lib=initPdfJs();
+  if(!lib){toast('مكتبة PDF.js لم تكتمل، أعد تحميل الصفحة','err');return;}
+  if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد تحميل الصفحة','err');return;}
+  toolSetResult('cpResult','<div class="tool-progress">جاري ضغط PDF...</div>');
+  try{
+    const level=document.getElementById('cpLevel').value;
+    const scaleMap={high:0.9,med:1.3,low:1.8};
+    const qualMap={high:0.50,med:0.68,low:0.85};
+    const scale=scaleMap[level];const imgQ=qualMap[level];
+    const file=files[0];const origSize=file.size;
+    const ab=await file.arrayBuffer();
+    const loadTask=lib.getDocument({data:new Uint8Array(ab)});
+    const pdfDoc=await loadTask.promise;
+    const n=pdfDoc.numPages;
+    toolSetResult('cpResult','<div class="tool-progress">ضغط '+n+' صفحة...</div>');
+    const {jsPDF}=window.jspdf;
+    // تحديد اتجاه الصفحة من الصفحة الأولى
+    const firstPage=await pdfDoc.getPage(1);
+    const firstVp=firstPage.getViewport({scale:1});
+    const ori=firstVp.width>firstVp.height?'l':'p';
+    const pdf=new jsPDF(ori,'mm','a4');
+    const PW=pdf.internal.pageSize.getWidth();
+    const PH=pdf.internal.pageSize.getHeight();
+    for(let i=1;i<=n;i++){
+      if(i>1)pdf.addPage('a4',ori);
+      const page=await pdfDoc.getPage(i);
+      const vp=page.getViewport({scale:scale});
+      const cv=document.createElement('canvas');
+      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);
+      const ctx=cv.getContext('2d');
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      const imgData=cv.toDataURL('image/jpeg',imgQ);
+      pdf.addImage(imgData,'JPEG',0,0,PW,PH);
+    }
+    const pdfBytes=pdf.output('arraybuffer');
+    const newSize=pdfBytes.byteLength;
+    const saved=Math.max(0,Math.round((1-newSize/origSize)*100));
+    const blob=new Blob([pdfBytes],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    toolSetResult('cpResult',
+      '<div class="tool-ok">✓ تم الضغط'+(saved>0?' — وفّرنا '+saved+'%':'')+'</div>'+
+      '<div class="tool-size-row"><span>قبل: '+fmtBytes(origSize)+'</span><span>←</span><span>بعد: '+fmtBytes(newSize)+'</span></div>'+
+      '<a class="tool-dl-link" href="'+url+'" download="compressed_'+file.name+'">⬇ تحميل PDF المضغوط</a>'
+    );
+    toast('تم ضغط PDF'+(saved>0?' — توفير '+saved+'%':''),'ok');
+  }catch(e){
+    toolSetResult('cpResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+    toast('فشل ضغط PDF','err');
+  }
+}
