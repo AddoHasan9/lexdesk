@@ -2982,6 +2982,44 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 .def-stat-pending { background:var(--red-g); color:var(--red); border:1px solid rgba(255,85,114,.2); }
 .def-stat-done { background:var(--green-g); color:var(--green); border:1px solid rgba(34,211,160,.2); }
 .def-print-area { display:none; }
+/* Quick add form */
+.def-quick-add {
+  padding: 14px 20px;
+  margin-bottom: 4px;
+}
+.def-quick-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.def-quick-inp {
+  flex: 1; background: var(--glass);
+  border: 1px solid var(--glass-border); border-radius: 12px;
+  color: var(--text); padding: 11px 15px;
+  font-size: 13px; font-weight: 600; outline: none;
+  direction: rtl; transition: all var(--t);
+}
+.def-quick-inp.def-quick-items { flex: 2; }
+.def-quick-inp:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-dark); }
+.def-quick-inp::placeholder { color: var(--text3); }
+.def-quick-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 20px; white-space: nowrap;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  border: none; border-radius: 12px; color: #000;
+  font-size: 13px; font-weight: 800; cursor: pointer;
+  box-shadow: var(--sh-gold); transition: all .25s var(--ease);
+}
+.def-quick-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(245,166,35,.5); }
+.def-company-del {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--text3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s var(--ease);
+}
+.def-company-del:hover { border-color: var(--red); color: var(--red); background: var(--red-g); }
+@media(max-width:768px){
+  .def-quick-row { flex-direction: column; }
+  .def-quick-inp, .def-quick-inp.def-quick-items { width: 100%; }
+}
 @media print {
   body > *:not(.def-print-area) { display:none!important; }
   .def-print-area { display:block!important; direction:rtl; padding:20px; }

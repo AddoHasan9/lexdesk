@@ -706,6 +706,17 @@
       <button class="pdf-export-btn" onclick="printDeficiency()"><span class="iconify" data-icon="solar:printer-bold-duotone" data-width="14"></span> طباعة</button>
     </div>
   </div>
+  <!-- فورم إضافة شركة سريعة -->
+  <div class="def-quick-add" id="defQuickAdd">
+    <div class="def-quick-row">
+      <input class="def-quick-inp" id="defQuickName" placeholder="اسم الشركة..." onkeydown="if(event.key==='Enter')document.getElementById('defQuickItems').focus()">
+      <input class="def-quick-inp def-quick-items" id="defQuickItems" placeholder="النواقص (افصل بفاصلة)..." onkeydown="if(event.key==='Enter')addQuickDefCompany()">
+      <button class="def-quick-btn" onclick="addQuickDefCompany()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        إضافة شركة
+      </button>
+    </div>
+  </div>
   <div id="defBody" style="padding:0 20px 20px"></div>
 </div>
 <div id="defPrintArea" class="def-print-area"></div>
