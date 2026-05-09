@@ -1330,7 +1330,7 @@ function buildDeficiencyPage(){
   const defCases=cases.filter(c=>c.deficiency&&c.deficiency.trim());
   const statsEl=document.getElementById('defStats');
   if(!defCases.length){
-    container.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text2)" stroke-width="1.2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="empty-txt">لا توجد نواقص</div><div class="empty-sub">كل المعاملات مكتملة</div></div>';
+    container.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text2)" stroke-width="1.2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="empty-txt">لا توجد نواقص</div><div class="empty-sub">كل المعاملات مكتملة — أضف نواقص من فورم المعاملة</div></div>';
     if(statsEl)statsEl.innerHTML='<span style="color:var(--green);font-size:12px">كل المعاملات مكتملة</span>';
     return;
   }
@@ -1342,7 +1342,36 @@ function buildDeficiencyPage(){
     const lci=settings.lawyers.indexOf(c.lawyer);const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
     const items=parseDefItems(c);
     const pendCount=items.filter(it=>!it.done).length;
-    return '<div class="def-company-card"><div class="def-company-hd"><div class="def-company-info"><div class="def-av" style="background:'+lc+'">'+c.company[0]+'</div><div><div class="def-company-name">'+c.company+'</div><div class="def-company-sub"><span class="type-chip" style="font-size:10px;padding:2px 8px">'+c.type+'</span><span style="display:inline-flex;align-items:center;gap:4px"><span class="lawyer-dot" style="background:'+lc+'"></span>'+c.lawyer+'</span></div></div></div><span class="def-count-badge'+(pendCount===0?' done':'')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><div class="def-items-list">'+items.map((it,idx)=>'<div class="def-item'+(it.done?' completed':'')+'" onclick="toggleDefItem('+c.id+','+idx+')"><div class="def-check'+(it.done?' checked':'')+'"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="def-item-text">'+it.text+'</span></div>').join('')+'</div></div>';
+    return '<div class="def-company-card" id="defCard_'+c.id+'">'+
+      '<div class="def-company-hd">'+
+        '<div class="def-company-info">'+
+          '<div class="def-av" style="background:'+lc+'">'+c.company[0]+'</div>'+
+          '<div><div class="def-company-name">'+c.company+'</div>'+
+          '<div class="def-company-sub"><span class="type-chip" style="font-size:10px;padding:2px 8px">'+c.type+'</span>'+
+          '<span style="display:inline-flex;align-items:center;gap:4px"><span class="lawyer-dot" style="background:'+lc+'"></span>'+c.lawyer+'</span></div></div>'+
+        '</div>'+
+        '<span class="def-count-badge'+(pendCount===0?' done':'')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span>'+
+      '</div>'+
+      '<div class="def-items-list">'+
+        items.map((it,idx)=>
+          '<div class="def-item'+(it.done?' completed':'')+'" data-cid="'+c.id+'" data-idx="'+idx+'">'+
+            '<div class="def-check'+(it.done?' checked':'')+'" onclick="toggleDefItem('+c.id+','+idx+')">'+
+              '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
+            '</div>'+
+            '<span class="def-item-text" onclick="toggleDefItem('+c.id+','+idx+')">'+it.text+'</span>'+
+            '<button class="def-item-del" onclick="event.stopPropagation();deleteDefItem('+c.id+','+idx+')" title="حذف">'+
+              '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+
+            '</button>'+
+          '</div>'
+        ).join('')+
+        '<div class="def-add-row">'+
+          '<input class="def-add-inp" id="defInp_'+c.id+'" placeholder="أضف ناقص جديد..." onkeydown="if(event.key===\'Enter\')addDefItem('+c.id+')">'+
+          '<button class="def-add-btn" onclick="addDefItem('+c.id+')">'+
+            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'+
+          '</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 function parseDefItems(c){
@@ -1360,6 +1389,37 @@ function toggleDefItem(caseId,itemIdx){
   else completedList.push(item.text);
   c.defCompleted=completedList.join('|||');
   saveData();buildDeficiencyPage();
+}
+function addDefItem(caseId){
+  const inp=document.getElementById('defInp_'+caseId);
+  if(!inp)return;
+  const val=inp.value.trim();
+  if(!val){inp.focus();return;}
+  const c=cases.find(x=>x.id===caseId);if(!c)return;
+  // أضف الناقص الجديد لحقل النواقص
+  const existing=(c.deficiency||'').trim();
+  c.deficiency=existing?(existing+'، '+val):val;
+  saveData();buildDeficiencyPage();
+  toast('تم إضافة الناقص','ok');
+  // بعد إعادة البناء — ركّز على الإنبوت مرة ثانية
+  setTimeout(()=>{const newInp=document.getElementById('defInp_'+caseId);if(newInp)newInp.focus();},100);
+}
+function deleteDefItem(caseId,itemIdx){
+  const c=cases.find(x=>x.id===caseId);if(!c)return;
+  const items=parseDefItems(c);if(!items[itemIdx])return;
+  const deletedText=items[itemIdx].text;
+  // شيل من حقل النواقص
+  const parts=(c.deficiency||'').split(/[,،|\n]+/).map(s=>s.trim()).filter(Boolean);
+  parts.splice(itemIdx,1);
+  c.deficiency=parts.join('، ');
+  // شيل من المكتملات لو موجود
+  if(c.defCompleted){
+    let completedList=c.defCompleted.split('|||').filter(Boolean);
+    completedList=completedList.filter(t=>t!==deletedText);
+    c.defCompleted=completedList.join('|||');
+  }
+  saveData();buildDeficiencyPage();
+  toast('تم حذف الناقص','ok');
 }
 function printDeficiency(){
   const el=document.getElementById('defPrintArea');if(!el)return;
