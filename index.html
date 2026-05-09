@@ -137,6 +137,11 @@
       <span class="sb-lbl">أدوات الملفات</span>
       <span class="tip">تحويل وضغط الملفات</span>
     </button>
+    <button class="sb-btn" id="sbDeficiency" onclick="goPage('deficiency')">
+      <span class="iconify" data-icon="solar:danger-triangle-bold-duotone" data-width="18"></span>
+      <span class="sb-lbl">النواقص</span>
+      <span class="tip">متابعة نواقص الشركات</span>
+    </button>
 
     <div class="sb-sep"></div>
 
@@ -691,6 +696,19 @@
 
   </div>
 </div>
+
+<!-- ══════ PAGE: DEFICIENCY TRACKER ══════ -->
+<div class="page" id="pageDeficiency" style="display:none">
+  <div class="page-hd">
+    <div><div class="page-title"><span class="iconify" data-icon="solar:danger-triangle-bold-duotone" data-width="20" style="color:var(--gold)"></span> سجل النواقص</div><div class="page-sub">متابعة نواقص الشركات — اضغط على الناقص لتعليمه مكتمل</div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="defStats" style="display:flex;gap:10px;align-items:center"></div>
+      <button class="pdf-export-btn" onclick="printDeficiency()"><span class="iconify" data-icon="solar:printer-bold-duotone" data-width="14"></span> طباعة</button>
+    </div>
+  </div>
+  <div id="defBody" style="padding:0 20px 20px"></div>
+</div>
+<div id="defPrintArea" class="def-print-area"></div>
 
 <!-- SETTINGS PAGE -->
 <div class="page" id="pageSettings">

@@ -62,7 +62,7 @@ async function sbLoad(){
 function sanitizeCase(c){
   const safe = {};
   const allowed = ['id','company','type','lawyer','status','currency','amountIQD','amountUSD',
-    'deficiency','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
+    'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone'];
   for(const k of allowed){
     const v = c[k];
@@ -1004,10 +1004,10 @@ function setView(v){
 }
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
-  ['dash','charts','reports','tools','settings'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
-  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);
+  ['dash','charts','reports','tools','settings','deficiency'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
+  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);
 }
-function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',reports:'mnReports',settings:'mnSet',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
+function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',reports:'mnReports',settings:'mnSet',tools:'mnTools',deficiency:'mnDef'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
 // ══ SETTINGS ══
 function switchSetTab(tab){document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));document.querySelectorAll('.set-tab-content').forEach(c=>c.classList.remove('active'));const el=document.getElementById('setTab_'+tab);if(el)el.classList.add('active');}
@@ -1321,6 +1321,58 @@ async function loadUsersList(){
 function updateUsersTabVisibility(){
   const tab = document.getElementById('usersTab');
   if(tab) tab.style.display = isAdmin() ? 'flex' : 'none';
+}
+
+// ══ DEFICIENCY TRACKER — سجل النواقص ══
+function buildDeficiencyPage(){
+  const container=document.getElementById('defBody');
+  if(!container)return;
+  const defCases=cases.filter(c=>c.deficiency&&c.deficiency.trim());
+  const statsEl=document.getElementById('defStats');
+  if(!defCases.length){
+    container.innerHTML='<div class="empty-state"><div class="empty-ico"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--text2)" stroke-width="1.2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="empty-txt">لا توجد نواقص</div><div class="empty-sub">كل المعاملات مكتملة</div></div>';
+    if(statsEl)statsEl.innerHTML='<span style="color:var(--green);font-size:12px">كل المعاملات مكتملة</span>';
+    return;
+  }
+  let totalItems=0,completedItems=0;
+  defCases.forEach(c=>{const items=parseDefItems(c);totalItems+=items.length;completedItems+=items.filter(it=>it.done).length;});
+  const pendingItems=totalItems-completedItems;
+  if(statsEl)statsEl.innerHTML='<span class="def-stat-pill def-stat-pending"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/></svg> '+pendingItems+' ناقص مطلوب</span><span class="def-stat-pill def-stat-done"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> '+completedItems+' مكتمل</span>';
+  container.innerHTML=defCases.map(c=>{
+    const lci=settings.lawyers.indexOf(c.lawyer);const lc=LAWYER_COLORS[lci%LAWYER_COLORS.length];
+    const items=parseDefItems(c);
+    const pendCount=items.filter(it=>!it.done).length;
+    return '<div class="def-company-card"><div class="def-company-hd"><div class="def-company-info"><div class="def-av" style="background:'+lc+'">'+c.company[0]+'</div><div><div class="def-company-name">'+c.company+'</div><div class="def-company-sub"><span class="type-chip" style="font-size:10px;padding:2px 8px">'+c.type+'</span><span style="display:inline-flex;align-items:center;gap:4px"><span class="lawyer-dot" style="background:'+lc+'"></span>'+c.lawyer+'</span></div></div></div><span class="def-count-badge'+(pendCount===0?' done':'')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><div class="def-items-list">'+items.map((it,idx)=>'<div class="def-item'+(it.done?' completed':'')+'" onclick="toggleDefItem('+c.id+','+idx+')"><div class="def-check'+(it.done?' checked':'')+'"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><span class="def-item-text">'+it.text+'</span></div>').join('')+'</div></div>';
+  }).join('');
+}
+function parseDefItems(c){
+  const raw=(c.deficiency||'').trim();if(!raw)return[];
+  const completedList=(c.defCompleted||'').split('|||').filter(Boolean);
+  const parts=raw.split(/[,،|\n]+/).map(s=>s.trim()).filter(Boolean);
+  return parts.map(text=>({text,done:completedList.includes(text)}));
+}
+function toggleDefItem(caseId,itemIdx){
+  const c=cases.find(x=>x.id===caseId);if(!c)return;
+  const items=parseDefItems(c);if(!items[itemIdx])return;
+  const item=items[itemIdx];
+  let completedList=(c.defCompleted||'').split('|||').filter(Boolean);
+  if(item.done)completedList=completedList.filter(t=>t!==item.text);
+  else completedList.push(item.text);
+  c.defCompleted=completedList.join('|||');
+  saveData();buildDeficiencyPage();
+}
+function printDeficiency(){
+  const el=document.getElementById('defPrintArea');if(!el)return;
+  const defCases=cases.filter(c=>c.deficiency&&c.deficiency.trim());
+  if(!defCases.length){toast('لا توجد نواقص للطباعة','warn');return;}
+  let html='<div class="def-print-wrap"><div class="def-print-header"><h1>سجل النواقص — '+(settings.officeName||'مكتب المحاماة')+'</h1><p>'+new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</p></div>';
+  defCases.forEach(c=>{
+    const items=parseDefItems(c);const pendCount=items.filter(it=>!it.done).length;
+    html+='<div class="def-print-company"><div class="def-print-company-name">'+c.company+' <span style="font-weight:400;font-size:12px;color:#666">('+c.type+' — '+c.lawyer+')</span> <span style="font-size:11px;color:'+(pendCount>0?'#d32f2f':'#2e7d32')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><ul class="def-print-list">';
+    items.forEach(it=>{html+='<li class="'+(it.done?'done':'')+'"><span class="def-print-check">'+(it.done?'[x]':'[ ]')+'</span> '+it.text+'</li>';});
+    html+='</ul></div>';
+  });
+  html+='</div>';el.innerHTML=html;setTimeout(()=>window.print(),200);
 }
 
 // ══ INIT ══

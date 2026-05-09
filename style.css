@@ -2895,3 +2895,75 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   text-decoration:none;transition:opacity .15s,transform .12s;
 }
 .tool-dl-link:hover { opacity:.8;transform:translateY(-1px); }
+
+/* ══════════════════════════════════════
+   DEFICIENCY TRACKER — سجل النواقص
+══════════════════════════════════════ */
+.def-company-card {
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all .25s var(--ease);
+  animation: fadeIn .4s var(--ease) both;
+}
+.def-company-card:hover { border-color: var(--border2); }
+.def-company-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.def-company-info { display:flex; align-items:center; gap:12px; }
+.def-av {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-d); font-size: 16px; font-weight: 900;
+  color: #fff; flex-shrink: 0;
+}
+.def-company-name { font-family:var(--font-d); font-size:14px; font-weight:700; color:var(--text); }
+.def-company-sub { display:flex; align-items:center; gap:10px; margin-top:4px; font-size:11px; color:var(--text2); }
+.def-count-badge {
+  font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+  background: var(--red-g); color: var(--red); border: 1px solid rgba(255,85,114,.2); white-space: nowrap;
+}
+.def-count-badge.done { background: var(--green-g); color: var(--green); border-color: rgba(34,211,160,.2); }
+.def-items-list { padding: 12px 18px; display:flex; flex-direction:column; gap:6px; }
+.def-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--glass2); border: 1px solid var(--glass-border);
+  border-radius: var(--r2); cursor: pointer;
+  transition: all .2s var(--ease); animation: fadeIn .3s var(--ease) both;
+}
+.def-item:hover { border-color: var(--gold); background: var(--gold-dark); }
+.def-item.completed { opacity: .55; }
+.def-item.completed .def-item-text { text-decoration: line-through; color: var(--text3); }
+.def-check {
+  width: 22px; height: 22px; border-radius: 7px;
+  border: 2px solid var(--border3);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s var(--ease-bounce); color: transparent;
+}
+.def-check.checked { background: var(--green); border-color: var(--green); color: #fff; box-shadow: 0 0 10px rgba(34,211,160,.4); }
+.def-item-text { font-size: 13px; color: var(--text); font-weight: 600; }
+.def-stat-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+}
+.def-stat-pending { background:var(--red-g); color:var(--red); border:1px solid rgba(255,85,114,.2); }
+.def-stat-done { background:var(--green-g); color:var(--green); border:1px solid rgba(34,211,160,.2); }
+.def-print-area { display:none; }
+@media print {
+  body > *:not(.def-print-area) { display:none!important; }
+  .def-print-area { display:block!important; direction:rtl; padding:20px; }
+  .def-print-wrap { font-family:'Cairo','Tajawal',sans-serif; color:#000; }
+  .def-print-header { text-align:center; margin-bottom:24px; border-bottom:2px solid #333; padding-bottom:14px; }
+  .def-print-header h1 { font-size:20px; margin:0 0 4px; }
+  .def-print-header p { font-size:12px; color:#666; margin:0; }
+  .def-print-company { margin-bottom:18px; page-break-inside:avoid; }
+  .def-print-company-name { font-family:'Cairo',sans-serif; font-size:15px; font-weight:700; padding:8px 0; border-bottom:1px solid #ddd; margin-bottom:8px; }
+  .def-print-list { list-style:none; padding:0; margin:0; }
+  .def-print-list li { padding:6px 12px; font-size:13px; border-bottom:1px dotted #eee; display:flex; align-items:center; gap:8px; }
+  .def-print-list li.done { color:#999; text-decoration:line-through; }
+  .def-print-check { font-family:monospace; font-size:12px; color:#666; }
+}
