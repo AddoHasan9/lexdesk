@@ -1490,23 +1490,76 @@ function deleteStandaloneDefItem(id,idx){
 function printDeficiency(){
   const allDef=getAllDefEntries();
   if(!allDef.length){toast('لا توجد نواقص للطباعة','warn');return;}
+
+  // بناء محتوى الطباعة
   let rows='';
   allDef.forEach(c=>{
-    const items=parseDefItems(c);const pendCount=items.filter(it=>!it.done).length;
+    const items=parseDefItems(c);
+    const pendCount=items.filter(it=>!it.done).length;
     const sub=c.source==='standalone'?'شركة مستقلة':(c.type+' — '+c.lawyer);
-    rows+='<div style="margin-bottom:22px;page-break-inside:avoid"><div style="font-family:Cairo,sans-serif;font-size:15px;font-weight:700;padding:8px 0;border-bottom:1px solid #ddd;margin-bottom:8px">'+c.company+' <span style="font-weight:400;font-size:12px;color:#666">('+sub+')</span> <span style="font-size:11px;color:'+(pendCount>0?'#d32f2f':'#2e7d32')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><ul style="list-style:none;padding:0;margin:0">';
+    rows+='<div class="pc"><div class="pn">'+c.company+
+      ' <span class="ps">('+sub+')</span>'+
+      ' <span style="color:'+(pendCount>0?'#c62828':'#2e7d32')+'">'+
+      (pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><ul>';
     items.forEach(it=>{
-      rows+='<li style="padding:6px 12px;font-size:13px;border-bottom:1px dotted #eee;display:flex;align-items:center;gap:8px;'+(it.done?'color:#999;text-decoration:line-through':'')+'"><span style="font-family:monospace;font-size:12px;color:#666">'+(it.done?'[x]':'[ ]')+'</span> '+it.text+'</li>';
+      rows+='<li class="'+(it.done?'done':'')+'">'+
+        '<span class="cb">'+(it.done?'☑':'☐')+'</span>'+
+        it.text+'</li>';
     });
     rows+='</ul></div>';
   });
-  const html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>سجل النواقص</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"><style>body{font-family:Tajawal,sans-serif;color:#000;padding:30px;direction:rtl}h1{font-family:Cairo,sans-serif;font-size:22px;margin:0 0 4px}p{font-size:12px;color:#666;margin:0}</style></head><body><div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #333;padding-bottom:16px"><h1>سجل النواقص — '+(settings.officeName||'مكتب المحاماة')+'</h1><p>'+new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</p></div>'+rows+'</body></html>';
-  const win=window.open('','_blank','width=800,height=600');
-  if(!win){toast('فعّل النوافذ المنبثقة بالمتصفح','err');return;}
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(()=>{win.print();},500);
+
+  // حقن iframe مؤقت
+  const old=document.getElementById('__printFrame');
+  if(old)old.remove();
+  const iframe=document.createElement('iframe');
+  iframe.id='__printFrame';
+  iframe.style.cssText='position:fixed;inset:0;width:100%;height:100%;border:none;z-index:99999;background:#fff';
+  document.body.appendChild(iframe);
+
+  const doc=iframe.contentDocument||iframe.contentWindow.document;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
+<meta charset="UTF-8">
+<title>سجل النواقص — ${settings.officeName||'مكتب المحاماة'}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Tajawal,Arial,sans-serif;color:#000;background:#fff;padding:28px 36px;direction:rtl;font-size:14px}
+  h1{font-size:20px;font-weight:800;margin-bottom:3px}
+  .date{font-size:12px;color:#666;margin-bottom:24px}
+  .hdr{text-align:center;border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:24px}
+  .pc{margin-bottom:20px;page-break-inside:avoid;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden}
+  .pn{font-size:14px;font-weight:700;padding:10px 14px;background:#f5f5f5;border-bottom:1px solid #e0e0e0}
+  .ps{font-weight:400;font-size:12px;color:#666}
+  ul{list-style:none;padding:6px 0}
+  li{padding:7px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+  li:last-child{border-bottom:none}
+  li.done{color:#999;text-decoration:line-through}
+  .cb{font-size:16px;line-height:1;flex-shrink:0}
+  .close-btn{position:fixed;top:14px;left:14px;padding:8px 16px;background:#222;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:Tajawal,Arial,sans-serif;z-index:100}
+  @media print{.close-btn{display:none}}
+</style>
+</head><body>
+<button class="close-btn" onclick="window.parent.document.getElementById('__printFrame').remove()">✕ إغلاق</button>
+<div class="hdr">
+  <h1>سجل النواقص — ${settings.officeName||'مكتب المحاماة'}</h1>
+  <div class="date">${new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})}</div>
+</div>
+${rows}
+</body></html>`);
+  doc.close();
+
+  // طباعة بعد تحميل المحتوى
+  iframe.onload=()=>{
+    setTimeout(()=>{
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    },300);
+  };
+  // fallback لو onload ما اشتغل
+  setTimeout(()=>{
+    try{iframe.contentWindow.focus();iframe.contentWindow.print();}catch(e){}
+  },800);
 }
 
 // ══ INIT ══
