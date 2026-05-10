@@ -1488,18 +1488,25 @@ function deleteStandaloneDefItem(id,idx){
   saveStandaloneDef();buildDeficiencyPage();toast('تم حذف الناقص','ok');
 }
 function printDeficiency(){
-  const el=document.getElementById('defPrintArea');if(!el)return;
   const allDef=getAllDefEntries();
   if(!allDef.length){toast('لا توجد نواقص للطباعة','warn');return;}
-  let html='<div class="def-print-wrap"><div class="def-print-header"><h1>سجل النواقص — '+(settings.officeName||'مكتب المحاماة')+'</h1><p>'+new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</p></div>';
+  let rows='';
   allDef.forEach(c=>{
     const items=parseDefItems(c);const pendCount=items.filter(it=>!it.done).length;
     const sub=c.source==='standalone'?'شركة مستقلة':(c.type+' — '+c.lawyer);
-    html+='<div class="def-print-company"><div class="def-print-company-name">'+c.company+' <span style="font-weight:400;font-size:12px;color:#666">('+sub+')</span> <span style="font-size:11px;color:'+(pendCount>0?'#d32f2f':'#2e7d32')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><ul class="def-print-list">';
-    items.forEach(it=>{html+='<li class="'+(it.done?'done':'')+'"><span class="def-print-check">'+(it.done?'[x]':'[ ]')+'</span> '+it.text+'</li>';});
-    html+='</ul></div>';
+    rows+='<div style="margin-bottom:22px;page-break-inside:avoid"><div style="font-family:Cairo,sans-serif;font-size:15px;font-weight:700;padding:8px 0;border-bottom:1px solid #ddd;margin-bottom:8px">'+c.company+' <span style="font-weight:400;font-size:12px;color:#666">('+sub+')</span> <span style="font-size:11px;color:'+(pendCount>0?'#d32f2f':'#2e7d32')+'">'+( pendCount>0?pendCount+' ناقص':'مكتمل')+'</span></div><ul style="list-style:none;padding:0;margin:0">';
+    items.forEach(it=>{
+      rows+='<li style="padding:6px 12px;font-size:13px;border-bottom:1px dotted #eee;display:flex;align-items:center;gap:8px;'+(it.done?'color:#999;text-decoration:line-through':'')+'"><span style="font-family:monospace;font-size:12px;color:#666">'+(it.done?'[x]':'[ ]')+'</span> '+it.text+'</li>';
+    });
+    rows+='</ul></div>';
   });
-  html+='</div>';el.innerHTML=html;setTimeout(()=>window.print(),200);
+  const html='<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>سجل النواقص</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"><style>body{font-family:Tajawal,sans-serif;color:#000;padding:30px;direction:rtl}h1{font-family:Cairo,sans-serif;font-size:22px;margin:0 0 4px}p{font-size:12px;color:#666;margin:0}</style></head><body><div style="text-align:center;margin-bottom:28px;border-bottom:2px solid #333;padding-bottom:16px"><h1>سجل النواقص — '+(settings.officeName||'مكتب المحاماة')+'</h1><p>'+new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</p></div>'+rows+'</body></html>';
+  const win=window.open('','_blank','width=800,height=600');
+  if(!win){toast('فعّل النوافذ المنبثقة بالمتصفح','err');return;}
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{win.print();},500);
 }
 
 // ══ INIT ══
