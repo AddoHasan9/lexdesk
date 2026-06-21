@@ -185,34 +185,43 @@ const parseAmt=s=>parseFloat((s||'').replace(/,/g,''))||0;
 
 // ══ LOAD ══
 async function loadAll(){
-  // ═ تحميل الإعدادات: السيرفر أولاً (موحد لكل الأجهزة) ═
-  let cloudSettings = await sbLoadMeta('settings');
+  // ═ الخطوة 1: حمّل اللوكال فوراً (سريع، بدون انتظار) ═
   let localSettings = {};
   try{ const s=localStorage.getItem(SK_S); localSettings=s?JSON.parse(s):{}; }catch(e){ localSettings={}; }
-
-  // ═ السيرفر له الأولوية دائماً — خصوصاً كلمات المرور ═
-  if(cloudSettings && typeof cloudSettings === 'object'){
-    // دمج: السيرفر يطغى على اللوكال في كل شيء
-    settings = {...localSettings, ...cloudSettings};
-    try{ localStorage.setItem(SK_S, JSON.stringify(settings)); }catch(e){}
-  } else {
-    // لا يوجد اتصال — استخدم اللوكال مؤقتاً
-    settings = localSettings;
-  }
-
+  settings = localSettings;
   settings.officeName=settings.officeName||'مكتب المحاماة';
   settings.defCurrency=settings.defCurrency||'IQD';
   settings.lawyers=settings.lawyers||[...DEFAULT_LAWYERS];
   settings.types=settings.types||[...DEFAULT_TYPES];
   settings.depts=settings.depts||[...DEFAULT_DEPTS];
+
+  // ═ الخطوة 2: حمّل الكيسات من اللوكال فوراً لو موجودة ═
+  let hasLocal=false;
+  try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);hasLocal=true;}}catch(e){}
+
+  // ═ الخطوة 3: حاول السيرفر (بالخلفية لو عندنا لوكال) ═
   showSyncStatus('loading');
-  showSkeleton('casesBody', 5);
+  if(!hasLocal) showSkeleton('casesBody', 5);
   const loaded=await sbLoad();
-  if(loaded===true){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);return;}
-  if(loaded==='empty'){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);cases=[];return;}
-  showSyncStatus('error');
-  try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);return;}}catch(e){}
-  cases=SEED.map(c=>({...c}));saveData();
+  if(loaded===true){
+    showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
+  } else if(loaded==='empty'){
+    if(!hasLocal) cases=[];
+    showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
+  } else {
+    // السيرفر فشل أو تأخر — لو عندنا لوكال نكمل بدونه
+    if(hasLocal){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);}
+    else{showSyncStatus('error');cases=SEED.map(c=>({...c}));saveData();}
+  }
+
+  // ═ الخطوة 4: حمّل إعدادات السيرفر بالخلفية (موحدة لكل الأجهزة — كلمات المرور وغيرها) ═
+  try{
+    const cloudSettings=await sbLoadMeta('settings');
+    if(cloudSettings && typeof cloudSettings==='object'){
+      settings={...settings,...cloudSettings};
+      try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}
+    }
+  }catch(e){}
 }
 
 // ══ THEME ══
@@ -351,7 +360,6 @@ async function doSignUp(){
 
 // ─ Sign In ─
 async function doLogin(){
-  console.log('doLogin called');
   try {
   if(!canAttemptLogin())return;
   const emailEl = document.getElementById('emailInp');
@@ -466,8 +474,6 @@ function logout(){
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
   switchLoginMode('login');
 }
-
-function isAdmin(){ return currentRole==='admin'; }
 
 // ─ Switch login/signup modes ─
 function switchLoginMode(mode){
@@ -1148,8 +1154,6 @@ function renderDetailComments(c){const comments=c.comments||[];const el=document
 function renderDetailTimeline(c){const log=c.log||[];const el=document.getElementById('detTimeline');if(!log.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا يوجد سجل بعد</div>';return;}const dotColors={new:'var(--green)',edit:'var(--gold)',status:'var(--blue2)',comment:'var(--purple)'};el.innerHTML=[...log].reverse().map(l=>{const t=new Date(l.time);const ts=t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric',year:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});const col=dotColors[l.type]||'var(--gold)';return '<div class="tl-item"><div class="tl-dot" style="border-color:'+col+'"></div><div class="tl-body"><div class="tl-txt">'+l.msg+'</div><div class="tl-time">'+l.user+' • '+ts+'</div></div></div>';}).join('');}
 function addComment(){const text=(document.getElementById('commentInp').value||'').trim();if(!text)return;const c=cases.find(x=>x.id===detailCaseId);if(!c)return;const cm={id:Date.now(),text,user:currentUser||'الأدمن',time:new Date().toISOString()};if(!c.comments)c.comments=[];c.comments.push(cm);if(!c.log)c.log=[];c.log.push({id:Date.now()+1,type:'comment',msg:'تم إضافة تعليق',user:currentUser||'الأدمن',time:new Date().toISOString()});saveData();renderDetailComments(c);renderDetailTimeline(c);document.getElementById('commentInp').value='';SFX.play('save');}
 function deleteComment(cid){const c=cases.find(x=>x.id===detailCaseId);if(!c||!c.comments)return;c.comments=c.comments.filter(x=>x.id!==cid);saveData();renderDetailComments(c);}
-function closeDetail(){const ov=document.getElementById('detailOverlay');ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);detailCaseId=null;}
-function closeDetailIfBg(e){if(e.target===document.getElementById('detailOverlay'))closeDetail();}
 // ══ REPORTS ══
 let repPeriod='all';
 function setRepPeriod(p,btn){repPeriod=p;document.querySelectorAll('.pt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');buildReports();}
@@ -1220,7 +1224,7 @@ async function addNewUser(){
   if(!isAdmin()){ toast('صلاحية الأدمن فقط','err'); return; }
   const name  = (document.getElementById('newUserName')?.value||'').trim();
   const email = (document.getElementById('newUserEmail')?.value||'').trim();
-  const pass  = (document.getElementById('newUserPass')?.value||'').trim();
+  const pass  = (document.getElementById('addUserPass')?.value||'').trim();
   const role  = document.getElementById('newUserRole')?.value||'user';
 
   if(!name||!email||!pass){ toast('أكمل جميع الحقول','warn'); return; }
@@ -1248,7 +1252,7 @@ async function addNewUser(){
       toast('✓ تم إضافة '+name+' بنجاح','ok');
       document.getElementById('newUserName').value='';
       document.getElementById('newUserEmail').value='';
-      document.getElementById('newUserPass').value='';
+      document.getElementById('addUserPass').value='';
       setTimeout(loadUsersList, 500);
     }
   } catch(e){
@@ -1602,13 +1606,13 @@ function undoDelete(){
   }
 }
 
-// ── Close Detail with animation (override) ──
+// ── Close Detail with animation ──
 function closeDetail(){
   const ov=document.getElementById('detailOverlay');
-  if(!ov||ov.style.display==='none'||ov.style.display==='')return;
+  if(!ov||ov.style.display!=='flex')return;
   ov.classList.add('closing');
   setTimeout(()=>{
-    ov.classList.remove('closing');
+    ov.classList.remove('closing','open');
     ov.style.display='none';
     if(typeof detailCaseId!=='undefined')detailCaseId=null;
   },250);
