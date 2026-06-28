@@ -392,14 +392,16 @@ async function doLogin(){
     currentUserName = meta.full_name || email.split('@')[0];
     currentRole     = meta.role === 'admin' ? 'admin' : 'user';
     // persist session
+    const sessExpires = Date.now() + (d.expires_in||3600)*1000;
     try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
       token: d.access_token,
       refresh: d.refresh_token,
       user: currentUser,
       name: currentUserName,
       role: currentRole,
-      expires: Date.now() + (d.expires_in||3600)*1000
+      expires: sessExpires
     })); }catch(e){}
+    scheduleSessionRefresh(sessExpires);
     SFX.play('login');
     document.getElementById('passErr')?.classList.remove('show');
     showApp();
@@ -424,46 +426,77 @@ async function doForgotPass(){
   setLoginLoading(false);
 }
 
-// ─ Restore session on load ─
+// ─ Restore session on load (تذكرني تلقائي) ─
 async function restoreSbSession(){
   try{
     const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
-    if(!saved || Date.now() > saved.expires - 60000){
-      // try refresh
-      if(saved?.refresh){
-        const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','apikey':SB_KEY},
-          body: JSON.stringify({ refresh_token: saved.refresh })
-        });
-        const d = await r.json();
-        if(d.access_token){
-          _sbSession = d.access_token;
-          const meta = d.user?.user_metadata||{};
-          currentUser     = d.user.email;
-          currentUserName = meta.full_name || currentUser.split('@')[0];
-          currentRole     = meta.role==='admin'?'admin':'user';
-          try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
-            token:d.access_token, refresh:d.refresh_token||saved.refresh,
-            user:currentUser, name:currentUserName, role:currentRole,
-            expires: Date.now()+(d.expires_in||3600)*1000
-          }));}catch(e){}
-          return true;
-        }
-      }
-      return false;
+    if(!saved) return false;
+
+    // الجلسة لسا صالحة — استخدمها مباشرة
+    if(Date.now() <= saved.expires - 60000){
+      _sbSession      = saved.token;
+      currentUser     = saved.user;
+      currentUserName = saved.name;
+      currentRole     = saved.role;
+      scheduleSessionRefresh(saved.expires);
+      return true;
     }
-    _sbSession      = saved.token;
-    currentUser     = saved.user;
-    currentUserName = saved.name;
-    currentRole     = saved.role;
-    return true;
+
+    // الجلسة خلصت أو قاربت تخلص — جدّدها تلقائياً بدون ما نطلب من المستخدم يدخل من جديد
+    if(saved.refresh){
+      const refreshed = await refreshSbSession(saved.refresh);
+      if(refreshed) return true;
+    }
+    return false;
   } catch(e){ return false; }
+}
+
+// ─ تجديد الجلسة فعلياً عبر refresh_token ─
+async function refreshSbSession(refreshToken){
+  try{
+    const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({ refresh_token: refreshToken })
+    });
+    const d = await r.json();
+    if(d.access_token){
+      _sbSession = d.access_token;
+      const meta = d.user?.user_metadata||{};
+      currentUser     = d.user.email;
+      currentUserName = meta.full_name || currentUser.split('@')[0];
+      currentRole     = meta.role==='admin'?'admin':'user';
+      const newExpires = Date.now()+(d.expires_in||3600)*1000;
+      try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+        token:d.access_token, refresh:d.refresh_token||refreshToken,
+        user:currentUser, name:currentUserName, role:currentRole,
+        expires: newExpires
+      }));}catch(e){}
+      scheduleSessionRefresh(newExpires);
+      return true;
+    }
+    return false;
+  }catch(e){ return false; }
+}
+
+// ─ جدولة تجديد الجلسة تلقائياً قبل انتهائها — يخليك "متذكَّر" بدون انقطاع ─
+let _sessionRefreshTimer=null;
+function scheduleSessionRefresh(expiresAt){
+  if(_sessionRefreshTimer) clearTimeout(_sessionRefreshTimer);
+  // جدّد 5 دقائق قبل الانتهاء، بحد أدنى 10 ثواني
+  const delay = Math.max(expiresAt - Date.now() - 5*60*1000, 10000);
+  _sessionRefreshTimer = setTimeout(async()=>{
+    try{
+      const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+      if(saved?.refresh) await refreshSbSession(saved.refresh);
+    }catch(e){}
+  }, delay);
 }
 
 // ─ Logout ─
 function logout(){
   currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
+  if(_sessionRefreshTimer){ clearTimeout(_sessionRefreshTimer); _sessionRefreshTimer=null; }
   try{ localStorage.removeItem('lexdesk_sb_session'); }catch(e){}
   document.getElementById('emailInp').value='';
   document.getElementById('passInp').value='';
