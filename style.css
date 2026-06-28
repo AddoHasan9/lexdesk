@@ -2662,20 +2662,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* ─────────────────────────────────────
    ★ 5. AI ASSISTANT — LexBot
 ───────────────────────────────────── */
-.ai-fab {
-  position:fixed;bottom:24px;left:24px;
-  display:flex;align-items:center;gap:8px;
-  padding:0 20px 0 14px;height:48px;
-  background:linear-gradient(135deg,#6366f1,#8b5cf6);
-  border:none;border-radius:28px;color:#fff;
-  font-size:13px;font-weight:700;cursor:pointer;
-  z-index:100;font-family:var(--font);
-  box-shadow:0 8px 28px rgba(99,102,241,.45);
-  transition:all var(--t);
-}
-.ai-fab svg { width:20px;height:20px;stroke:currentColor;fill:none;flex-shrink:0; }
-.ai-fab:hover { transform:translateY(-3px);box-shadow:0 14px 36px rgba(99,102,241,.55); }
-.ai-fab span { display:block; }
 .ai-panel {
   position:fixed;left:0;top:0;bottom:0;width:370px;max-width:92vw;
   background:var(--bg2);border-right:1px solid var(--border2);
@@ -2775,7 +2761,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 
 /* ── Responsive adjustments ── */
 @media(max-width:768px){
-  .ai-fab { bottom:80px;left:16px;height:44px; }
   .bulk-bar { bottom:80px;max-width:95vw; }
   .kanban-col { min-width:210px;max-width:210px; }
   .client-stats-row { grid-template-columns:repeat(2,1fr); }
