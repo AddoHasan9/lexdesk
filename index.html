@@ -893,6 +893,18 @@
             </button>
           </div>
           <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+            <div style="display:flex;align-items:center;justify-content:between;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">النسخ الاحتياطية اليومية (سحابية)</div>
+              <button class="btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadCloudBackupsList()">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                تحديث
+              </button>
+            </div>
+            <div id="cloudBackupsList" style="display:flex;flex-direction:column;gap:6px">
+              <div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">اضغط "تحديث" لعرض النسخ المتوفرة</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
             <button class="btn-data danger" onclick="askClearAll()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               مسح جميع البيانات

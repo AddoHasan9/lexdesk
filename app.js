@@ -121,6 +121,124 @@ async function sbLoadMeta(key){
   }catch(e){return null;}
 }
 
+// ══ النسخ الاحتياطي التلقائي اليومي ══
+const SK_LAST_BACKUP='lexdesk_last_backup_date';
+const BACKUP_RETENTION_DAYS=7; // كم يوم نحافظ على النسخ بالسيرفر
+
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// نسخة واحدة فعلية: تتحفظ بمفتاح يحتوي التاريخ — كل يوم نسخة منفصلة، ما تتكتب فوق القديمة
+async function saveCloudBackup(dateKey){
+  const backupData={
+    cases, settings,
+    exportedAt:new Date().toISOString(),
+    casesCount:cases.length
+  };
+  await sbSaveMeta('backup_'+dateKey, backupData);
+  // سجّل هذا التاريخ بقائمة النسخ المتوفرة
+  let index=await sbLoadMeta('backup_index');
+  if(!Array.isArray(index)) index=[];
+  if(!index.includes(dateKey)){ index.push(dateKey); index.sort(); }
+  // نظّف النسخ الأقدم من فترة الاحتفاظ
+  while(index.length>BACKUP_RETENTION_DAYS){
+    const oldKey=index.shift();
+    try{ await sbFetch(SB_URL+'/rest/v1/meta?id=eq.backup_'+oldKey,{method:'DELETE',headers:SB_H}); }catch(e){}
+  }
+  await sbSaveMeta('backup_index', index);
+  return backupData;
+}
+
+// تنزيل نسخة كملف JSON لجهاز المستخدم (احتياط خارج Supabase تماماً)
+function downloadBackupFile(backupData, label){
+  const blob=new Blob([JSON.stringify(backupData,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='LexDesk_backup_'+(label||todayKey())+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+// يتفحص مرة كل يوم — لو ما انسوت نسخة اليوم، يسويها تلقائياً (سيرفر + تنزيل للأدمن)
+async function runDailyBackupCheck(){
+  try{
+    if(!isAdmin())return; // بس الأدمن يشغّل النسخ التلقائي، تجنباً للتكرار من كل مستخدم
+    if(!cases || !cases.length)return; // ما اكو بيانات، ما اكو فايدة من نسخة فاضية
+    const today=todayKey();
+    const lastBackup=localStorage.getItem(SK_LAST_BACKUP);
+    if(lastBackup===today)return; // انسوت نسخة اليوم خلص
+
+    const backupData=await saveCloudBackup(today);
+    localStorage.setItem(SK_LAST_BACKUP, today);
+
+    // تنزيل تلقائي صامت لجهاز الأدمن (نسخة خارج Supabase)
+    downloadBackupFile(backupData, today);
+    toast('✓ تم إنشاء نسخة احتياطية يومية ('+cases.length+' معاملة)','ok');
+  }catch(e){ /* فشل النسخ التلقائي ما يوقف الموقع */ }
+}
+
+// عرض قائمة النسخ المتوفرة بالسيرفر للاستعادة
+async function listCloudBackups(){
+  const index=await sbLoadMeta('backup_index');
+  return Array.isArray(index)?index.sort().reverse():[];
+}
+
+// استعادة نسخة معينة من السيرفر بتاريخ محدد
+async function restoreCloudBackup(dateKey){
+  const backupData=await sbLoadMeta('backup_'+dateKey);
+  if(!backupData){ toast('لم يتم العثور على النسخة','err'); return false; }
+  cases=backupData.cases||[];
+  if(backupData.settings) settings={...settings,...backupData.settings};
+  saveData();
+  if(backupData.settings) saveCfg();
+  return true;
+}
+
+// ═ واجهة عرض واستعادة النسخ الاحتياطية بصفحة الإعدادات ═
+async function loadCloudBackupsList(){
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
+  const listEl=document.getElementById('cloudBackupsList');
+  if(!listEl)return;
+  listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">جاري التحميل...</div>';
+  const dates=await listCloudBackups();
+  if(!dates.length){
+    listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا توجد نسخ احتياطية سحابية بعد — تُنشأ تلقائياً يومياً عند تسجيل دخول الأدمن</div>';
+    return;
+  }
+  const todayStr=todayKey();
+  listEl.innerHTML=dates.map(d=>{
+    const isToday=d===todayStr;
+    const dateObj=new Date(d+'T00:00:00');
+    const label=dateObj.toLocaleDateString('ar-IQ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'+
+        '<span style="font-size:12px;color:var(--text2);font-weight:600">'+label+(isToday?' <span style="color:var(--green)">(اليوم)</span>':'')+'</span>'+
+      '</div>'+
+      '<button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="confirmRestoreBackup(\''+d+'\')">استعادة</button>'+
+    '</div>';
+  }).join('');
+}
+
+function confirmRestoreBackup(dateKey){
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
+  const dateObj=new Date(dateKey+'T00:00:00');
+  const label=dateObj.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('confirmTitle').textContent='استعادة نسخة احتياطية';
+  document.getElementById('confirmSub').textContent='سيتم استرجاع كل المعاملات لحالتها يوم '+label+'. أي تعديل صار بعد هذا التاريخ بينحذف. هل تريد الاستمرار؟';
+  document.getElementById('confirmBtn').onclick=async()=>{
+    document.getElementById('confirmBtn').textContent='جاري الاستعادة...';
+    const ok=await restoreCloudBackup(dateKey);
+    closeOverlay('confirmOverlay');
+    document.getElementById('confirmBtn').textContent='حذف';
+    if(ok){ render(); updateStats(); toast('✓ تم استرجاع نسخة يوم '+label,'ok'); }
+  };
+  openOverlay('confirmOverlay');
+}
+
 function showSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el)return;
@@ -565,6 +683,7 @@ function showApp(){
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
+  setTimeout(runDailyBackupCheck, 3000); // فحص النسخة اليومية بعد استقرار تحميل الصفحة
 }
 
 function toggleFab(){
@@ -1094,7 +1213,17 @@ function toast(msg,type){const wrap=document.getElementById('toastWrap');if(!wra
 
 // ══ EXPORT ══
 function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
-function backupJSON(){const b={cases,settings,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(b,null,2));a.download='LexDesk_backup_'+Date.now()+'.json';a.click();toast('تم حفظ النسخة الاحتياطية','ok');}
+async function backupJSON(){
+  const backupData={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
+  downloadBackupFile(backupData,'manual_'+todayKey());
+  toast('تم حفظ النسخة الاحتياطية','ok');
+  // كمان نحفظها بالسيرفر تحت تاريخ اليوم (يدوية تعتبر نسخة اليوم لو لسا ما انسوت)
+  try{
+    const today=todayKey();
+    const lastBackup=localStorage.getItem(SK_LAST_BACKUP);
+    if(lastBackup!==today){ await saveCloudBackup(today); localStorage.setItem(SK_LAST_BACKUP,today); }
+  }catch(e){}
+}
 function openImport(){openOverlay('importOverlay');}
 function openRestore(){openOverlay('restoreOverlay');}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
