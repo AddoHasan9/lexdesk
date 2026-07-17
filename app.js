@@ -1731,6 +1731,18 @@ ${rows}
 // ══ INIT ══
 (async()=>{
   initTheme();
+
+  // ═ فحص رابط إعادة تعيين كلمة المرور من Supabase ═
+  // الرابط شكله: #access_token=xxx&type=recovery
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+  if(hashParams.get('type')==='recovery' && hashParams.get('access_token')){
+    // امسح الـ hash من الـ URL بدون reload
+    history.replaceState(null,'',window.location.pathname);
+    await loadAll();
+    showPasswordResetScreen(hashParams.get('access_token'));
+    return; // لا تكمل التحميل العادي
+  }
+
   await loadAll();
   await loadStandaloneDef();
   const sessionOk = await restoreSbSession();
@@ -1749,6 +1761,79 @@ ${rows}
 // ══════════════════════════════════════
 // ★ PREMIUM ENHANCEMENTS v4.1
 // ══════════════════════════════════════
+
+// ── إعادة تعيين كلمة المرور عبر رابط Supabase ──
+function showPasswordResetScreen(accessToken){
+  // أخفي شاشة الدخول العادية وأظهر شاشة التعيين
+  const loginScreen = document.getElementById('loginScreen');
+  if(loginScreen) loginScreen.style.display='flex';
+  document.getElementById('appWrap').style.display='none';
+
+  // ابني محتوى شاشة إعادة التعيين
+  if(loginScreen){
+    loginScreen.innerHTML=`
+      <div class="login-box" style="max-width:360px">
+        <div class="sb-logo-icon" style="width:56px;height:56px;border-radius:16px;margin:0 auto 12px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="login-brand" style="font-size:20px">تعيين كلمة مرور جديدة</div>
+        <div class="login-sub" style="margin-bottom:22px">اكتب كلمة المرور الجديدة لحسابك</div>
+        <input id="resetPass1" type="password" class="pass-inp" placeholder="كلمة المرور الجديدة" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('resetPass2').focus()">
+        <input id="resetPass2" type="password" class="pass-inp" placeholder="تأكيد كلمة المرور" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:8px" onkeydown="if(event.key==='Enter')doPasswordReset('${accessToken}')">
+        <div class="pass-err" id="resetErr"></div>
+        <button class="login-btn" onclick="doPasswordReset('${accessToken}')">تأكيد وحفظ</button>
+      </div>
+    `;
+    setTimeout(()=>{ const e=document.getElementById('resetPass1'); if(e)e.focus(); },200);
+  }
+}
+
+async function doPasswordReset(accessToken){
+  const p1=(document.getElementById('resetPass1')?.value||'').trim();
+  const p2=(document.getElementById('resetPass2')?.value||'').trim();
+  const errEl=document.getElementById('resetErr');
+
+  if(!p1){ if(errEl){errEl.textContent='اكتب كلمة المرور';errEl.style.display='block';} return; }
+  if(p1.length<6){ if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.style.display='block';} return; }
+  if(p1!==p2){ if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.style.display='block';} return; }
+  if(errEl) errEl.style.display='none';
+
+  const btn=document.querySelector('.login-btn');
+  if(btn){ btn.textContent='جاري الحفظ...'; btn.disabled=true; }
+
+  try{
+    // نستخدم الـ access_token من رابط الإعادة لتغيير الباسوورد
+    const r = await fetch(SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer '+accessToken
+      },
+      body: JSON.stringify({ password: p1 })
+    });
+    const d = await r.json();
+    if(d.error){
+      if(errEl){errEl.textContent='خطأ: '+(d.error.message||d.msg);errEl.style.display='block';}
+      if(btn){ btn.textContent='تأكيد وحفظ'; btn.disabled=false; }
+      return;
+    }
+    // نجح! رجع لصفحة تسجيل الدخول
+    if(document.getElementById('loginScreen')){
+      document.getElementById('loginScreen').innerHTML=`
+        <div class="login-box" style="max-width:360px;text-align:center">
+          <div style="font-size:48px;margin-bottom:12px">✓</div>
+          <div class="login-brand" style="font-size:20px;color:var(--green)">تم تغيير كلمة المرور</div>
+          <div class="login-sub" style="margin-bottom:20px">يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة</div>
+          <button class="login-btn" onclick="window.location.reload()">تسجيل الدخول</button>
+        </div>
+      `;
+    }
+  }catch(e){
+    if(errEl){errEl.textContent='خطأ في الاتصال، حاول مرة ثانية';errEl.style.display='block';}
+    if(btn){ btn.textContent='تأكيد وحفظ'; btn.disabled=false; }
+  }
+}
 
 // ── Undo Delete ──
 function undoDelete(){
