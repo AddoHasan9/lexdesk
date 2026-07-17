@@ -527,6 +527,11 @@ function showApp(){
   const sun=document.getElementById('sbUserName');if(sun)sun.textContent=_displayName;
   const upn=document.getElementById('userPillName');if(upn)upn.textContent=_displayName;
   const uav=document.querySelector('.user-av');if(uav)uav.textContent=_initials;
+  // ─ تحديث زر المستخدم بالموبايل ─
+  const mnAv=document.getElementById('mnUserAv');if(mnAv)mnAv.textContent=_initials;
+  const mnMnAv=document.getElementById('mobMenuAv');if(mnMnAv)mnMnAv.textContent=_initials;
+  const mnMnName=document.getElementById('mobMenuName');if(mnMnName)mnMnName.textContent=_displayName;
+  const mnMnRole=document.getElementById('mobMenuRole');if(mnMnRole)mnMnRole.textContent=isAdmin()?'مدير النظام':'مستخدم';
   const officeName=settings.officeName||'مكتب المحاماة';
   const tb=document.getElementById('officeTitle');if(tb)tb.textContent=officeName;
   const ls=document.getElementById('loginOfficeSub');if(ls)ls.textContent=officeName;
@@ -535,6 +540,26 @@ function showApp(){
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
+}
+
+function showMobUserMenu(){
+  const menu=document.getElementById('mobUserMenu');
+  if(!menu)return;
+  const isOpen=menu.style.display==='block';
+  menu.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    // أغلق لما تضغط خارجه
+    setTimeout(()=>document.addEventListener('click',_closeMobMenuOutside,{once:true}),10);
+  }
+}
+function _closeMobMenuOutside(e){
+  const menu=document.getElementById('mobUserMenu');
+  const btn=document.getElementById('mnUser');
+  if(menu&&!menu.contains(e.target)&&btn&&!btn.contains(e.target)){menu.style.display='none';}
+}
+function closeMobUserMenu(){
+  const menu=document.getElementById('mobUserMenu');
+  if(menu)menu.style.display='none';
 }
 
 function toggleFab(){
