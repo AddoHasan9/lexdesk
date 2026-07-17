@@ -893,16 +893,11 @@
             </button>
           </div>
           <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
-            <div style="display:flex;align-items:center;justify-content:between;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:13px;font-weight:700;color:var(--text)">النسخ الاحتياطية اليومية (سحابية)</div>
-              <button class="btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadCloudBackupsList()">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                تحديث
-              </button>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:13px;font-weight:700;color:var(--text)">النسخ الاحتياطية اليومية</span>
+              <button class="btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadCloudBackupsList()">تحديث</button>
             </div>
-            <div id="cloudBackupsList" style="display:flex;flex-direction:column;gap:6px">
-              <div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">اضغط "تحديث" لعرض النسخ المتوفرة</div>
-            </div>
+            <div id="cloudBackupsList"><div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">اضغط "تحديث" لعرض النسخ</div></div>
           </div>
           <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
             <button class="btn-data danger" onclick="askClearAll()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px">
@@ -1470,6 +1465,12 @@
     </button>
   </div>
 </div>
+
+<!-- AI Floating Button -->
+<button class="ai-fab" id="aiFab" onclick="toggleAI()" title="LexBot — المساعد الذكي">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
+  <span>LexBot</span>
+</button>
 
 <script src="app.js"></script>
 </body>

@@ -121,124 +121,6 @@ async function sbLoadMeta(key){
   }catch(e){return null;}
 }
 
-// ══ النسخ الاحتياطي التلقائي اليومي ══
-const SK_LAST_BACKUP='lexdesk_last_backup_date';
-const BACKUP_RETENTION_DAYS=7; // كم يوم نحافظ على النسخ بالسيرفر
-
-function todayKey(){
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-// نسخة واحدة فعلية: تتحفظ بمفتاح يحتوي التاريخ — كل يوم نسخة منفصلة، ما تتكتب فوق القديمة
-async function saveCloudBackup(dateKey){
-  const backupData={
-    cases, settings,
-    exportedAt:new Date().toISOString(),
-    casesCount:cases.length
-  };
-  await sbSaveMeta('backup_'+dateKey, backupData);
-  // سجّل هذا التاريخ بقائمة النسخ المتوفرة
-  let index=await sbLoadMeta('backup_index');
-  if(!Array.isArray(index)) index=[];
-  if(!index.includes(dateKey)){ index.push(dateKey); index.sort(); }
-  // نظّف النسخ الأقدم من فترة الاحتفاظ
-  while(index.length>BACKUP_RETENTION_DAYS){
-    const oldKey=index.shift();
-    try{ await sbFetch(SB_URL+'/rest/v1/meta?id=eq.backup_'+oldKey,{method:'DELETE',headers:SB_H}); }catch(e){}
-  }
-  await sbSaveMeta('backup_index', index);
-  return backupData;
-}
-
-// تنزيل نسخة كملف JSON لجهاز المستخدم (احتياط خارج Supabase تماماً)
-function downloadBackupFile(backupData, label){
-  const blob=new Blob([JSON.stringify(backupData,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download='LexDesk_backup_'+(label||todayKey())+'.json';
-  document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-// يتفحص مرة كل يوم — لو ما انسوت نسخة اليوم، يسويها تلقائياً (سيرفر + تنزيل للأدمن)
-async function runDailyBackupCheck(){
-  try{
-    if(!isAdmin())return; // بس الأدمن يشغّل النسخ التلقائي، تجنباً للتكرار من كل مستخدم
-    if(!cases || !cases.length)return; // ما اكو بيانات، ما اكو فايدة من نسخة فاضية
-    const today=todayKey();
-    const lastBackup=localStorage.getItem(SK_LAST_BACKUP);
-    if(lastBackup===today)return; // انسوت نسخة اليوم خلص
-
-    const backupData=await saveCloudBackup(today);
-    localStorage.setItem(SK_LAST_BACKUP, today);
-
-    // تنزيل تلقائي صامت لجهاز الأدمن (نسخة خارج Supabase)
-    downloadBackupFile(backupData, today);
-    toast('✓ تم إنشاء نسخة احتياطية يومية ('+cases.length+' معاملة)','ok');
-  }catch(e){ /* فشل النسخ التلقائي ما يوقف الموقع */ }
-}
-
-// عرض قائمة النسخ المتوفرة بالسيرفر للاستعادة
-async function listCloudBackups(){
-  const index=await sbLoadMeta('backup_index');
-  return Array.isArray(index)?index.sort().reverse():[];
-}
-
-// استعادة نسخة معينة من السيرفر بتاريخ محدد
-async function restoreCloudBackup(dateKey){
-  const backupData=await sbLoadMeta('backup_'+dateKey);
-  if(!backupData){ toast('لم يتم العثور على النسخة','err'); return false; }
-  cases=backupData.cases||[];
-  if(backupData.settings) settings={...settings,...backupData.settings};
-  saveData();
-  if(backupData.settings) saveCfg();
-  return true;
-}
-
-// ═ واجهة عرض واستعادة النسخ الاحتياطية بصفحة الإعدادات ═
-async function loadCloudBackupsList(){
-  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
-  const listEl=document.getElementById('cloudBackupsList');
-  if(!listEl)return;
-  listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">جاري التحميل...</div>';
-  const dates=await listCloudBackups();
-  if(!dates.length){
-    listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا توجد نسخ احتياطية سحابية بعد — تُنشأ تلقائياً يومياً عند تسجيل دخول الأدمن</div>';
-    return;
-  }
-  const todayStr=todayKey();
-  listEl.innerHTML=dates.map(d=>{
-    const isToday=d===todayStr;
-    const dateObj=new Date(d+'T00:00:00');
-    const label=dateObj.toLocaleDateString('ar-IQ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px">'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'+
-        '<span style="font-size:12px;color:var(--text2);font-weight:600">'+label+(isToday?' <span style="color:var(--green)">(اليوم)</span>':'')+'</span>'+
-      '</div>'+
-      '<button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="confirmRestoreBackup(\''+d+'\')">استعادة</button>'+
-    '</div>';
-  }).join('');
-}
-
-function confirmRestoreBackup(dateKey){
-  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
-  const dateObj=new Date(dateKey+'T00:00:00');
-  const label=dateObj.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('confirmTitle').textContent='استعادة نسخة احتياطية';
-  document.getElementById('confirmSub').textContent='سيتم استرجاع كل المعاملات لحالتها يوم '+label+'. أي تعديل صار بعد هذا التاريخ بينحذف. هل تريد الاستمرار؟';
-  document.getElementById('confirmBtn').onclick=async()=>{
-    document.getElementById('confirmBtn').textContent='جاري الاستعادة...';
-    const ok=await restoreCloudBackup(dateKey);
-    closeOverlay('confirmOverlay');
-    document.getElementById('confirmBtn').textContent='حذف';
-    if(ok){ render(); updateStats(); toast('✓ تم استرجاع نسخة يوم '+label,'ok'); }
-  };
-  openOverlay('confirmOverlay');
-}
-
 function showSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el)return;
@@ -303,39 +185,38 @@ const parseAmt=s=>parseFloat((s||'').replace(/,/g,''))||0;
 
 // ══ LOAD ══
 async function loadAll(){
-  // ═ الخطوة 1: حمّل اللوكال فوراً (سريع، بدون انتظار) ═
-  let localSettings = {};
-  try{ const s=localStorage.getItem(SK_S); localSettings=s?JSON.parse(s):{}; }catch(e){ localSettings={}; }
-  settings = localSettings;
+  // ═ الخطوة 1: حمّل اللوكال فوراً بدون انتظار ═
+  let localSettings={};
+  try{const s=localStorage.getItem(SK_S);localSettings=s?JSON.parse(s):{};}catch(e){localSettings={};}
+  settings=localSettings;
   settings.officeName=settings.officeName||'مكتب المحاماة';
   settings.defCurrency=settings.defCurrency||'IQD';
   settings.lawyers=settings.lawyers||[...DEFAULT_LAWYERS];
   settings.types=settings.types||[...DEFAULT_TYPES];
   settings.depts=settings.depts||[...DEFAULT_DEPTS];
 
-  // ═ الخطوة 2: حمّل الكيسات من اللوكال فوراً لو موجودة ═
+  // ═ الخطوة 2: حمّل الكيسات من اللوكال فوراً ═
   let hasLocal=false;
   try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);hasLocal=true;}}catch(e){}
 
-  // ═ الخطوة 3: حاول السيرفر (بالخلفية لو عندنا لوكال) ═
+  // ═ الخطوة 3: حاول السيرفر ═
   showSyncStatus('loading');
-  if(!hasLocal) showSkeleton('casesBody', 5);
+  if(!hasLocal)showSkeleton('casesBody',5);
   const loaded=await sbLoad();
   if(loaded===true){
     showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
-  } else if(loaded==='empty'){
-    if(!hasLocal) cases=[];
+  }else if(loaded==='empty'){
+    if(!hasLocal)cases=[];
     showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
-  } else {
-    // السيرفر فشل أو تأخر — لو عندنا لوكال نكمل بدونه
+  }else{
     if(hasLocal){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);}
     else{showSyncStatus('error');cases=SEED.map(c=>({...c}));saveData();}
   }
 
-  // ═ الخطوة 4: حمّل إعدادات السيرفر بالخلفية (موحدة لكل الأجهزة — كلمات المرور وغيرها) ═
+  // ═ الخطوة 4: حمّل إعدادات السيرفر بالخلفية ═
   try{
     const cloudSettings=await sbLoadMeta('settings');
-    if(cloudSettings && typeof cloudSettings==='object'){
+    if(cloudSettings&&typeof cloudSettings==='object'){
       settings={...settings,...cloudSettings};
       try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}
     }
@@ -482,7 +363,7 @@ async function doLogin(){
   if(!canAttemptLogin())return;
   const emailEl = document.getElementById('emailInp');
   const passEl  = document.getElementById('passInp');
-  if(!emailEl||!passEl){ console.error('inputs not found'); toast('خطأ: الحقول غير موجودة','err'); return; }
+  if(!emailEl||!passEl){ toast('خطأ: الحقول غير موجودة','err'); return; }
   const email = (emailEl.value||'').trim();
   const pass  = (passEl.value||'').trim();
   if(!email||!pass){ toast('أدخل الإيميل وكلمة المرور','warn'); return; }
@@ -509,23 +390,19 @@ async function doLogin(){
     currentUser     = d.user.email;
     currentUserName = meta.full_name || email.split('@')[0];
     currentRole     = meta.role === 'admin' ? 'admin' : 'user';
-    // persist session
-    const sessExpires = Date.now() + (d.expires_in||3600)*1000;
+    const sessExp = Date.now() + (d.expires_in||3600)*1000;
     try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
-      token: d.access_token,
-      refresh: d.refresh_token,
-      user: currentUser,
-      name: currentUserName,
-      role: currentRole,
-      expires: sessExpires
+      token: d.access_token, refresh: d.refresh_token,
+      user: currentUser, name: currentUserName, role: currentRole,
+      expires: sessExp
     })); }catch(e){}
-    scheduleSessionRefresh(sessExpires);
+    scheduleSessionRefresh(sessExp);
     SFX.play('login');
     document.getElementById('passErr')?.classList.remove('show');
     showApp();
   } catch(e){ toast('خطأ في الاتصال','err'); }
   setLoginLoading(false);
-  } catch(fatalErr){ console.error('doLogin fatal:', fatalErr); toast('خطأ: '+fatalErr.message,'err'); setLoginLoading(false); }
+  } catch(fatalErr){ toast('خطأ: '+fatalErr.message,'err'); setLoginLoading(false); }
 }
 
 // ─ Forgot Password ─
@@ -544,77 +421,60 @@ async function doForgotPass(){
   setLoginLoading(false);
 }
 
+let _sessionRefreshTimer=null;
+function scheduleSessionRefresh(expiresAt){
+  if(_sessionRefreshTimer)clearTimeout(_sessionRefreshTimer);
+  const delay=Math.max(expiresAt-Date.now()-5*60*1000,10000);
+  _sessionRefreshTimer=setTimeout(async()=>{
+    try{
+      const saved=JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+      if(saved?.refresh){
+        const r=await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:saved.refresh})});
+        const d=await r.json();
+        if(d.access_token){
+          _sbSession=d.access_token;
+          const newExp=Date.now()+(d.expires_in||3600)*1000;
+          try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({...saved,token:d.access_token,refresh:d.refresh_token||saved.refresh,expires:newExp}));}catch(e){}
+          scheduleSessionRefresh(newExp);
+        }
+      }
+    }catch(e){}
+  },delay);
+}
+
 // ─ Restore session on load (تذكرني تلقائي) ─
 async function restoreSbSession(){
   try{
-    const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
-    if(!saved) return false;
-
-    // الجلسة لسا صالحة — استخدمها مباشرة
-    if(Date.now() <= saved.expires - 60000){
-      _sbSession      = saved.token;
-      currentUser     = saved.user;
-      currentUserName = saved.name;
-      currentRole     = saved.role;
+    const saved=JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+    if(!saved)return false;
+    // الجلسة لسا صالحة
+    if(Date.now()<=saved.expires-60000){
+      _sbSession=saved.token;currentUser=saved.user;currentUserName=saved.name;currentRole=saved.role;
       scheduleSessionRefresh(saved.expires);
       return true;
     }
-
-    // الجلسة خلصت أو قاربت تخلص — جدّدها تلقائياً بدون ما نطلب من المستخدم يدخل من جديد
+    // جدّد الجلسة تلقائياً
     if(saved.refresh){
-      const refreshed = await refreshSbSession(saved.refresh);
-      if(refreshed) return true;
+      const r=await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:saved.refresh})});
+      const d=await r.json();
+      if(d.access_token){
+        _sbSession=d.access_token;
+        const meta=d.user?.user_metadata||{};
+        currentUser=d.user.email;currentUserName=meta.full_name||currentUser.split('@')[0];currentRole=meta.role==='admin'?'admin':'user';
+        const newExp=Date.now()+(d.expires_in||3600)*1000;
+        try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({token:d.access_token,refresh:d.refresh_token||saved.refresh,user:currentUser,name:currentUserName,role:currentRole,expires:newExp}));}catch(e){}
+        scheduleSessionRefresh(newExp);
+        return true;
+      }
     }
     return false;
-  } catch(e){ return false; }
-}
-
-// ─ تجديد الجلسة فعلياً عبر refresh_token ─
-async function refreshSbSession(refreshToken){
-  try{
-    const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY},
-      body: JSON.stringify({ refresh_token: refreshToken })
-    });
-    const d = await r.json();
-    if(d.access_token){
-      _sbSession = d.access_token;
-      const meta = d.user?.user_metadata||{};
-      currentUser     = d.user.email;
-      currentUserName = meta.full_name || currentUser.split('@')[0];
-      currentRole     = meta.role==='admin'?'admin':'user';
-      const newExpires = Date.now()+(d.expires_in||3600)*1000;
-      try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
-        token:d.access_token, refresh:d.refresh_token||refreshToken,
-        user:currentUser, name:currentUserName, role:currentRole,
-        expires: newExpires
-      }));}catch(e){}
-      scheduleSessionRefresh(newExpires);
-      return true;
-    }
-    return false;
-  }catch(e){ return false; }
-}
-
-// ─ جدولة تجديد الجلسة تلقائياً قبل انتهائها — يخليك "متذكَّر" بدون انقطاع ─
-let _sessionRefreshTimer=null;
-function scheduleSessionRefresh(expiresAt){
-  if(_sessionRefreshTimer) clearTimeout(_sessionRefreshTimer);
-  // جدّد 5 دقائق قبل الانتهاء، بحد أدنى 10 ثواني
-  const delay = Math.max(expiresAt - Date.now() - 5*60*1000, 10000);
-  _sessionRefreshTimer = setTimeout(async()=>{
-    try{
-      const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
-      if(saved?.refresh) await refreshSbSession(saved.refresh);
-    }catch(e){}
-  }, delay);
+  }catch(e){return false;}
 }
 
 // ─ Logout ─
 function logout(){
   currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
-  if(_sessionRefreshTimer){ clearTimeout(_sessionRefreshTimer); _sessionRefreshTimer=null; }
+  if(_sessionRefreshTimer){clearTimeout(_sessionRefreshTimer);_sessionRefreshTimer=null;}
   try{ localStorage.removeItem('lexdesk_sb_session'); }catch(e){}
   document.getElementById('emailInp').value='';
   document.getElementById('passInp').value='';
@@ -683,7 +543,7 @@ function showApp(){
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
-  setTimeout(runDailyBackupCheck, 3000); // فحص النسخة اليومية بعد استقرار تحميل الصفحة
+  setTimeout(runDailyBackupCheck, 3000);
 }
 
 function toggleFab(){
@@ -1213,17 +1073,7 @@ function toast(msg,type){const wrap=document.getElementById('toastWrap');if(!wra
 
 // ══ EXPORT ══
 function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
-async function backupJSON(){
-  const backupData={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
-  downloadBackupFile(backupData,'manual_'+todayKey());
-  toast('تم حفظ النسخة الاحتياطية','ok');
-  // كمان نحفظها بالسيرفر تحت تاريخ اليوم (يدوية تعتبر نسخة اليوم لو لسا ما انسوت)
-  try{
-    const today=todayKey();
-    const lastBackup=localStorage.getItem(SK_LAST_BACKUP);
-    if(lastBackup!==today){ await saveCloudBackup(today); localStorage.setItem(SK_LAST_BACKUP,today); }
-  }catch(e){}
-}
+// backupJSON → moved to backup system below
 function openImport(){openOverlay('importOverlay');}
 function openRestore(){openOverlay('restoreOverlay');}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
@@ -1396,8 +1246,6 @@ async function addNewUser(){
   if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
 
   try{
-    // Use Supabase Admin API via service role — but we only have anon key
-    // So we use the regular signup endpoint (email confirmation disabled)
     const r = await sbFetch(SB_URL+'/auth/v1/signup',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY},
@@ -1728,19 +1576,126 @@ ${rows}
   },800);
 }
 
+// ══ النسخ الاحتياطي التلقائي اليومي ══
+const SK_LAST_BACKUP='lexdesk_last_backup_date';
+const BACKUP_RETENTION_DAYS=7;
+function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function downloadBackupFile(data,label){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='LexDesk_backup_'+(label||todayKey())+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function saveCloudBackup(dateKey){
+  const data={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
+  await sbSaveMeta('backup_'+dateKey,data);
+  let index=await sbLoadMeta('backup_index');if(!Array.isArray(index))index=[];
+  if(!index.includes(dateKey)){index.push(dateKey);index.sort();}
+  while(index.length>BACKUP_RETENTION_DAYS){const old=index.shift();try{await sbFetch(SB_URL+'/rest/v1/meta?id=eq.backup_'+old,{method:'DELETE',headers:SB_H});}catch(e){}}
+  await sbSaveMeta('backup_index',index);return data;
+}
+async function runDailyBackupCheck(){
+  try{
+    if(!isAdmin()||!cases||!cases.length)return;
+    const today=todayKey();
+    if(localStorage.getItem(SK_LAST_BACKUP)===today)return;
+    const data=await saveCloudBackup(today);
+    localStorage.setItem(SK_LAST_BACKUP,today);
+    downloadBackupFile(data,today);
+    toast('✓ نسخة احتياطية يومية ('+cases.length+' معاملة)','ok');
+  }catch(e){}
+}
+async function listCloudBackups(){const i=await sbLoadMeta('backup_index');return Array.isArray(i)?i.sort().reverse():[];}
+async function restoreCloudBackup(dateKey){
+  const d=await sbLoadMeta('backup_'+dateKey);
+  if(!d){toast('لم يتم العثور على النسخة','err');return false;}
+  cases=d.cases||[];if(d.settings)settings={...settings,...d.settings};
+  saveData();if(d.settings)saveCfg();return true;
+}
+async function loadCloudBackupsList(){
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
+  const listEl=document.getElementById('cloudBackupsList');if(!listEl)return;
+  listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">جاري التحميل...</div>';
+  const dates=await listCloudBackups();
+  if(!dates.length){listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا توجد نسخ سحابية بعد — تُنشأ تلقائياً عند دخول الأدمن</div>';return;}
+  const today=todayKey();
+  listEl.innerHTML=dates.map(d=>{
+    const isToday=d===today;
+    const label=new Date(d+'T00:00:00').toLocaleDateString('ar-IQ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px">'+
+      '<span style="font-size:12px;color:var(--text2);font-weight:600">'+label+(isToday?' <span style="color:var(--green)">(اليوم)</span>':'')+'</span>'+
+      '<button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="confirmRestoreBackup(\''+d+'\')">استعادة</button></div>';
+  }).join('');
+}
+function confirmRestoreBackup(dateKey){
+  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
+  const label=new Date(dateKey+'T00:00:00').toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('confirmTitle').textContent='استعادة نسخة احتياطية';
+  document.getElementById('confirmSub').textContent='سيتم استرجاع كل المعاملات ليوم '+label+'. أي تعديل بعد هذا التاريخ سيُحذف. هل تريد الاستمرار؟';
+  document.getElementById('confirmBtn').onclick=async()=>{
+    document.getElementById('confirmBtn').textContent='جاري الاستعادة...';
+    const ok=await restoreCloudBackup(dateKey);
+    closeOverlay('confirmOverlay');document.getElementById('confirmBtn').textContent='حذف';
+    if(ok){render();updateStats();toast('✓ تم استرجاع نسخة يوم '+label,'ok');}
+  };
+  openOverlay('confirmOverlay');
+}
+async function backupJSON(){
+  const data={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
+  downloadBackupFile(data,'manual_'+todayKey());toast('تم حفظ النسخة الاحتياطية','ok');
+  try{const today=todayKey();if(localStorage.getItem(SK_LAST_BACKUP)!==today){await saveCloudBackup(today);localStorage.setItem(SK_LAST_BACKUP,today);}}catch(e){}
+}
+
+// ══ معالج رابط إعادة تعيين كلمة المرور ══
+function showPasswordResetScreen(accessToken){
+  const ls=document.getElementById('loginScreen');
+  if(!ls)return;
+  ls.style.display='flex';
+  document.getElementById('appWrap').style.display='none';
+  ls.innerHTML=`<div class="login-box" style="max-width:360px">
+    <div style="width:56px;height:56px;border-radius:16px;margin:0 auto 12px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="login-brand" style="font-size:20px">تعيين كلمة مرور جديدة</div>
+    <div class="login-sub" style="margin-bottom:22px">اكتب كلمة المرور الجديدة لحسابك</div>
+    <input id="resetPass1" type="password" class="pass-inp" placeholder="كلمة المرور الجديدة" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('resetPass2').focus()">
+    <input id="resetPass2" type="password" class="pass-inp" placeholder="تأكيد كلمة المرور" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:8px" onkeydown="if(event.key==='Enter')doPasswordReset('${accessToken}')">
+    <div class="pass-err" id="resetErr" style="display:none"></div>
+    <button class="login-btn" onclick="doPasswordReset('${accessToken}')">تأكيد وحفظ</button>
+  </div>`;
+  setTimeout(()=>{const e=document.getElementById('resetPass1');if(e)e.focus();},200);
+}
+async function doPasswordReset(accessToken){
+  const p1=(document.getElementById('resetPass1')?.value||'').trim();
+  const p2=(document.getElementById('resetPass2')?.value||'').trim();
+  const errEl=document.getElementById('resetErr');
+  const show=(msg)=>{if(errEl){errEl.textContent=msg;errEl.style.display='block';}};
+  if(!p1){show('اكتب كلمة المرور');return;}
+  if(p1.length<6){show('لازم 6 أحرف على الأقل');return;}
+  if(p1!==p2){show('كلمتا المرور غير متطابقتان');return;}
+  if(errEl)errEl.style.display='none';
+  const btn=document.querySelector('.login-btn');
+  if(btn){btn.textContent='جاري الحفظ...';btn.disabled=true;}
+  try{
+    const r=await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken},body:JSON.stringify({password:p1})});
+    const d=await r.json();
+    if(d.error){show('خطأ: '+(d.error.message||d.msg));if(btn){btn.textContent='تأكيد وحفظ';btn.disabled=false;}return;}
+    const ls=document.getElementById('loginScreen');
+    if(ls)ls.innerHTML=`<div class="login-box" style="max-width:360px;text-align:center">
+      <div style="font-size:52px;margin-bottom:12px">✓</div>
+      <div class="login-brand" style="font-size:20px;color:var(--green)">تم تغيير كلمة المرور</div>
+      <div class="login-sub" style="margin-bottom:20px">سجّل دخولك بكلمة المرور الجديدة</div>
+      <button class="login-btn" onclick="window.location.reload()">تسجيل الدخول</button>
+    </div>`;
+  }catch(e){show('خطأ في الاتصال، حاول مرة ثانية');if(btn){btn.textContent='تأكيد وحفظ';btn.disabled=false;}}
+}
+
 // ══ INIT ══
 (async()=>{
   initTheme();
 
   // ═ فحص رابط إعادة تعيين كلمة المرور من Supabase ═
-  // الرابط شكله: #access_token=xxx&type=recovery
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
-  if(hashParams.get('type')==='recovery' && hashParams.get('access_token')){
-    // امسح الـ hash من الـ URL بدون reload
+  const hashParams=new URLSearchParams(window.location.hash.slice(1));
+  if(hashParams.get('type')==='recovery'&&hashParams.get('access_token')){
     history.replaceState(null,'',window.location.pathname);
     await loadAll();
     showPasswordResetScreen(hashParams.get('access_token'));
-    return; // لا تكمل التحميل العادي
+    return;
   }
 
   await loadAll();
@@ -1762,79 +1717,6 @@ ${rows}
 // ★ PREMIUM ENHANCEMENTS v4.1
 // ══════════════════════════════════════
 
-// ── إعادة تعيين كلمة المرور عبر رابط Supabase ──
-function showPasswordResetScreen(accessToken){
-  // أخفي شاشة الدخول العادية وأظهر شاشة التعيين
-  const loginScreen = document.getElementById('loginScreen');
-  if(loginScreen) loginScreen.style.display='flex';
-  document.getElementById('appWrap').style.display='none';
-
-  // ابني محتوى شاشة إعادة التعيين
-  if(loginScreen){
-    loginScreen.innerHTML=`
-      <div class="login-box" style="max-width:360px">
-        <div class="sb-logo-icon" style="width:56px;height:56px;border-radius:16px;margin:0 auto 12px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </div>
-        <div class="login-brand" style="font-size:20px">تعيين كلمة مرور جديدة</div>
-        <div class="login-sub" style="margin-bottom:22px">اكتب كلمة المرور الجديدة لحسابك</div>
-        <input id="resetPass1" type="password" class="pass-inp" placeholder="كلمة المرور الجديدة" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('resetPass2').focus()">
-        <input id="resetPass2" type="password" class="pass-inp" placeholder="تأكيد كلمة المرور" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:8px" onkeydown="if(event.key==='Enter')doPasswordReset('${accessToken}')">
-        <div class="pass-err" id="resetErr"></div>
-        <button class="login-btn" onclick="doPasswordReset('${accessToken}')">تأكيد وحفظ</button>
-      </div>
-    `;
-    setTimeout(()=>{ const e=document.getElementById('resetPass1'); if(e)e.focus(); },200);
-  }
-}
-
-async function doPasswordReset(accessToken){
-  const p1=(document.getElementById('resetPass1')?.value||'').trim();
-  const p2=(document.getElementById('resetPass2')?.value||'').trim();
-  const errEl=document.getElementById('resetErr');
-
-  if(!p1){ if(errEl){errEl.textContent='اكتب كلمة المرور';errEl.style.display='block';} return; }
-  if(p1.length<6){ if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.style.display='block';} return; }
-  if(p1!==p2){ if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.style.display='block';} return; }
-  if(errEl) errEl.style.display='none';
-
-  const btn=document.querySelector('.login-btn');
-  if(btn){ btn.textContent='جاري الحفظ...'; btn.disabled=true; }
-
-  try{
-    // نستخدم الـ access_token من رابط الإعادة لتغيير الباسوورد
-    const r = await fetch(SB_URL+'/auth/v1/user',{
-      method:'PUT',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey': SB_KEY,
-        'Authorization': 'Bearer '+accessToken
-      },
-      body: JSON.stringify({ password: p1 })
-    });
-    const d = await r.json();
-    if(d.error){
-      if(errEl){errEl.textContent='خطأ: '+(d.error.message||d.msg);errEl.style.display='block';}
-      if(btn){ btn.textContent='تأكيد وحفظ'; btn.disabled=false; }
-      return;
-    }
-    // نجح! رجع لصفحة تسجيل الدخول
-    if(document.getElementById('loginScreen')){
-      document.getElementById('loginScreen').innerHTML=`
-        <div class="login-box" style="max-width:360px;text-align:center">
-          <div style="font-size:48px;margin-bottom:12px">✓</div>
-          <div class="login-brand" style="font-size:20px;color:var(--green)">تم تغيير كلمة المرور</div>
-          <div class="login-sub" style="margin-bottom:20px">يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة</div>
-          <button class="login-btn" onclick="window.location.reload()">تسجيل الدخول</button>
-        </div>
-      `;
-    }
-  }catch(e){
-    if(errEl){errEl.textContent='خطأ في الاتصال، حاول مرة ثانية';errEl.style.display='block';}
-    if(btn){ btn.textContent='تأكيد وحفظ'; btn.disabled=false; }
-  }
-}
-
 // ── Undo Delete ──
 function undoDelete(){
   if(!_undoCase)return;
@@ -1853,13 +1735,13 @@ function undoDelete(){
   }
 }
 
-// ── Close Detail with animation ──
+// ── Close Detail with animation (override) ──
 function closeDetail(){
   const ov=document.getElementById('detailOverlay');
-  if(!ov||ov.style.display!=='flex')return;
+  if(!ov||ov.style.display==='none'||ov.style.display==='')return;
   ov.classList.add('closing');
   setTimeout(()=>{
-    ov.classList.remove('closing','open');
+    ov.classList.remove('closing');
     ov.style.display='none';
     if(typeof detailCaseId!=='undefined')detailCaseId=null;
   },250);
