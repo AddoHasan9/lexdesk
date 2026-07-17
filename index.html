@@ -214,7 +214,7 @@
     <span id="syncStatus"></span>
     <div class="rem-btn-wrap" id="remBell" style="display:none">
       <button class="rem-topbar-btn" onclick="toggleRemPanel()" title="التذكيرات">
-        <span class="iconify" data-icon="solar:bell-bold-duotone" data-width="18"></span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </button>
       <div class="rem-badge" id="remBadge">0</div>
     </div>
@@ -224,7 +224,7 @@
     </button>
     <div class="notif-wrap" id="notifBell" style="display:none">
       <button class="notif-btn" onclick="toggleNotifPanel()">
-        <span class="iconify" data-icon="solar:notification-bold-duotone" data-width="18"></span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       </button>
       <div class="notif-badge" id="notifBadge">0</div>
     </div>
@@ -233,16 +233,6 @@
       <div class="user-av">م</div>
       <span id="userPillName">الأدمن</span>
     </div>
-    <!-- Ctrl+K Command Palette -->
-    <button class="cmd-topbar-btn" onclick="openCmd()" title="بحث سريع (Ctrl+K)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <kbd>⌘K</kbd>
-    </button>
-    <!-- AI Assistant -->
-    <button class="ai-topbar-btn" onclick="toggleAI()" title="LexBot — المساعد الذكي" id="aiTopbarBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
-      LexBot
-    </button>
     <!-- زر إضافة: ديسكتوب فقط -->
     <button class="add-btn" onclick="openForm(null)">＋ معاملة جديدة</button>
   </div>
@@ -893,13 +883,6 @@
             </button>
           </div>
           <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <span style="font-size:13px;font-weight:700;color:var(--text)">النسخ الاحتياطية اليومية</span>
-              <button class="btn-ghost" style="font-size:11px;padding:5px 10px" onclick="loadCloudBackupsList()">تحديث</button>
-            </div>
-            <div id="cloudBackupsList"><div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">اضغط "تحديث" لعرض النسخ</div></div>
-          </div>
-          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
             <button class="btn-data danger" onclick="askClearAll()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
               مسح جميع البيانات
@@ -932,7 +915,7 @@
             </div>
             <div>
               <label class="fm-lbl">كلمة المرور *</label>
-              <input id="addUserPass" class="fm-inp" type="password" placeholder="6 أحرف على الأقل">
+              <input id="newUserPass" class="fm-inp" type="password" placeholder="6 أحرف على الأقل">
             </div>
             <div>
               <label class="fm-lbl">الصلاحية</label>
@@ -1114,11 +1097,11 @@
         <div class="fm-full">
           <label class="fm-lbl">المبلغ</label>
           <div class="amt-row">
+            <input id="fAmount" type="text" class="fm-inp" placeholder="0" style="flex:1">
             <div class="currency-toggle">
               <button class="ct-btn active" id="ctIQD" onclick="setCur('IQD')">IQD</button>
               <button class="ct-btn" id="ctUSD" onclick="setCur('USD')">USD</button>
             </div>
-            <input id="fAmount" type="text" class="fm-inp" placeholder="0">
           </div>
         </div>
         <div>
@@ -1227,7 +1210,7 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
           تحويل لإطلاق وديعة
         </button>
-        <button class="btn-ghost" id="detEditBtn">
+        <button class="btn-ghost" id="detEditBtn" onclick="detailEdit()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-left:4px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           تعديل
         </button>
@@ -1465,12 +1448,6 @@
     </button>
   </div>
 </div>
-
-<!-- AI Floating Button -->
-<button class="ai-fab" id="aiFab" onclick="toggleAI()" title="LexBot — المساعد الذكي">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/></svg>
-  <span>LexBot</span>
-</button>
 
 <script src="app.js"></script>
 </body>
