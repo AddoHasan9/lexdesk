@@ -185,42 +185,34 @@ const parseAmt=s=>parseFloat((s||'').replace(/,/g,''))||0;
 
 // ══ LOAD ══
 async function loadAll(){
-  // ═ الخطوة 1: حمّل اللوكال فوراً بدون انتظار ═
-  let localSettings={};
-  try{const s=localStorage.getItem(SK_S);localSettings=s?JSON.parse(s):{};}catch(e){localSettings={};}
-  settings=localSettings;
+  // ═ تحميل الإعدادات: السيرفر أولاً (موحد لكل الأجهزة) ═
+  let cloudSettings = await sbLoadMeta('settings');
+  let localSettings = {};
+  try{ const s=localStorage.getItem(SK_S); localSettings=s?JSON.parse(s):{}; }catch(e){ localSettings={}; }
+
+  // ═ السيرفر له الأولوية دائماً — خصوصاً كلمات المرور ═
+  if(cloudSettings && typeof cloudSettings === 'object'){
+    // دمج: السيرفر يطغى على اللوكال في كل شيء
+    settings = {...localSettings, ...cloudSettings};
+    try{ localStorage.setItem(SK_S, JSON.stringify(settings)); }catch(e){}
+  } else {
+    // لا يوجد اتصال — استخدم اللوكال مؤقتاً
+    settings = localSettings;
+  }
+
   settings.officeName=settings.officeName||'مكتب المحاماة';
   settings.defCurrency=settings.defCurrency||'IQD';
   settings.lawyers=settings.lawyers||[...DEFAULT_LAWYERS];
   settings.types=settings.types||[...DEFAULT_TYPES];
   settings.depts=settings.depts||[...DEFAULT_DEPTS];
-
-  // ═ الخطوة 2: حمّل الكيسات من اللوكال فوراً ═
-  let hasLocal=false;
-  try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);hasLocal=true;}}catch(e){}
-
-  // ═ الخطوة 3: حاول السيرفر ═
   showSyncStatus('loading');
-  if(!hasLocal)showSkeleton('casesBody',5);
+  showSkeleton('casesBody', 5);
   const loaded=await sbLoad();
-  if(loaded===true){
-    showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
-  }else if(loaded==='empty'){
-    if(!hasLocal)cases=[];
-    showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);
-  }else{
-    if(hasLocal){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);}
-    else{showSyncStatus('error');cases=SEED.map(c=>({...c}));saveData();}
-  }
-
-  // ═ الخطوة 4: حمّل إعدادات السيرفر بالخلفية ═
-  try{
-    const cloudSettings=await sbLoadMeta('settings');
-    if(cloudSettings&&typeof cloudSettings==='object'){
-      settings={...settings,...cloudSettings};
-      try{localStorage.setItem(SK_S,JSON.stringify(settings));}catch(e){}
-    }
-  }catch(e){}
+  if(loaded===true){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);return;}
+  if(loaded==='empty'){showSyncStatus('saved');setTimeout(()=>showSyncStatus(''),2000);cases=[];return;}
+  showSyncStatus('error');
+  try{const d=localStorage.getItem(SK_D);if(d){cases=JSON.parse(d);return;}}catch(e){}
+  cases=SEED.map(c=>({...c}));saveData();
 }
 
 // ══ THEME ══
@@ -359,11 +351,12 @@ async function doSignUp(){
 
 // ─ Sign In ─
 async function doLogin(){
+  console.log('doLogin called');
   try {
   if(!canAttemptLogin())return;
   const emailEl = document.getElementById('emailInp');
   const passEl  = document.getElementById('passInp');
-  if(!emailEl||!passEl){ toast('خطأ: الحقول غير موجودة','err'); return; }
+  if(!emailEl||!passEl){ console.error('inputs not found'); toast('خطأ: الحقول غير موجودة','err'); return; }
   const email = (emailEl.value||'').trim();
   const pass  = (passEl.value||'').trim();
   if(!email||!pass){ toast('أدخل الإيميل وكلمة المرور','warn'); return; }
@@ -390,19 +383,21 @@ async function doLogin(){
     currentUser     = d.user.email;
     currentUserName = meta.full_name || email.split('@')[0];
     currentRole     = meta.role === 'admin' ? 'admin' : 'user';
-    const sessExp = Date.now() + (d.expires_in||3600)*1000;
+    // persist session
     try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
-      token: d.access_token, refresh: d.refresh_token,
-      user: currentUser, name: currentUserName, role: currentRole,
-      expires: sessExp
+      token: d.access_token,
+      refresh: d.refresh_token,
+      user: currentUser,
+      name: currentUserName,
+      role: currentRole,
+      expires: Date.now() + (d.expires_in||3600)*1000
     })); }catch(e){}
-    scheduleSessionRefresh(sessExp);
     SFX.play('login');
     document.getElementById('passErr')?.classList.remove('show');
     showApp();
   } catch(e){ toast('خطأ في الاتصال','err'); }
   setLoginLoading(false);
-  } catch(fatalErr){ toast('خطأ: '+fatalErr.message,'err'); setLoginLoading(false); }
+  } catch(fatalErr){ console.error('doLogin fatal:', fatalErr); toast('خطأ: '+fatalErr.message,'err'); setLoginLoading(false); }
 }
 
 // ─ Forgot Password ─
@@ -421,60 +416,46 @@ async function doForgotPass(){
   setLoginLoading(false);
 }
 
-let _sessionRefreshTimer=null;
-function scheduleSessionRefresh(expiresAt){
-  if(_sessionRefreshTimer)clearTimeout(_sessionRefreshTimer);
-  const delay=Math.max(expiresAt-Date.now()-5*60*1000,10000);
-  _sessionRefreshTimer=setTimeout(async()=>{
-    try{
-      const saved=JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
-      if(saved?.refresh){
-        const r=await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:saved.refresh})});
-        const d=await r.json();
-        if(d.access_token){
-          _sbSession=d.access_token;
-          const newExp=Date.now()+(d.expires_in||3600)*1000;
-          try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({...saved,token:d.access_token,refresh:d.refresh_token||saved.refresh,expires:newExp}));}catch(e){}
-          scheduleSessionRefresh(newExp);
-        }
-      }
-    }catch(e){}
-  },delay);
-}
-
-// ─ Restore session on load (تذكرني تلقائي) ─
+// ─ Restore session on load ─
 async function restoreSbSession(){
   try{
-    const saved=JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
-    if(!saved)return false;
-    // الجلسة لسا صالحة
-    if(Date.now()<=saved.expires-60000){
-      _sbSession=saved.token;currentUser=saved.user;currentUserName=saved.name;currentRole=saved.role;
-      scheduleSessionRefresh(saved.expires);
-      return true;
-    }
-    // جدّد الجلسة تلقائياً
-    if(saved.refresh){
-      const r=await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},body:JSON.stringify({refresh_token:saved.refresh})});
-      const d=await r.json();
-      if(d.access_token){
-        _sbSession=d.access_token;
-        const meta=d.user?.user_metadata||{};
-        currentUser=d.user.email;currentUserName=meta.full_name||currentUser.split('@')[0];currentRole=meta.role==='admin'?'admin':'user';
-        const newExp=Date.now()+(d.expires_in||3600)*1000;
-        try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({token:d.access_token,refresh:d.refresh_token||saved.refresh,user:currentUser,name:currentUserName,role:currentRole,expires:newExp}));}catch(e){}
-        scheduleSessionRefresh(newExp);
-        return true;
+    const saved = JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+    if(!saved || Date.now() > saved.expires - 60000){
+      // try refresh
+      if(saved?.refresh){
+        const r = await sbFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','apikey':SB_KEY},
+          body: JSON.stringify({ refresh_token: saved.refresh })
+        });
+        const d = await r.json();
+        if(d.access_token){
+          _sbSession = d.access_token;
+          const meta = d.user?.user_metadata||{};
+          currentUser     = d.user.email;
+          currentUserName = meta.full_name || currentUser.split('@')[0];
+          currentRole     = meta.role==='admin'?'admin':'user';
+          try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+            token:d.access_token, refresh:d.refresh_token||saved.refresh,
+            user:currentUser, name:currentUserName, role:currentRole,
+            expires: Date.now()+(d.expires_in||3600)*1000
+          }));}catch(e){}
+          return true;
+        }
       }
+      return false;
     }
-    return false;
-  }catch(e){return false;}
+    _sbSession      = saved.token;
+    currentUser     = saved.user;
+    currentUserName = saved.name;
+    currentRole     = saved.role;
+    return true;
+  } catch(e){ return false; }
 }
 
 // ─ Logout ─
 function logout(){
   currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
-  if(_sessionRefreshTimer){clearTimeout(_sessionRefreshTimer);_sessionRefreshTimer=null;}
   try{ localStorage.removeItem('lexdesk_sb_session'); }catch(e){}
   document.getElementById('emailInp').value='';
   document.getElementById('passInp').value='';
@@ -484,7 +465,247 @@ function logout(){
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
   switchLoginMode('login');
+  _updatePasskeyBtn();
 }
+
+// ══════════════════════════════════════════════════════
+//  ★ PASSKEYS — تسجيل دخول بالبصمة / Face ID
+//  يستخدم WebAuthn API + Supabase MFA Passkeys endpoints
+// ══════════════════════════════════════════════════════
+
+// تحويل Base64URL ← ArrayBuffer
+function _b64uToBuffer(b64){
+  const pad = b64.length%4===0?0:4-(b64.length%4);
+  const b = b64.replace(/-/g,'+').replace(/_/g,'/') + '='.repeat(pad);
+  const bin = atob(b);
+  return Uint8Array.from(bin, c=>c.charCodeAt(0)).buffer;
+}
+// تحويل ArrayBuffer → Base64URL
+function _bufToB64u(buf){
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for(const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+// هل الجهاز يدعم Passkeys؟
+async function isPasskeySupported(){
+  try{
+    return window.PublicKeyCredential &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  }catch(e){ return false; }
+}
+
+// ─ تسجيل Passkey جديد (بعد تسجيل الدخول بالإيميل) ─
+async function registerPasskey(){
+  if(!_sbSession){ toast('سجّل دخول أولاً','err'); return; }
+  if(!(await isPasskeySupported())){ toast('جهازك لا يدعم Passkeys','err'); return; }
+
+  toast('جاري إعداد بصمة الدخول...','info');
+  try{
+    // 1. اطلب challenge من Supabase
+    const r1 = await fetch(SB_URL+'/auth/v1/factors', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbSession },
+      body: JSON.stringify({ friendly_name: 'LexDesk Passkey', factor_type: 'webauthn' })
+    });
+    const d1 = await r1.json();
+    if(d1.error){ toast('خطأ: '+d1.error.message,'err'); return; }
+
+    const factorId = d1.id;
+    // 2. ابدأ عملية التسجيل
+    const r2 = await fetch(SB_URL+'/auth/v1/factors/'+factorId+'/verify', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbSession },
+      body: JSON.stringify({ challenge_type: 'webauthn_registration' })
+    });
+    const d2 = await r2.json();
+    if(d2.error){ toast('خطأ: '+d2.error.message,'err'); return; }
+
+    const opts = d2.credential_creation_options;
+    // 3. حوّل القيم من Base64URL لـ ArrayBuffer
+    opts.publicKey.challenge = _b64uToBuffer(opts.publicKey.challenge);
+    opts.publicKey.user.id   = _b64uToBuffer(opts.publicKey.user.id);
+
+    // 4. اطلب من الجهاز إنشاء Passkey (يطلع prompt بالبصمة / Face ID)
+    const cred = await navigator.credentials.create({ publicKey: opts.publicKey });
+
+    // 5. أرسل النتيجة لـ Supabase لإكمال التسجيل
+    const credData = {
+      id: cred.id,
+      rawId: _bufToB64u(cred.rawId),
+      response: {
+        clientDataJSON:    _bufToB64u(cred.response.clientDataJSON),
+        attestationObject: _bufToB64u(cred.response.attestationObject)
+      },
+      type: cred.type
+    };
+    const r3 = await fetch(SB_URL+'/auth/v1/factors/'+factorId+'/verify', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbSession },
+      body: JSON.stringify({ challenge_type: 'webauthn_registration', credential: credData })
+    });
+    const d3 = await r3.json();
+    if(d3.error){ toast('فشل حفظ الـ Passkey: '+d3.error.message,'err'); return; }
+
+    // حفظ factorId محلياً عشان نستخدمه وقت الدخول
+    localStorage.setItem('lexdesk_pk_factor', factorId);
+    toast('✓ تم إعداد الدخول بالبصمة بنجاح!','ok');
+    // أظهر زر الـ Passkey في صفحة الدخول
+    _updatePasskeyBtn();
+  }catch(e){
+    if(e.name==='NotAllowedError') toast('تم الإلغاء — لم يتم حفظ الـ Passkey','warn');
+    else toast('خطأ: '+e.message,'err');
+  }
+}
+
+// ─ تسجيل الدخول بالـ Passkey ─
+async function loginWithPasskey(){
+  if(!(await isPasskeySupported())){ toast('جهازك لا يدعم Passkeys','err'); return; }
+
+  const passkeyBtn = document.getElementById('passkeyLoginBtn');
+  if(passkeyBtn){ passkeyBtn.disabled=true; passkeyBtn.textContent='جاري التحقق...'; }
+
+  try{
+    // 1. اطلب challenge من Supabase (بدون جلسة)
+    const r1 = await fetch(SB_URL+'/auth/v1/passkeys/signin/begin', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY },
+      body: JSON.stringify({})
+    });
+    const d1 = await r1.json();
+
+    if(d1.error || !d1.credential_request_options){
+      // fallback: جرّب endpoint ثاني
+      await _loginPasskeyFallback();
+      return;
+    }
+
+    const opts = d1.credential_request_options.publicKey;
+    opts.challenge = _b64uToBuffer(opts.challenge);
+    if(opts.allowCredentials){
+      opts.allowCredentials = opts.allowCredentials.map(c=>({...c, id:_b64uToBuffer(c.id)}));
+    }
+
+    // 2. اطلب من الجهاز التحقق (يطلع prompt بالبصمة)
+    const cred = await navigator.credentials.get({ publicKey: opts });
+
+    // 3. أرسل النتيجة لـ Supabase
+    const credData = {
+      id: cred.id,
+      rawId: _bufToB64u(cred.rawId),
+      response: {
+        clientDataJSON:    _bufToB64u(cred.response.clientDataJSON),
+        authenticatorData: _bufToB64u(cred.response.authenticatorData),
+        signature:         _bufToB64u(cred.response.signature),
+        userHandle: cred.response.userHandle ? _bufToB64u(cred.response.userHandle) : null
+      },
+      type: cred.type
+    };
+    const r2 = await fetch(SB_URL+'/auth/v1/passkeys/signin/finish', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY },
+      body: JSON.stringify({ credential: credData, flow_state_id: d1.flow_state_id })
+    });
+    const d2 = await r2.json();
+    if(!d2.access_token){ toast('فشل التحقق — حاول بالإيميل','err'); return; }
+
+    await _applySession(d2);
+    toast('✓ تم الدخول بالبصمة','ok');
+    showApp();
+  }catch(e){
+    if(e.name==='NotAllowedError') toast('تم الإلغاء','warn');
+    else toast('خطأ: '+e.message,'err');
+  }finally{
+    if(passkeyBtn){ passkeyBtn.disabled=false; passkeyBtn.textContent='🔑 دخول بالبصمة'; }
+  }
+}
+
+// Fallback: دخول بالـ Passkey عبر MFA flow (لو endpoint signin/begin غير متاح)
+async function _loginPasskeyFallback(){
+  const factorId = localStorage.getItem('lexdesk_pk_factor');
+  if(!factorId){ toast('لم يتم إعداد Passkey على هذا الجهاز — سجّل دخول بالإيميل أولاً','warn'); return; }
+
+  try{
+    const r1 = await fetch(SB_URL+'/auth/v1/factors/'+factorId+'/challenge', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY }
+    });
+    const d1 = await r1.json();
+    if(d1.error){ toast('خطأ: '+d1.error.message,'err'); return; }
+
+    const opts = d1.credential_request_options?.publicKey;
+    if(!opts){ toast('Passkeys غير مدعوم على هذا المشروع بعد — فعّله من Supabase Dashboard','err'); return; }
+
+    opts.challenge = _b64uToBuffer(opts.challenge);
+    const cred = await navigator.credentials.get({ publicKey: opts });
+    const credData = {
+      id: cred.id, rawId: _bufToB64u(cred.rawId),
+      response: {
+        clientDataJSON:    _bufToB64u(cred.response.clientDataJSON),
+        authenticatorData: _bufToB64u(cred.response.authenticatorData),
+        signature:         _bufToB64u(cred.response.signature),
+      }, type: cred.type
+    };
+    const r2 = await fetch(SB_URL+'/auth/v1/factors/'+factorId+'/verify', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SB_KEY },
+      body: JSON.stringify({ challenge_id: d1.id, credential: credData })
+    });
+    const d2 = await r2.json();
+    if(!d2.access_token){ toast('فشل التحقق','err'); return; }
+    await _applySession(d2);
+    toast('✓ تم الدخول بالبصمة','ok');
+    showApp();
+  }catch(e){
+    if(e.name==='NotAllowedError') toast('تم الإلغاء','warn');
+    else toast('خطأ: '+e.message,'err');
+  }
+}
+
+// تطبيق الجلسة بعد الدخول بالـ Passkey
+async function _applySession(d){
+  _sbSession = d.access_token;
+  const meta = d.user?.user_metadata||{};
+  currentUser     = d.user.email;
+  currentUserName = meta.full_name || currentUser.split('@')[0];
+  currentRole     = meta.role==='admin'?'admin':'user';
+  const exp = Date.now()+(d.expires_in||3600)*1000;
+  try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
+    token:d.access_token, refresh:d.refresh_token,
+    user:currentUser, name:currentUserName, role:currentRole, expires:exp
+  }));}catch(e){}
+}
+
+// إظهار/إخفاء زر الـ Passkey بحسب دعم الجهاز
+async function _updatePasskeyBtn(){
+  const btn = document.getElementById('passkeyLoginBtn');
+  if(!btn) return;
+  const supported = await isPasskeySupported();
+  const hasKey    = !!localStorage.getItem('lexdesk_pk_factor');
+  btn.style.display = (supported && hasKey) ? 'flex' : 'none';
+}
+
+
+
+// ─ Passkey Setup from Settings Page ─
+async function setupPasskey(){
+  const statusEl = document.getElementById('passkeyStatus');
+  const btn      = document.getElementById('passkeySetupBtn');
+  if(!(await isPasskeySupported())){
+    if(statusEl){ statusEl.style.display='block'; statusEl.style.background='var(--red-g)'; statusEl.style.color='var(--red)'; statusEl.textContent='جهازك لا يدعم Passkeys — يحتاج Windows Hello أو Touch ID أو Face ID'; }
+    return;
+  }
+  if(!_sbSession){ toast('سجّل دخول أولاً','err'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='جاري الإعداد...'; }
+  try{
+    await registerPasskey();
+    const hasKey = !!localStorage.getItem('lexdesk_pk_factor');
+    if(statusEl && hasKey){ statusEl.style.display='block'; statusEl.style.background='var(--green-g)'; statusEl.style.color='var(--green)'; statusEl.textContent='✓ تم إعداد بصمة الدخول — يمكنك الدخول بالبصمة من الآن'; }
+  }finally{ if(btn){ btn.disabled=false; btn.textContent='🔑 إعداد بصمة الدخول'; } }
+}
+
+function isAdmin(){ return currentRole==='admin'; }
 
 // ─ Switch login/signup modes ─
 function switchLoginMode(mode){
@@ -543,7 +764,6 @@ function showApp(){
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
-  setTimeout(runDailyBackupCheck, 3000);
 }
 
 function toggleFab(){
@@ -1073,7 +1293,7 @@ function toast(msg,type){const wrap=document.getElementById('toastWrap');if(!wra
 
 // ══ EXPORT ══
 function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
-// backupJSON → moved to backup system below
+function backupJSON(){const b={cases,settings,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(b,null,2));a.download='LexDesk_backup_'+Date.now()+'.json';a.click();toast('تم حفظ النسخة الاحتياطية','ok');}
 function openImport(){openOverlay('importOverlay');}
 function openRestore(){openOverlay('restoreOverlay');}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
@@ -1166,6 +1386,8 @@ function renderDetailComments(c){const comments=c.comments||[];const el=document
 function renderDetailTimeline(c){const log=c.log||[];const el=document.getElementById('detTimeline');if(!log.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">لا يوجد سجل بعد</div>';return;}const dotColors={new:'var(--green)',edit:'var(--gold)',status:'var(--blue2)',comment:'var(--purple)'};el.innerHTML=[...log].reverse().map(l=>{const t=new Date(l.time);const ts=t.toLocaleDateString('ar-IQ',{month:'short',day:'numeric',year:'numeric'})+' '+t.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});const col=dotColors[l.type]||'var(--gold)';return '<div class="tl-item"><div class="tl-dot" style="border-color:'+col+'"></div><div class="tl-body"><div class="tl-txt">'+l.msg+'</div><div class="tl-time">'+l.user+' • '+ts+'</div></div></div>';}).join('');}
 function addComment(){const text=(document.getElementById('commentInp').value||'').trim();if(!text)return;const c=cases.find(x=>x.id===detailCaseId);if(!c)return;const cm={id:Date.now(),text,user:currentUser||'الأدمن',time:new Date().toISOString()};if(!c.comments)c.comments=[];c.comments.push(cm);if(!c.log)c.log=[];c.log.push({id:Date.now()+1,type:'comment',msg:'تم إضافة تعليق',user:currentUser||'الأدمن',time:new Date().toISOString()});saveData();renderDetailComments(c);renderDetailTimeline(c);document.getElementById('commentInp').value='';SFX.play('save');}
 function deleteComment(cid){const c=cases.find(x=>x.id===detailCaseId);if(!c||!c.comments)return;c.comments=c.comments.filter(x=>x.id!==cid);saveData();renderDetailComments(c);}
+function closeDetail(){const ov=document.getElementById('detailOverlay');ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);detailCaseId=null;}
+function closeDetailIfBg(e){if(e.target===document.getElementById('detailOverlay'))closeDetail();}
 // ══ REPORTS ══
 let repPeriod='all';
 function setRepPeriod(p,btn){repPeriod=p;document.querySelectorAll('.pt').forEach(b=>b.classList.remove('active'));btn.classList.add('active');buildReports();}
@@ -1236,7 +1458,7 @@ async function addNewUser(){
   if(!isAdmin()){ toast('صلاحية الأدمن فقط','err'); return; }
   const name  = (document.getElementById('newUserName')?.value||'').trim();
   const email = (document.getElementById('newUserEmail')?.value||'').trim();
-  const pass  = (document.getElementById('addUserPass')?.value||'').trim();
+  const pass  = (document.getElementById('newUserPass')?.value||'').trim();
   const role  = document.getElementById('newUserRole')?.value||'user';
 
   if(!name||!email||!pass){ toast('أكمل جميع الحقول','warn'); return; }
@@ -1246,6 +1468,8 @@ async function addNewUser(){
   if(btn){ btn.disabled=true; btn.style.opacity='0.6'; }
 
   try{
+    // Use Supabase Admin API via service role — but we only have anon key
+    // So we use the regular signup endpoint (email confirmation disabled)
     const r = await sbFetch(SB_URL+'/auth/v1/signup',{
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY},
@@ -1262,7 +1486,7 @@ async function addNewUser(){
       toast('✓ تم إضافة '+name+' بنجاح','ok');
       document.getElementById('newUserName').value='';
       document.getElementById('newUserEmail').value='';
-      document.getElementById('addUserPass').value='';
+      document.getElementById('newUserPass').value='';
       setTimeout(loadUsersList, 500);
     }
   } catch(e){
@@ -1576,128 +1800,9 @@ ${rows}
   },800);
 }
 
-// ══ النسخ الاحتياطي التلقائي اليومي ══
-const SK_LAST_BACKUP='lexdesk_last_backup_date';
-const BACKUP_RETENTION_DAYS=7;
-function todayKey(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function downloadBackupFile(data,label){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='LexDesk_backup_'+(label||todayKey())+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-async function saveCloudBackup(dateKey){
-  const data={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
-  await sbSaveMeta('backup_'+dateKey,data);
-  let index=await sbLoadMeta('backup_index');if(!Array.isArray(index))index=[];
-  if(!index.includes(dateKey)){index.push(dateKey);index.sort();}
-  while(index.length>BACKUP_RETENTION_DAYS){const old=index.shift();try{await sbFetch(SB_URL+'/rest/v1/meta?id=eq.backup_'+old,{method:'DELETE',headers:SB_H});}catch(e){}}
-  await sbSaveMeta('backup_index',index);return data;
-}
-async function runDailyBackupCheck(){
-  try{
-    if(!isAdmin()||!cases||!cases.length)return;
-    const today=todayKey();
-    if(localStorage.getItem(SK_LAST_BACKUP)===today)return;
-    const data=await saveCloudBackup(today);
-    localStorage.setItem(SK_LAST_BACKUP,today);
-    downloadBackupFile(data,today);
-    toast('✓ نسخة احتياطية يومية ('+cases.length+' معاملة)','ok');
-  }catch(e){}
-}
-async function listCloudBackups(){const i=await sbLoadMeta('backup_index');return Array.isArray(i)?i.sort().reverse():[];}
-async function restoreCloudBackup(dateKey){
-  const d=await sbLoadMeta('backup_'+dateKey);
-  if(!d){toast('لم يتم العثور على النسخة','err');return false;}
-  cases=d.cases||[];if(d.settings)settings={...settings,...d.settings};
-  saveData();if(d.settings)saveCfg();return true;
-}
-async function loadCloudBackupsList(){
-  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
-  const listEl=document.getElementById('cloudBackupsList');if(!listEl)return;
-  listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">جاري التحميل...</div>';
-  const dates=await listCloudBackups();
-  if(!dates.length){listEl.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px 0">لا توجد نسخ سحابية بعد — تُنشأ تلقائياً عند دخول الأدمن</div>';return;}
-  const today=todayKey();
-  listEl.innerHTML=dates.map(d=>{
-    const isToday=d===today;
-    const label=new Date(d+'T00:00:00').toLocaleDateString('ar-IQ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:10px">'+
-      '<span style="font-size:12px;color:var(--text2);font-weight:600">'+label+(isToday?' <span style="color:var(--green)">(اليوم)</span>':'')+'</span>'+
-      '<button class="btn-ghost" style="font-size:11px;padding:5px 12px" onclick="confirmRestoreBackup(\''+d+'\')">استعادة</button></div>';
-  }).join('');
-}
-function confirmRestoreBackup(dateKey){
-  if(!isAdmin()){toast('هذه الخاصية للأدمن فقط','err');return;}
-  const label=new Date(dateKey+'T00:00:00').toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('confirmTitle').textContent='استعادة نسخة احتياطية';
-  document.getElementById('confirmSub').textContent='سيتم استرجاع كل المعاملات ليوم '+label+'. أي تعديل بعد هذا التاريخ سيُحذف. هل تريد الاستمرار؟';
-  document.getElementById('confirmBtn').onclick=async()=>{
-    document.getElementById('confirmBtn').textContent='جاري الاستعادة...';
-    const ok=await restoreCloudBackup(dateKey);
-    closeOverlay('confirmOverlay');document.getElementById('confirmBtn').textContent='حذف';
-    if(ok){render();updateStats();toast('✓ تم استرجاع نسخة يوم '+label,'ok');}
-  };
-  openOverlay('confirmOverlay');
-}
-async function backupJSON(){
-  const data={cases,settings,exportedAt:new Date().toISOString(),casesCount:cases.length};
-  downloadBackupFile(data,'manual_'+todayKey());toast('تم حفظ النسخة الاحتياطية','ok');
-  try{const today=todayKey();if(localStorage.getItem(SK_LAST_BACKUP)!==today){await saveCloudBackup(today);localStorage.setItem(SK_LAST_BACKUP,today);}}catch(e){}
-}
-
-// ══ معالج رابط إعادة تعيين كلمة المرور ══
-function showPasswordResetScreen(accessToken){
-  const ls=document.getElementById('loginScreen');
-  if(!ls)return;
-  ls.style.display='flex';
-  document.getElementById('appWrap').style.display='none';
-  ls.innerHTML=`<div class="login-box" style="max-width:360px">
-    <div style="width:56px;height:56px;border-radius:16px;margin:0 auto 12px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </div>
-    <div class="login-brand" style="font-size:20px">تعيين كلمة مرور جديدة</div>
-    <div class="login-sub" style="margin-bottom:22px">اكتب كلمة المرور الجديدة لحسابك</div>
-    <input id="resetPass1" type="password" class="pass-inp" placeholder="كلمة المرور الجديدة" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:10px" onkeydown="if(event.key==='Enter')document.getElementById('resetPass2').focus()">
-    <input id="resetPass2" type="password" class="pass-inp" placeholder="تأكيد كلمة المرور" maxlength="50" style="letter-spacing:2px;font-size:16px;margin-bottom:8px" onkeydown="if(event.key==='Enter')doPasswordReset('${accessToken}')">
-    <div class="pass-err" id="resetErr" style="display:none"></div>
-    <button class="login-btn" onclick="doPasswordReset('${accessToken}')">تأكيد وحفظ</button>
-  </div>`;
-  setTimeout(()=>{const e=document.getElementById('resetPass1');if(e)e.focus();},200);
-}
-async function doPasswordReset(accessToken){
-  const p1=(document.getElementById('resetPass1')?.value||'').trim();
-  const p2=(document.getElementById('resetPass2')?.value||'').trim();
-  const errEl=document.getElementById('resetErr');
-  const show=(msg)=>{if(errEl){errEl.textContent=msg;errEl.style.display='block';}};
-  if(!p1){show('اكتب كلمة المرور');return;}
-  if(p1.length<6){show('لازم 6 أحرف على الأقل');return;}
-  if(p1!==p2){show('كلمتا المرور غير متطابقتان');return;}
-  if(errEl)errEl.style.display='none';
-  const btn=document.querySelector('.login-btn');
-  if(btn){btn.textContent='جاري الحفظ...';btn.disabled=true;}
-  try{
-    const r=await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken},body:JSON.stringify({password:p1})});
-    const d=await r.json();
-    if(d.error){show('خطأ: '+(d.error.message||d.msg));if(btn){btn.textContent='تأكيد وحفظ';btn.disabled=false;}return;}
-    const ls=document.getElementById('loginScreen');
-    if(ls)ls.innerHTML=`<div class="login-box" style="max-width:360px;text-align:center">
-      <div style="font-size:52px;margin-bottom:12px">✓</div>
-      <div class="login-brand" style="font-size:20px;color:var(--green)">تم تغيير كلمة المرور</div>
-      <div class="login-sub" style="margin-bottom:20px">سجّل دخولك بكلمة المرور الجديدة</div>
-      <button class="login-btn" onclick="window.location.reload()">تسجيل الدخول</button>
-    </div>`;
-  }catch(e){show('خطأ في الاتصال، حاول مرة ثانية');if(btn){btn.textContent='تأكيد وحفظ';btn.disabled=false;}}
-}
-
 // ══ INIT ══
 (async()=>{
   initTheme();
-
-  // ═ فحص رابط إعادة تعيين كلمة المرور من Supabase ═
-  const hashParams=new URLSearchParams(window.location.hash.slice(1));
-  if(hashParams.get('type')==='recovery'&&hashParams.get('access_token')){
-    history.replaceState(null,'',window.location.pathname);
-    await loadAll();
-    showPasswordResetScreen(hashParams.get('access_token'));
-    return;
-  }
-
   await loadAll();
   await loadStandaloneDef();
   const sessionOk = await restoreSbSession();
@@ -1708,6 +1813,7 @@ async function doPasswordReset(accessToken){
     const officeSub=document.getElementById('loginOfficeSub');
     if(officeSub) officeSub.textContent=settings.officeName||'مكتب المحاماة';
     switchLoginMode('login');
+    _updatePasskeyBtn();
     setTimeout(()=>{ const e=document.getElementById('emailInp'); if(e)e.focus(); },300);
   }
   initMobile();
