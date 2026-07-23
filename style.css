@@ -160,14 +160,14 @@ svg { flex-shrink:0; }
   min-height: 62px;
 }
 .sb-logo-icon {
-  width: 44px; height: 44px;
+  width: 64px; height: 64px;
   border-radius: 0;
   background: none;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 .sb-logo-icon::after { display:none; }
-.sb-logo-icon svg { width:44px; height:44px; }
+.sb-logo-icon svg { width:64px; height:64px; }
 .sb-logo-text {
   font-family: var(--font-d);
   font-size: 13px;
