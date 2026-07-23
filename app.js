@@ -535,6 +535,8 @@ function showApp(){
   const officeName=settings.officeName||'مكتب المحاماة';
   const tb=document.getElementById('officeTitle');if(tb)tb.textContent=officeName;
   const ls=document.getElementById('loginOfficeSub');if(ls)ls.textContent=officeName;
+  const sl=document.getElementById('sbLogoText');if(sl)sl.textContent=officeName;
+  document.title=officeName;
   populateAllDropdowns();applyRoleUI();render();updateStats();
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
@@ -1069,7 +1071,8 @@ async function saveOfficeSettings(){
   showSyncStatus('saved');
   setTimeout(()=>showSyncStatus(''),2000);
   document.getElementById('officeTitle').textContent=settings.officeName;
-  document.title='LexDesk · '+settings.officeName;
+  document.title=settings.officeName;
+  const sl=document.getElementById('sbLogoText');if(sl)sl.textContent=settings.officeName;
   toast('✓ تم حفظ الإعدادات على جميع الأجهزة','ok');
 }
 function populateAllDropdowns(){const ft=document.getElementById('filterType');const fl=document.getElementById('filterLawyer');const vt=ft.value,vl=fl.value;ft.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');fl.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');ft.value=vt;fl.value=vl;populateMobFilters();}
