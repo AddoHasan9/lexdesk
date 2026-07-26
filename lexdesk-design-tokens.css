@@ -1,0 +1,232 @@
+/* ============================================================================
+   LexDesk — Design Tokens & Soft Glass System
+   المصدر: ui-ux-pro-max (Trust & Authority + Glassmorphism, density 8/10)
+   مبني على هوية LexDesk: navy #0A1C40 / gold #f5a623 — RTL aware
+   طريقة الاستعمال: الصق هذا الملف بأول style.css (أو استورده قبله)
+   ثم استعمل المتغيّرات ‎var(--...)‎ بدل القيم الثابتة.
+   ============================================================================ */
+
+/* ---- الخطوط (Tajawal/Cairo للواجهة، Noto Naskh اختياري للنصوص القانونية) ---- */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ===== درجات الهوية ===== */
+  --navy-900: #0A1C40;   /* الأساسي (Brand) */
+  --navy-800: #10264F;
+  --navy-700: #1B3A6B;
+  --navy-600: #274C86;
+  --gold-500: #F5A623;   /* اللون المميّز / زر الإجراء */
+  --gold-600: #D98E12;   /* حالة hover */
+  --gold-100: #FEF3DC;   /* تظليل خفيف */
+
+  /* ===== توكنات دلالية — الوضع الفاتح ===== */
+  --color-bg:          #F5F7FB;   /* خلفية الصفحة */
+  --color-bg-subtle:   #EEF2F9;   /* خلفية ثانوية / أقسام */
+  --color-surface:     #FFFFFF;   /* سطح صلب — الجداول والبطاقات الكثيفة */
+  --color-primary:     var(--navy-900);
+  --color-on-primary:  #FFFFFF;
+  --color-accent:      var(--gold-500);
+  --color-on-accent:   #0A1C40;   /* نص داكن فوق الذهبي (تباين آمن) */
+  --color-fg:          #0F1B33;   /* نص أساسي */
+  --color-fg-muted:    #5A6B85;   /* نص ثانوي */
+  --color-border:      #DCE3EE;
+  --color-ring:        var(--gold-500);  /* حلقة التركيز — بارزة */
+
+  /* حالات */
+  --color-success: #0E8A5F;
+  --color-warning: #D97706;
+  --color-danger:  #DC2626;
+  --color-info:    #2563EB;
+  --color-success-bg: #E4F5EE;
+  --color-warning-bg: #FDF1E0;
+  --color-danger-bg:  #FCE8E8;
+
+  /* ===== الزجاج الناعم — الوضع الفاتح ===== */
+  /* عتامة مرفوعة (~0.65) حتى يظل النص مقروءاً في تطبيق بيانات */
+  --glass-bg:     rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-blur:   14px;
+  --glass-shadow: 0 8px 30px rgba(10, 28, 64, 0.10);
+
+  /* ===== الخطوط ===== */
+  --font-ui:      'Tajawal', 'Cairo', system-ui, sans-serif;   /* الواجهة */
+  --font-heading: 'Cairo', 'Tajawal', system-ui, sans-serif;   /* العناوين */
+  --font-legal:   'Noto Naskh Arabic', 'Tajawal', serif;       /* نص القضايا */
+
+  /* ===== سلّم المسافات (كثيف / داشبورد 8/10) ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* ===== الزوايا ===== */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-full: 999px;
+
+  /* ===== الظلال ===== */
+  --shadow-sm: 0 1px 2px rgba(10, 28, 64, 0.06);
+  --shadow-md: 0 4px 14px rgba(10, 28, 64, 0.08);
+  --shadow-lg: 0 12px 34px rgba(10, 28, 64, 0.12);
+
+  /* ===== الحركة ===== */
+  --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-back:     cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
+}
+
+/* ===== الوضع الداكن (تباين محسّن، بدون أسود صافي) ===== */
+:root[data-theme="dark"],
+.dark {
+  --color-bg:          #070E1F;
+  --color-bg-subtle:   #0B1428;
+  --color-surface:     #0F1B33;
+  --color-primary:     #6E97D8;   /* أزرق مقروء للروابط/التأكيد بالداكن */
+  --color-on-primary:  #071022;
+  --color-accent:      var(--gold-500);
+  --color-on-accent:   #0A1C40;
+  --color-fg:          #E6ECF7;
+  --color-fg-muted:    #93A1BC;
+  --color-border:      rgba(255, 255, 255, 0.08);
+  --color-ring:        var(--gold-500);
+
+  --color-success-bg: rgba(14, 138, 95, 0.16);
+  --color-warning-bg: rgba(217, 119, 6, 0.16);
+  --color-danger-bg:  rgba(220, 38, 38, 0.16);
+
+  --glass-bg:     rgba(17, 30, 58, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 34px rgba(0, 0, 0, 0.55);
+}
+
+/* ============================================================================
+   عناصر أساسية
+   ============================================================================ */
+body {
+  font-family: var(--font-ui);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-variant-numeric: tabular-nums; /* أرقام متساوية العرض للمبالغ والتواريخ */
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 700; }
+
+/* حلقة تركيز موحّدة — لا تلغِ focus أبداً (وصولية) */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================================
+   الزجاج الناعم — للقوائم/النوافذ/البطاقات الإحصائية فقط
+   ⚠ لا تستعمله على الجداول الكثيفة (يكسر تباين النص)
+   ============================================================================ */
+.lx-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* شريط علوي/جانبي زجاجي ثابت */
+.lx-nav {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 40;
+  background: var(--glass-bg);
+  border-block-end: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+/* بطاقة إحصائية (KPI) — تباين AAA لأن الرقم دائماً ظاهر كنص */
+.lx-stat {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  transition: transform var(--dur-base) var(--ease-back),
+              box-shadow var(--dur-base) var(--ease-standard);
+}
+.lx-stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.lx-stat__value { font-family: var(--font-heading); font-size: 1.9rem; font-weight: 800; color: var(--color-fg); }
+.lx-stat__label { color: var(--color-fg-muted); font-size: 0.85rem; }
+
+/* ============================================================================
+   الأزرار
+   ============================================================================ */
+.lx-btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui); font-weight: 700; font-size: 0.95rem;
+  cursor: pointer; border: 1px solid transparent;
+  transition: background var(--dur-base) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-standard);
+}
+.lx-btn:active { transform: scale(0.98); }
+.lx-btn--primary { background: var(--color-accent); color: var(--color-on-accent); }
+.lx-btn--primary:hover { background: var(--gold-600); }
+.lx-btn--ghost { background: transparent; color: var(--color-fg); border-color: var(--color-border); }
+.lx-btn--ghost:hover { background: var(--color-bg-subtle); }
+
+/* ============================================================================
+   جدول القضايا — سطح صلب، رأس ثابت، RTL
+   ============================================================================ */
+.lx-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+.lx-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--color-surface);           /* صلب — مو زجاج */
+  font-variant-numeric: tabular-nums;
+}
+.lx-table thead th {
+  position: sticky; inset-block-start: 0; z-index: 2;
+  background: var(--color-surface);
+  color: var(--color-fg-muted);
+  text-align: start;                          /* يمين تلقائياً بالـ RTL */
+  font-weight: 600; font-size: 0.82rem;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+.lx-table tbody td {
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  color: var(--color-fg); font-size: 0.9rem;
+}
+.lx-table tbody tr { transition: background var(--dur-fast) var(--ease-standard); }
+.lx-table tbody tr:hover { background: var(--color-bg-subtle); }
+
+/* شارات الحالة */
+.lx-badge { display: inline-flex; align-items: center; padding: 2px var(--space-3); border-radius: var(--radius-full); font-size: 0.78rem; font-weight: 600; }
+.lx-badge--success { background: var(--color-success-bg); color: var(--color-success); }
+.lx-badge--warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.lx-badge--danger  { background: var(--color-danger-bg);  color: var(--color-danger); }
+
+/* نص القضية / المستندات القانونية — خط النسخ للقراءة الطويلة */
+.lx-legal-text { font-family: var(--font-legal); line-height: 1.9; font-size: 1.02rem; color: var(--color-fg); }
+
+/* ============================================================================
+   احترام تقليل الحركة (وصولية — إلزامي)
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
