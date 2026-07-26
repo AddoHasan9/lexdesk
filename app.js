@@ -1043,7 +1043,7 @@ function goPage(p){
   ['dash','charts','reports','tools','settings','deficiency'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
   if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);
 }
-function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',reports:'mnReports',settings:'mnSet',tools:'mnTools',deficiency:'mnDef'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
+function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
 // ══ SETTINGS ══
 function switchSetTab(tab){document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));document.querySelectorAll('.set-tab-content').forEach(c=>c.classList.remove('active'));const el=document.getElementById('setTab_'+tab);if(el)el.classList.add('active');}
@@ -2406,5 +2406,37 @@ async function compressPdf(){
   }catch(e){
     toolSetResult('cpResult','<div class="tool-err">خطأ: '+e.message+'</div>');
     toast('فشل ضغط PDF','err');
+  }
+}
+
+// ── ⑤ دمج ملفات PDF (دمج حقيقي عبر pdf-lib — يحافظ على النص والجودة) ──
+async function mergePdfs(){
+  const files=getToolFiles('mgInput');
+  if(!files||files.length<2){toast('اختر ملفين PDF على الأقل','err');return;}
+  if(!window.PDFLib){toast('مكتبة الدمج لم تكتمل، أعد تحميل الصفحة','err');return;}
+  toolSetResult('mgResult','<div class="tool-progress">جاري الدمج...</div>');
+  try{
+    const {PDFDocument}=window.PDFLib;
+    const merged=await PDFDocument.create();
+    let totalPages=0;
+    for(let i=0;i<files.length;i++){
+      toolSetResult('mgResult','<div class="tool-progress">دمج '+(i+1)+' / '+files.length+'...</div>');
+      const bytes=await files[i].arrayBuffer();
+      const src=await PDFDocument.load(bytes,{ignoreEncryption:true});
+      const pages=await merged.copyPages(src,src.getPageIndices());
+      pages.forEach(p=>merged.addPage(p));
+      totalPages+=src.getPageCount();
+    }
+    const out=await merged.save();
+    const blob=new Blob([out],{type:'application/pdf'});
+    const url=URL.createObjectURL(blob);
+    toolSetResult('mgResult',
+      '<div class="tool-ok">✓ تم الدمج — '+files.length+' ملفات · '+totalPages+' صفحة · '+fmtBytes(out.byteLength)+'</div>'+
+      '<a class="tool-dl-link" href="'+url+'" download="lexdesk-merged.pdf">⬇ تحميل الملف المدموج</a>'
+    );
+    toast('تم دمج ملفات PDF','ok');
+  }catch(e){
+    toolSetResult('mgResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+    toast('فشل الدمج','err');
   }
 }
