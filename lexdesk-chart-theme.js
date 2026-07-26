@@ -1,31 +1,32 @@
 /* ============================================================================
-   LexDesk — Chart.js Theme (يقرأ التوكنات من lexdesk-design-tokens.css)
-   استعمله بعد تحميل Chart.js وقبل إنشاء أي مخطط.
+   LexDesk — Chart.js Theme (مربوط على هوية LexDesk الفعلية)
+   يقرأ متغيّرات ستايلك (--text, --border, --surface, --font ...) فما يعتمد
+   على أي ملف خارجي. حمّله قبل app.js — Chart.js محمّل قبله بالـ head.
    توصيات ui-ux-pro-max:
-     • توزيع حالات القضايا → Doughnut (بديل جدول دائماً)
-     • المواعيد/الاتجاه الزمني → Line (Chart.js أصلاً، تباين AA)
-     • Deficiency Tracker / المؤشرات → Bar أفقي مع القيمة كنص (تباين AAA)
-     • تجنّب Treemap/Sunburst — تباين ضعيف (C) وغير مناسب للبيانات القانونية
+     • توزيع حالات القضايا → Doughnut (اعرض جدولاً بديلاً دائماً)
+     • المواعيد/الاتجاه الزمني → Line
+     • Deficiency Tracker / المؤشرات → Bar أفقي (القيمة ظاهرة كنص)
+     • تجنّب Treemap/Sunburst (تباين ضعيف للبيانات القانونية)
    ============================================================================ */
 
-const cssVar = (name) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const cssVar = (name, fallback = '') =>
+  (getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
 
-/* لوحة تصنيفية مشتقّة من الهوية (navy → gold) — متمايزة وقابلة للتمييز */
-const LEX_CATEGORICAL = ['#0A1C40', '#274C86', '#F5A623', '#0E8A5F', '#2563EB', '#8B5CF6', '#DC2626'];
+/* لوحة تصنيفية من ألوان هويتك الدلالية (ذهبي → أزرق → أخضر ...) */
+const LEX_CATEGORICAL = ['#F5A623', '#3B82F6', '#22D3A0', '#A78BFA', '#FB923C', '#FF5572', '#60A5FA'];
 
 /* ثيم عام يُطبّق على كل المخططات */
 function applyLexChartTheme() {
-  Chart.defaults.font.family = "'Tajawal', 'Cairo', sans-serif";
-  Chart.defaults.color = cssVar('--color-fg-muted');
-  Chart.defaults.borderColor = cssVar('--color-border');
+  Chart.defaults.font.family = cssVar('--font', "'Tajawal', sans-serif");
+  Chart.defaults.color = cssVar('--text2', '#9395A8');
+  Chart.defaults.borderColor = cssVar('--border', 'rgba(255,255,255,.10)');
   Chart.defaults.plugins.legend.rtl = true;      // مفتاح المخطط يمين→يسار
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.tooltip.rtl = true;     // التلميح RTL
-  Chart.defaults.plugins.tooltip.backgroundColor = cssVar('--color-surface');
-  Chart.defaults.plugins.tooltip.titleColor = cssVar('--color-fg');
-  Chart.defaults.plugins.tooltip.bodyColor = cssVar('--color-fg');
-  Chart.defaults.plugins.tooltip.borderColor = cssVar('--color-border');
+  Chart.defaults.plugins.tooltip.backgroundColor = cssVar('--surface', '#252530');
+  Chart.defaults.plugins.tooltip.titleColor = cssVar('--text', '#EEEEF5');
+  Chart.defaults.plugins.tooltip.bodyColor = cssVar('--text', '#EEEEF5');
+  Chart.defaults.plugins.tooltip.borderColor = cssVar('--border', 'rgba(255,255,255,.10)');
   Chart.defaults.plugins.tooltip.borderWidth = 1;
 }
 
@@ -38,14 +39,14 @@ function lexStatusDoughnut(ctx, labels, values) {
       datasets: [{
         data: values,
         backgroundColor: LEX_CATEGORICAL,
-        borderColor: cssVar('--color-surface'),
+        borderColor: cssVar('--surface', '#252530'),
         borderWidth: 3,
       }],
     },
     options: {
       cutout: '62%',
       plugins: { legend: { position: 'bottom' } },
-      // ملاحظة وصولية: اعرض دائماً جدولاً بديلاً بنفس الأرقام تحت المخطط
+      // وصولية: اعرض دائماً جدولاً بديلاً بنفس الأرقام تحت المخطط
     },
   });
 }
@@ -59,24 +60,24 @@ function lexDeadlineLine(ctx, labels, values) {
       datasets: [{
         label: 'المواعيد',
         data: values,
-        borderColor: cssVar('--color-primary'),
-        backgroundColor: 'rgba(10, 28, 64, 0.10)',
+        borderColor: cssVar('--gold', '#F5A623'),
+        backgroundColor: cssVar('--gold-g', 'rgba(245,166,35,.12)'),
         fill: true, tension: 0.35,
-        pointBackgroundColor: cssVar('--color-accent'),
+        pointBackgroundColor: cssVar('--gold', '#F5A623'),
         pointRadius: 3, pointHoverRadius: 5,
       }],
     },
     options: {
       scales: {
         x: { reverse: true, grid: { display: false } },  // reverse للـ RTL
-        y: { beginAtZero: true, grid: { color: cssVar('--color-border') } },
+        y: { beginAtZero: true, grid: { color: cssVar('--border', 'rgba(255,255,255,.10)') } },
       },
       plugins: { legend: { display: false } },
     },
   });
 }
 
-/* 3) Deficiency Tracker / المؤشرات — Bar أفقي (القيمة تبقى ظاهرة كنص) */
+/* 3) Deficiency Tracker / المؤشرات — Bar أفقي */
 function lexDeficiencyBar(ctx, labels, values) {
   return new Chart(ctx, {
     type: 'bar',
@@ -84,14 +85,14 @@ function lexDeficiencyBar(ctx, labels, values) {
       labels,
       datasets: [{
         data: values,
-        backgroundColor: cssVar('--color-accent'),
+        backgroundColor: cssVar('--gold', '#F5A623'),
         borderRadius: 6, barThickness: 18,
       }],
     },
     options: {
       indexAxis: 'y',                              // أفقي — أسهل قراءة للعناوين العربية
       scales: {
-        x: { beginAtZero: true, position: 'top', grid: { color: cssVar('--color-border') } },
+        x: { beginAtZero: true, position: 'top', grid: { color: cssVar('--border', 'rgba(255,255,255,.10)') } },
         y: { grid: { display: false } },
       },
       plugins: { legend: { display: false } },
@@ -99,11 +100,7 @@ function lexDeficiencyBar(ctx, labels, values) {
   });
 }
 
-/* تطبيق تلقائي أول ما يتحمّل — Chart.js محمّل قبله بالـ head فالثيم
-   يُضبط قبل ما ينشئ app.js أي مخطط. لا تحتاج تنادي شي بـ app.js.
-   ملاحظة: لو المستخدم بدّل للوضع الداكن بعد التحميل، المخططات المرسومة
-   مسبقاً تحتفظ بألوان الوضع الأول؛ نادِ applyLexChartTheme() ثم أعِد
-   رسم المخطط عند التبديل لو تريد تحديثها فوراً. */
+/* تطبيق تلقائي أول ما يتحمّل — لا تحتاج تنادي شي بـ app.js */
 if (typeof Chart !== 'undefined') { applyLexChartTheme(); }
 
 /* الاستعمال داخل app.js:
