@@ -99,7 +99,13 @@ function lexDeficiencyBar(ctx, labels, values) {
   });
 }
 
-/* الاستعمال:
-   applyLexChartTheme();
+/* تطبيق تلقائي أول ما يتحمّل — Chart.js محمّل قبله بالـ head فالثيم
+   يُضبط قبل ما ينشئ app.js أي مخطط. لا تحتاج تنادي شي بـ app.js.
+   ملاحظة: لو المستخدم بدّل للوضع الداكن بعد التحميل، المخططات المرسومة
+   مسبقاً تحتفظ بألوان الوضع الأول؛ نادِ applyLexChartTheme() ثم أعِد
+   رسم المخطط عند التبديل لو تريد تحديثها فوراً. */
+if (typeof Chart !== 'undefined') { applyLexChartTheme(); }
+
+/* الاستعمال داخل app.js:
    lexStatusDoughnut(document.getElementById('c1'), ['مفتوحة','مؤجلة','منجزة'], [12, 5, 30]);
 */
