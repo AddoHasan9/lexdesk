@@ -3325,3 +3325,52 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   border:1px solid rgba(255,255,255,.10) !important;
   box-shadow:0 12px 30px -14px rgba(0,0,0,.55) !important;
 }
+
+/* ═══════ Aether Glass v2 — النوافذ والكروت (تفاصيل/نماذج) ═══════ */
+/* هيكل النافذة — زجاج مثلج بحواف كبيرة */
+[data-theme="light"] :is(.modal,.detail-modal,.confirm-modal,.client-modal){
+  background:rgba(255,255,255,.82) !important;
+  backdrop-filter:blur(28px) saturate(185%); -webkit-backdrop-filter:blur(28px) saturate(185%);
+  border:1px solid rgba(255,255,255,.85) !important;
+  border-radius:26px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 40px 90px -30px rgba(20,30,60,.5) !important;
+}
+:root:not([data-theme="light"]) :is(.modal,.detail-modal,.confirm-modal,.client-modal){
+  background:rgba(26,26,36,.72) !important;
+  backdrop-filter:blur(28px) saturate(160%); -webkit-backdrop-filter:blur(28px) saturate(160%);
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:26px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.08) inset, 0 40px 90px -30px rgba(0,0,0,.7) !important;
+}
+/* الرؤوس اللاصقة — شفافة متناسقة */
+[data-theme="light"] :is(.detail-hd,.modal-hd,.client-modal-hd){
+  background:rgba(255,255,255,.55) !important;
+  border-bottom:1px solid rgba(150,150,170,.14) !important;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+}
+:root:not([data-theme="light"]) :is(.detail-hd,.modal-hd,.client-modal-hd){
+  background:rgba(26,26,36,.5) !important;
+  border-bottom:1px solid rgba(255,255,255,.10) !important;
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+}
+/* حقول التفاصيل — زجاج بحواف مدوّرة */
+[data-theme="light"] .detail-field{
+  background:rgba(255,255,255,.62) !important;
+  border:1px solid rgba(255,255,255,.72) !important;
+  border-radius:16px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.7) inset;
+}
+:root:not([data-theme="light"]) .detail-field{
+  background:rgba(255,255,255,.05) !important;
+  border:1px solid rgba(255,255,255,.10) !important;
+  border-radius:16px !important;
+}
+/* أزرار النوافذ — حبوب */
+:is(.detail-hd-acts button,.detail-hd-acts .btn,.modal-close,.modal-foot .btn,.modal-foot button,.client-modal-hd .modal-close){
+  border-radius:999px !important;
+}
+/* حقول الإدخال داخل النماذج — حواف أنعم */
+:is(.modal-body,.client-modal-body,.detail-body) :is(input,select,textarea){ border-radius:12px !important; }
+/* تعتيم الخلفية — نعّم خفيف */
+[data-theme="light"] :is(.overlay,.detail-overlay,.client-overlay){ backdrop-filter:blur(3px); }
+:root:not([data-theme="light"]) :is(.overlay,.detail-overlay,.client-overlay){ backdrop-filter:blur(3px); }
