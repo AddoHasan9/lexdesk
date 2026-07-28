@@ -3234,3 +3234,38 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 }
 /* صفوف الجدول: فواصل شعرة بدل الحدود الثقيلة */
 [data-theme="light"] #appWrap .case-card{ border-radius:18px !important; }
+
+/* ═══ نسخة الزجاج للوضع الليلي (حتى يشتغل التصميم بالوضعين) ═══ */
+:root:not([data-theme="light"]) #appWrap{
+  background:
+    radial-gradient(58% 48% at 84% 4%, rgba(245,166,35,.10), transparent 60%),
+    radial-gradient(52% 44% at 6% 16%, rgba(96,165,250,.07), transparent 60%),
+    radial-gradient(48% 50% at 62% 102%, rgba(167,139,250,.06), transparent 60%),
+    #12121A !important;
+  min-height:100vh;
+}
+:root:not([data-theme="light"]) #appWrap :is(.topbar,.sidebar,.hero-kpi,.stat-mini,.set-card,.report-card,.chart-card,.rp-card,.rem-panel,.notif-panel,.case-card,.panel){
+  background:rgba(255,255,255,.055) !important;
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid rgba(255,255,255,.10) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 14px 34px -12px rgba(0,0,0,.5) !important;
+  border-radius:22px !important;
+}
+:root:not([data-theme="light"]) #appWrap :is(.stat-mini,.set-card,.report-card,.chart-card,.case-card){
+  transition:transform .22s cubic-bezier(.2,1,.3,1), box-shadow .22s;
+}
+:root:not([data-theme="light"]) #appWrap :is(.stat-mini,.case-card):hover{ transform:translateY(-2px); }
+:root:not([data-theme="light"]) #appWrap :is(.tb-search,.tb-sel,.btn,.sb-btn,.set-tab,.role-btn,.role-tab,.tab,.rem-topbar-btn,.mob-nav-btn){
+  border-radius:999px !important;
+}
+:root:not([data-theme="light"]) #appWrap .tb-search{
+  background:rgba(255,255,255,.07) !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+}
+:root:not([data-theme="light"]) #appWrap .sidebar{ border-radius:24px !important; }
+:root:not([data-theme="light"]) #appWrap .sb-btn.active{
+  background:linear-gradient(120deg,rgba(255,255,255,.12),rgba(255,255,255,.05)) !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.10) inset, 0 8px 18px -8px rgba(0,0,0,.6) !important;
+}
+:root:not([data-theme="light"]) #appWrap .case-card{ border-radius:18px !important; }
