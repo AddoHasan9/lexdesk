@@ -3387,3 +3387,37 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 .dash-main .stats-row{ margin:0; }
 .dash-main .cases-panel{ margin:0; }
 @media (max-width:1000px){ .dash-top-row{ grid-template-columns:1fr; } }
+
+/* ═══════ إصلاح تباين النوافذ (حقول وأزرار واضحة) ═══════ */
+/* نرفع عتامة النافذة حتى يوضح النص */
+[data-theme="light"] :is(.modal,.detail-modal,.confirm-modal,.client-modal){ background:rgba(255,255,255,.92) !important; }
+:root:not([data-theme="light"]) :is(.modal,.detail-modal,.confirm-modal,.client-modal){ background:rgba(24,24,33,.86) !important; }
+
+/* الحقول: خلفية صلبة + حدود واضحة + نص عالي التباين */
+[data-theme="light"] :is(.modal,.detail-modal,.client-modal) :is(.fm-inp,.sf-inp,select,textarea,input:not([type="checkbox"]):not([type="radio"])){
+  background:#F3F5FA !important;
+  border:1.5px solid rgba(20,30,60,.16) !important;
+  color:#1A2333 !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+}
+:root:not([data-theme="light"]) :is(.modal,.detail-modal,.client-modal) :is(.fm-inp,.sf-inp,select,textarea,input:not([type="checkbox"]):not([type="radio"])){
+  background:rgba(255,255,255,.07) !important;
+  border:1.5px solid rgba(255,255,255,.18) !important;
+  color:#EAEEF5 !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+}
+/* التسميات أوضح */
+[data-theme="light"] :is(.modal,.detail-modal,.client-modal) :is(.fm-lbl,.sf-lbl,.detail-field-lbl){ color:#41506C !important; }
+:root:not([data-theme="light"]) :is(.modal,.detail-modal,.client-modal) :is(.fm-lbl,.sf-lbl,.detail-field-lbl){ color:#AEB6C8 !important; }
+
+/* أزرار الاختيار (حبوب) غير المختارة — حدود واضحة */
+[data-theme="light"] :is(.modal,.detail-modal,.client-modal) :is(.status-opt,.lawyer-opt,.dept-opt,.stage-chip,.type-chip):not(.sel){
+  background:#F3F5FA !important;
+  border:1.5px solid rgba(20,30,60,.16) !important;
+  color:#41506C !important;
+}
+:root:not([data-theme="light"]) :is(.modal,.detail-modal,.client-modal) :is(.status-opt,.lawyer-opt,.dept-opt,.stage-chip,.type-chip):not(.sel){
+  background:rgba(255,255,255,.05) !important;
+  border:1.5px solid rgba(255,255,255,.15) !important;
+  color:#B8C0D0 !important;
+}
