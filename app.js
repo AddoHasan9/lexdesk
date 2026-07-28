@@ -2440,3 +2440,142 @@ async function mergePdfs(){
     toast('فشل الدمج','err');
   }
 }
+
+// ── ⑥ محرّر صفحات PDF ──
+let pdfEditor = null;
+
+function peDrop(e){
+  e.preventDefault();
+  const z=document.getElementById('peZone'); if(z)z.classList.remove('drag');
+  const f=e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(f) peLoad(f);
+}
+
+function dataUrlToBytes(dataUrl){
+  const bin=atob(dataUrl.split(',')[1]);
+  const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return arr;
+}
+
+async function peLoad(file){
+  if(!file)return;
+  if(!/\.pdf$/i.test(file.name)){toast('اختر ملف PDF','err');return;}
+  const lib=initPdfJs();
+  if(!lib){toast('مكتبة العرض لم تكتمل، أعد التحميل','err');return;}
+  toolSetResult('peResult','<div class="tool-progress">جاري فتح الملف...</div>');
+  try{
+    const ab=await file.arrayBuffer();
+    const bytes=new Uint8Array(ab);
+    const doc=await lib.getDocument({data:bytes.slice()}).promise;
+    const thumbs=[];
+    for(let p=1;p<=doc.numPages;p++){
+      toolSetResult('peResult','<div class="tool-progress">تحضير الصفحة '+p+' / '+doc.numPages+'...</div>');
+      const page=await doc.getPage(p);
+      const vp=page.getViewport({scale:0.5});
+      const c=document.createElement('canvas');
+      c.width=vp.width; c.height=vp.height;
+      await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+      thumbs.push(c.toDataURL('image/jpeg',0.7));
+    }
+    pdfEditor={srcBytes:bytes,pageThumbs:thumbs,order:thumbs.map((_,i)=>({type:'pdf',idx:i}))};
+    toolSetResult('peResult','');
+    peRender();
+    toast('تم فتح '+doc.numPages+' صفحة','ok');
+  }catch(e){
+    toolSetResult('peResult','<div class="tool-err">تعذّر فتح الملف: '+e.message+'</div>');
+  }
+}
+
+function peRender(){
+  const grid=document.getElementById('peGrid');
+  const bar=document.getElementById('peBar');
+  if(!pdfEditor||!pdfEditor.order.length){
+    grid.style.display='none'; bar.style.display='none'; grid.innerHTML=''; return;
+  }
+  grid.style.display='grid'; bar.style.display='flex';
+  grid.innerHTML=pdfEditor.order.map(function(it,i){
+    const src=it.type==='pdf'?pdfEditor.pageThumbs[it.idx]:it.dataUrl;
+    const tag=it.type==='img'?'<span class="pe-tag" style="background:rgba(139,92,246,.9);color:#fff">صورة</span>':'';
+    return '<div class="pe-thumb">'+
+      '<img src="'+src+'" alt="صفحة '+(i+1)+'">'+
+      '<span class="pe-num">'+(i+1)+'</span>'+tag+
+      '<div class="pe-ctrls">'+
+        '<button title="تقديم" onclick="peMove('+i+',-1)">▲</button>'+
+        '<button title="تأخير" onclick="peMove('+i+',1)">▼</button>'+
+        '<button class="del" title="حذف" onclick="peDel('+i+')">✕</button>'+
+      '</div></div>';
+  }).join('');
+}
+
+function peMove(i,dir){
+  const j=i+dir;
+  if(!pdfEditor||j<0||j>=pdfEditor.order.length)return;
+  const o=pdfEditor.order;
+  const tmp=o[i]; o[i]=o[j]; o[j]=tmp;
+  peRender();
+}
+
+function peDel(i){
+  if(!pdfEditor)return;
+  pdfEditor.order.splice(i,1);
+  peRender();
+  if(!pdfEditor.order.length)
+    toolSetResult('peResult','<div class="tool-err">حذفت كل الصفحات — أضف صوراً أو افتح ملفاً جديداً.</div>');
+}
+
+async function peAddImages(files){
+  if(!pdfEditor){toast('افتح ملف PDF أول','err');return;}
+  const list=Array.from(files||[]);
+  for(const f of list){
+    if(!f.type||!f.type.startsWith('image/'))continue;
+    try{
+      const dataUrl=await new Promise(function(res,rej){
+        const img=new Image();
+        img.onload=function(){res(imgToJpegDataUrl(img,0.92));};
+        img.onerror=rej;
+        img.src=URL.createObjectURL(f);
+      });
+      pdfEditor.order.push({type:'img',dataUrl:dataUrl});
+    }catch(e){}
+  }
+  const inp=document.getElementById('pePicImg'); if(inp)inp.value='';
+  peRender();
+  toast('انضافت الصور كصفحات','ok');
+}
+
+function peReset(){
+  pdfEditor=null;
+  const inp=document.getElementById('peInput'); if(inp)inp.value='';
+  toolSetResult('peResult','');
+  peRender();
+}
+
+async function peExport(){
+  if(!pdfEditor||!pdfEditor.order.length){toast('لا توجد صفحات للتصدير','err');return;}
+  if(!window.PDFLib){toast('مكتبة الحفظ لم تكتمل، أعد التحميل','err');return;}
+  toolSetResult('peResult','<div class="tool-progress">جاري إنشاء الملف...</div>');
+  try{
+    const {PDFDocument}=window.PDFLib;
+    const out=await PDFDocument.create();
+    const src=await PDFDocument.load(pdfEditor.srcBytes.slice(),{ignoreEncryption:true});
+    for(const it of pdfEditor.order){
+      if(it.type==='pdf'){
+        const pages=await out.copyPages(src,[it.idx]);
+        out.addPage(pages[0]);
+      }else{
+        const img=await out.embedJpg(dataUrlToBytes(it.dataUrl));
+        const pg=out.addPage([img.width,img.height]);
+        pg.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
+      }
+    }
+    const bytes=await out.save();
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    toolSetResult('peResult',
+      '<div class="tool-ok">✓ تم — '+pdfEditor.order.length+' صفحة · '+fmtBytes(bytes.byteLength)+'</div>'+
+      '<a class="tool-dl-link" href="'+url+'" download="lexdesk-edited.pdf">⬇ تحميل الملف المعدّل</a>');
+    toast('تم تصدير الملف','ok');
+  }catch(e){
+    toolSetResult('peResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+  }
+}

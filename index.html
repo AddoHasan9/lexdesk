@@ -714,6 +714,43 @@
       </button>
     </div>
 
+    <!-- ⑥ محرّر صفحات PDF -->
+    <div class="tool-card" style="grid-column:1/-1">
+      <div class="tool-card-hd">
+        <div class="tool-icon" style="background:rgba(139,92,246,.14);color:#8b5cf6">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6M12 12v6"/></svg>
+        </div>
+        <div>
+          <div class="tool-title">محرّر صفحات PDF</div>
+          <div class="tool-sub">اعرض صفحات الملف كصور، احذف أو رتّب الصفحات، وأضف صوراً كصفحات جديدة</div>
+        </div>
+      </div>
+      <div class="tool-dropzone" id="peZone"
+        onclick="document.getElementById('peInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="peDrop(event)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="dz-text">اسحب ملف PDF هنا أو <span>اضغط للاختيار</span></div>
+        <div class="dz-hint">يظهر لك كل صفحة كصورة — احذف / رتّب / أضف صور</div>
+        <input type="file" id="peInput" accept=".pdf" style="display:none" onchange="peLoad(this.files[0])">
+      </div>
+      <div id="peGrid" class="pe-grid"></div>
+      <div id="peBar" class="pe-bar">
+        <button class="tool-btn" style="background:rgba(139,92,246,.14);color:#8b5cf6;border-color:#8b5cf6" onclick="document.getElementById('pePicImg').click()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          إضافة صور كصفحات
+        </button>
+        <input type="file" id="pePicImg" accept="image/*" multiple style="display:none" onchange="peAddImages(this.files)">
+        <button class="tool-btn" style="background:var(--green-g);color:var(--green);border-color:var(--green)" onclick="peExport()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          تصدير PDF
+        </button>
+        <button class="tool-btn pe-ghost" onclick="peReset()">مسح</button>
+      </div>
+      <div class="tool-result" id="peResult"></div>
+    </div>
+
   </div>
 </div>
 
