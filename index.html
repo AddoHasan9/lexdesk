@@ -269,12 +269,9 @@
 
 <!-- DASH PAGE -->
 <div class="page active" id="pageDash">
-  <div class="dash-layout">
-
-    <!-- ─── CENTER ─── -->
-    <div class="dash-center">
-
-      <!-- Hero KPI Card -->
+  <div class="dash-main">
+    <!-- الصف العلوي: الإجمالي + الدونات -->
+    <div class="dash-top-row">
       <div class="hero-kpi">
         <div class="hero-kpi-top">
           <div class="hero-kpi-label">
@@ -292,9 +289,30 @@
           <canvas id="chartAreaMain"></canvas>
         </div>
       </div>
+      <div class="rp-card">
+        <div class="rp-hd">
+          <span class="rp-title">المعاملات</span>
+          <div class="rp-dots"><div class="rp-dot"></div><div class="rp-dot" style="background:var(--border)"></div><div class="rp-dot" style="background:var(--border)"></div></div>
+        </div>
+        <div class="donut-wrap">
+          <div class="donut-canvas-wrap">
+            <canvas id="chartDonutDash"></canvas>
+            <div class="donut-center-val" id="donutCenterVal">0<span>معاملة</span></div>
+          </div>
+          <div class="donut-legend" id="donutLegend">
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--gold)"></div>قيد المعالجة</div><span class="dleg-pct" id="dlegActive">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--green)"></div>منجزة</div><span class="dleg-pct" id="dlegDone">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--red)"></div>معلقة</div><span class="dleg-pct" id="dlegHold">0%</span></div>
+            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--purple)"></div>ناقصة</div><span class="dleg-pct" id="dlegDef">0%</span></div>
+          </div>
+        </div>
+        <!-- Progress bars per lawyer -->
+        <div class="rp-prog-list" id="rpProgList"></div>
+      </div>
+    </div>
 
-      <!-- 3 Mini Stats -->
-      <div class="stats-row">
+    <!-- الإحصائيات -->
+    <div class="stats-row">
         <!-- معاملات -->
         <div class="stat-mini">
           <div class="stat-mini-icon" style="background:var(--gold-g);color:var(--gold)">
@@ -330,8 +348,8 @@
         </div>
       </div>
 
-      <!-- Cases Panel -->
-      <div class="cases-panel">
+    <!-- سجل المعاملات (جدول) -->
+    <div class="cases-panel">
         <div class="panel-hd">
           <div class="panel-title">
             <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -359,35 +377,8 @@
         <div id="casesBody"></div>
       </div>
 
-    </div><!-- end dash-center -->
-
-    <!-- ─── RIGHT PANEL ─── -->
-    <div class="dash-right">
-
-      <!-- Donut chart -->
-      <div class="rp-card">
-        <div class="rp-hd">
-          <span class="rp-title">المعاملات</span>
-          <div class="rp-dots"><div class="rp-dot"></div><div class="rp-dot" style="background:var(--border)"></div><div class="rp-dot" style="background:var(--border)"></div></div>
-        </div>
-        <div class="donut-wrap">
-          <div class="donut-canvas-wrap">
-            <canvas id="chartDonutDash"></canvas>
-            <div class="donut-center-val" id="donutCenterVal">0<span>معاملة</span></div>
-          </div>
-          <div class="donut-legend" id="donutLegend">
-            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--gold)"></div>قيد المعالجة</div><span class="dleg-pct" id="dlegActive">0%</span></div>
-            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--green)"></div>منجزة</div><span class="dleg-pct" id="dlegDone">0%</span></div>
-            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--red)"></div>معلقة</div><span class="dleg-pct" id="dlegHold">0%</span></div>
-            <div class="dleg-item"><div class="dleg-left"><div class="dleg-dot" style="background:var(--purple)"></div>ناقصة</div><span class="dleg-pct" id="dlegDef">0%</span></div>
-          </div>
-        </div>
-        <!-- Progress bars per lawyer -->
-        <div class="rp-prog-list" id="rpProgList"></div>
-      </div>
-
-      <!-- Cases log -->
-      <div class="rp-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+    <!-- سجل مصغّر (مخفي — للحفاظ على وظائف الكود) -->
+    <div style="display:none"><div class="rp-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
         <div class="rp-hd">
           <span class="rp-title">سجل المعاملات</span>
           <div class="rp-dots"><div class="rp-dot"></div><div class="rp-dot" style="background:var(--border)"></div></div>
@@ -399,11 +390,9 @@
           <span class="iconify" data-icon="solar:info-circle-bold-duotone" data-width="18"></span>
           مباشرة من قاعدة البيانات
         </div>
-      </div>
+      </div></div>
+  </div>
 
-    </div><!-- end dash-right -->
-
-  </div><!-- end dash-layout -->
 </div>
 
 <!-- CHARTS PAGE -->

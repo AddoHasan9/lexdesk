@@ -3374,3 +3374,16 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* تعتيم الخلفية — نعّم خفيف */
 [data-theme="light"] :is(.overlay,.detail-overlay,.client-overlay){ backdrop-filter:blur(3px); }
 :root:not([data-theme="light"]) :is(.overlay,.detail-overlay,.client-overlay){ backdrop-filter:blur(3px); }
+
+/* ═══════ Aether Glass v2 — تخطيط الرئيسية الجديد (يطابق النموذج) ═══════ */
+.dash-main{
+  display:flex; flex-direction:column; gap:14px;
+  padding:14px; overflow-y:auto; flex:1; min-height:0;
+  background:transparent !important;
+}
+.dash-top-row{ display:grid; grid-template-columns:1.4fr .9fr; gap:14px; align-items:stretch; }
+.dash-top-row .hero-kpi{ margin:0; }
+.dash-top-row .rp-card{ margin:0; display:flex; flex-direction:column; }
+.dash-main .stats-row{ margin:0; }
+.dash-main .cases-panel{ margin:0; }
+@media (max-width:1000px){ .dash-top-row{ grid-template-columns:1fr; } }
