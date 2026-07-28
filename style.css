@@ -3130,3 +3130,55 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   .login-hero{ display:none !important; }
   #loginScreen .login-box{ margin:26px auto; }
 }
+
+/* ═══════════ تسجيل الدخول العصري (Pro) ═══════════ */
+/* الكارت */
+#loginScreen .login-box{ max-width:392px; padding:44px 38px 32px; text-align:center; }
+/* علامة ذهبية */
+.login-mark{ width:54px; height:54px; border-radius:16px; display:grid; place-items:center; margin:0 auto 18px;
+  color:var(--navy,#0A1C40); background:linear-gradient(135deg,#ffca5f,var(--gold)); box-shadow:0 10px 26px rgba(245,166,35,.4); }
+.login-mark svg{ width:30px; height:30px; }
+/* تسميات الحقول */
+.login-lbl{ display:block; text-align:right; font-size:13px; font-weight:700; color:var(--text2,#46516B); margin:0 2px 8px; }
+/* الحقول */
+#loginScreen .pass-inp{ height:51px; border-radius:13px; padding-right:42px; padding-left:44px; }
+/* زر إظهار كلمة المرور */
+.login-eye{ position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--text3,#9AA3B4); cursor:pointer; display:flex; }
+.login-eye:hover{ color:var(--gold); }
+/* صف تذكرني + نسيت */
+.login-row{ display:flex; align-items:center; justify-content:space-between; margin:6px 2px 22px; }
+.login-toggle{ display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text2,#54617E); cursor:pointer; user-select:none; }
+.login-toggle input{ display:none; }
+.login-track{ width:38px; height:22px; border-radius:99px; background:var(--border2,#D8DEE9); position:relative; transition:.25s; flex:0 0 auto; }
+.login-track::after{ content:""; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.25s; }
+.login-toggle input:checked + .login-track{ background:var(--gold); }
+.login-toggle input:checked + .login-track::after{ right:18px; }
+#loginScreen .reset-pass-btn{ margin:0 !important; font-weight:700; font-size:13px; }
+/* الزر بلمعة */
+#loginScreen .login-btn{ position:relative; overflow:hidden; height:53px; }
+#loginScreen .login-btn::after{ content:""; position:absolute; top:0; left:-60%; width:40%; height:100%; transform:skewX(-20deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); transition:.6s; }
+#loginScreen .login-btn:hover::after{ left:130%; }
+
+/* ── حركة لوحة الهوية ── */
+.lh-shine{ position:absolute; top:-40%; right:-30%; width:80%; height:180%; transform:rotate(18deg); pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent); animation:lhSweep 7s ease-in-out infinite; }
+.lh-orb{ position:absolute; border-radius:50%; filter:blur(70px); pointer-events:none; }
+.lh-orb.g{ width:360px; height:360px; background:rgba(245,166,35,.22); top:-90px; right:-60px; animation:lhFloat 9s ease-in-out infinite; }
+.lh-orb.b{ width:320px; height:320px; background:rgba(37,99,235,.18); bottom:-80px; left:-40px; animation:lhFloat 11s ease-in-out infinite reverse; }
+.login-hero-wrap{ position:relative; display:grid; place-items:center; animation:lhUp .7s cubic-bezier(.2,1,.3,1); }
+.login-hero-wrap::before{ content:""; position:absolute; width:220px; height:220px; border-radius:50%;
+  background:radial-gradient(circle,rgba(245,166,35,.32),transparent 62%); animation:lhPulse 4s ease-in-out infinite; }
+.login-hero-line{ position:relative; width:66px; height:3px; border-radius:3px; margin-top:-6px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+.login-hero-name{ animation:lhUp .7s .08s both cubic-bezier(.2,1,.3,1); }
+.login-hero-tag{ animation:lhUp .7s .16s both cubic-bezier(.2,1,.3,1); }
+.login-hero-chips{ animation:lhUp .7s .24s both cubic-bezier(.2,1,.3,1); }
+@keyframes lhUp{ from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+@keyframes lhFloat{ 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,26px)} }
+@keyframes lhPulse{ 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:.9;transform:scale(1.08)} }
+@keyframes lhSweep{ 0%,100%{opacity:0;transform:translateX(30%) rotate(18deg)} 50%{opacity:1;transform:translateX(-20%) rotate(18deg)} }
+@media (prefers-reduced-motion:reduce){
+  .lh-shine,.lh-orb,.login-hero-wrap::before,.login-hero-wrap,.login-hero-name,.login-hero-tag,.login-hero-chips{ animation:none !important; }
+}
