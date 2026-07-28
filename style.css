@@ -3073,3 +3073,60 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 .pe-ctrls button.del:hover{background:#DC2626;color:#fff}
 .pe-ghost{background:transparent!important;color:var(--text2)!important;border-color:var(--border)!important}
 @media(hover:none){.pe-ctrls{opacity:1}}
+
+/* ═══════════ تسجيل الدخول — تصميم مقسوم (هوية LexDesk) ═══════════ */
+#loginScreen{
+  display:grid !important;
+  grid-template-columns:1.04fr .96fr;
+  align-items:stretch;
+  overflow:auto;
+}
+#loginScreen::before{display:none !important;}
+#loginScreen .login-box{
+  align-self:center;
+  justify-self:center;
+  margin:auto;
+  box-shadow:0 34px 80px -28px rgba(10,28,64,.32);
+}
+/* لوحة الهوية الكحلية (يمين) */
+.login-hero{
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px;
+  padding:44px;
+  background:radial-gradient(130% 100% at 80% 14%, #133264 0%, #0A1C40 54%, #061027 100%);
+  color:#fff;
+}
+.login-hero::before{
+  content:''; position:absolute; inset:0; opacity:.06;
+  background-image:repeating-linear-gradient(-45deg,#fff 0 2px,transparent 2px 28px);
+}
+.login-hero::after{
+  content:''; position:absolute; width:440px; height:440px; border-radius:50%; filter:blur(80px);
+  background:radial-gradient(circle, rgba(245,166,35,.18), transparent 65%);
+  inset-block-start:-130px; inset-inline-start:-70px;
+}
+.login-hero .login-logo-wrap{ position:relative; margin:0 auto; }
+.login-hero .login-logo-svg{ width:158px; height:158px; color:var(--gold,#f5a623); }
+.login-hero .login-logo-svg svg{ width:158px; height:158px; }
+.login-hero-name{
+  position:relative; font-family:var(--font-d,'Cairo',sans-serif);
+  font-size:31px; font-weight:900; letter-spacing:-.5px; text-align:center; line-height:1.3;
+}
+.login-hero-tag{
+  position:relative; max-width:370px; text-align:center;
+  font-size:14px; line-height:2.05; color:rgba(255,255,255,.72);
+}
+.login-hero-chips{ position:relative; display:flex; gap:12px; margin-top:6px; }
+.login-hero-chip{
+  display:flex; flex-direction:column; align-items:center; gap:8px; width:84px; padding:15px 6px;
+  border-radius:15px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+  backdrop-filter:blur(8px); color:rgba(255,255,255,.85); font-size:12px; font-weight:500; transition:.3s;
+}
+.login-hero-chip:hover{ background:rgba(255,255,255,.11); transform:translateY(-3px); }
+.login-hero-chip svg{ width:21px; height:21px; }
+.login-hero-chip .g{ color:var(--gold,#f5a623); }
+@media (max-width:860px){
+  #loginScreen{ grid-template-columns:1fr !important; }
+  .login-hero{ display:none !important; }
+  #loginScreen .login-box{ margin:26px auto; }
+}
