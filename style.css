@@ -3186,3 +3186,67 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 @media (prefers-reduced-motion:reduce){
   .lh-shine,.lh-orb,.login-hero-wrap::before,.login-hero-wrap,.login-hero-name,.login-hero-tag,.login-hero-chips{ animation:none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LexDesk — Aether Glass (v2)
+   زجاج على بطاقات المحتوى فقط — الهيكل (sidebar/topbar) يبقى مكانه
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ① خلفية لؤلؤية + aurora على مساحة المحتوى */
+[data-theme="light"] .dash-layout,
+[data-theme="light"] .page{
+  background:
+    radial-gradient(58% 46% at 86% 2%, rgba(245,166,35,.11), transparent 62%),
+    radial-gradient(52% 42% at 4% 14%, rgba(96,165,250,.09), transparent 62%),
+    radial-gradient(46% 46% at 64% 104%, rgba(167,139,250,.07), transparent 62%),
+    #EBEEF5;
+}
+:root:not([data-theme="light"]) .dash-layout,
+:root:not([data-theme="light"]) .page{
+  background:
+    radial-gradient(58% 46% at 86% 2%, rgba(245,166,35,.10), transparent 62%),
+    radial-gradient(52% 42% at 4% 14%, rgba(96,165,250,.07), transparent 62%),
+    radial-gradient(46% 46% at 64% 104%, rgba(167,139,250,.06), transparent 62%),
+    #12121A;
+}
+
+/* ② الأعمدة تصير شفافة حتى تطفو البطاقات فوق الخلفية */
+.dash-center{ background:transparent; padding:14px 14px 14px 0; gap:14px; }
+.dash-right{ background:transparent; border-right:none !important; padding:14px 14px 14px 0; gap:14px; }
+
+/* ③ المادة الزجاجية — بطاقات المحتوى فقط */
+[data-theme="light"] :is(.hero-kpi,.stat-mini,.cases-panel,.rp-card,.chart-card,.report-card,.set-card){
+  background:rgba(255,255,255,.68) !important;
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(255,255,255,.72) !important;
+  border-radius:22px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 14px 34px -14px rgba(20,30,60,.18), 0 2px 6px rgba(20,30,60,.04) !important;
+}
+:root:not([data-theme="light"]) :is(.hero-kpi,.stat-mini,.cases-panel,.rp-card,.chart-card,.report-card,.set-card){
+  background:rgba(255,255,255,.055) !important;
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid rgba(255,255,255,.10) !important;
+  border-radius:22px !important;
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset, 0 14px 34px -14px rgba(0,0,0,.55) !important;
+}
+/* بطاقة الإجمالي: نبقّي اللمسة الذهبية بدون الحد الجانبي الثقيل */
+[data-theme="light"] .hero-kpi{
+  border-right:none !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(255,246,225,.72) 100%) !important;
+}
+:root:not([data-theme="light"]) .hero-kpi{
+  border-right:none !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(245,166,35,.06) 100%) !important;
+}
+
+/* ④ هندسة الحبوب — عناصر آمنة فقط (بدون لمس التخطيط) */
+:is(.tb-search,.tb-sel,.sb-btn,.set-tab,.role-btn,.role-tab,.rem-topbar-btn){ border-radius:999px !important; }
+[data-theme="light"] .tb-search{ background:rgba(255,255,255,.85) !important; border:1px solid rgba(255,255,255,.9) !important; box-shadow:0 1px 0 rgba(255,255,255,.9) inset; }
+:root:not([data-theme="light"]) .tb-search{ background:rgba(255,255,255,.07) !important; border:1px solid rgba(255,255,255,.12) !important; }
+
+/* ⑤ رفعة ناعمة */
+:is(.stat-mini,.rp-card,.chart-card,.report-card){ transition:transform .22s cubic-bezier(.2,1,.3,1), box-shadow .22s; }
+:is(.stat-mini):hover{ transform:translateY(-2px); }
+@media (prefers-reduced-motion:reduce){ :is(.stat-mini,.rp-card,.chart-card,.report-card){ transition:none; } }
