@@ -471,7 +471,7 @@ function logout(){
   document.getElementById('emailInp').value='';
   document.getElementById('passInp').value='';
   document.getElementById('passErr')?.classList.remove('show');
-  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginScreen').style.display='grid';
   document.getElementById('appWrap').style.display='none';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
@@ -1605,7 +1605,7 @@ ${rows}
   const sessionOk = await restoreSbSession();
   if(sessionOk){ showApp(); updateUsersTabVisibility(); }
   else{
-    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('loginScreen').style.display='grid';
     document.getElementById('appWrap').style.display='none';
     const officeSub=document.getElementById('loginOfficeSub');
     if(officeSub) officeSub.textContent=settings.officeName||'مكتب المحاماة';
