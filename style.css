@@ -68,8 +68,9 @@
   --r3:        8px;
 
   /* Fonts */
-  --font:      'Tajawal', sans-serif;
-  --font-d:    'Cairo', sans-serif;
+  --font:      'Readex Pro', 'Tajawal', sans-serif;
+  --font-d:    'Noto Naskh Arabic', 'Cairo', serif;
+  --num:       'IBM Plex Mono', 'Readex Pro', monospace;
 
   /* Layout */
   --sb-w:      220px;
@@ -3421,3 +3422,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   border:1.5px solid rgba(255,255,255,.15) !important;
   color:#B8C0D0 !important;
 }
+
+/* ═══ أرقام tabular (دقّة مالية) ═══ */
+:is(.hero-kpi-value,.cc-amt,.rp-log-amt,.stat-mini-num,.donut-center-val,.rp-log-amt,.pc-amt){font-family:var(--num) !important;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
