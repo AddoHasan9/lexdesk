@@ -3466,7 +3466,7 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 
 /* ═══════════ إصلاح تناسق بطاقة المبلغ + شريط المحامي ═══════════ */
 /* بطاقة المبلغ: زجاج محايد مثل باقي البطاقات (بدل التدرّج الأصفر والحد الذهبي السميك) */
-#appWrap .hero-kpi{ border-right:none !important; border-top:2px solid var(--gold) !important; }
+#appWrap .hero-kpi{ border-right:none !important; border-top:none !important; }
 [data-theme="light"] #appWrap .hero-kpi{
   background:rgba(255,255,255,.68) !important;
   border-inline:1px solid rgba(255,255,255,.72) !important;
