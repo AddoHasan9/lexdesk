@@ -3455,3 +3455,11 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 }
 /* انضباط الذهبي: حدود البطاقات شعرة محايدة (مو ذهبية) */
 :root:not([data-theme="light"]) #appWrap :is(.hero-kpi,.stat-mini,.cases-panel,.rp-card,.chart-card){ border-color:rgba(255,255,255,.09) !important; }
+
+/* ═══════════ المرحلة ٤ — تلميع الجدول ═══════════ */
+/* خلية المبلغ: أرقام tabular، محاذاة، بارزة قليلاً */
+.td-amount{ font-family:var(--num) !important; font-variant-numeric:tabular-nums; letter-spacing:-.02em; font-weight:600 !important; color:var(--text); white-space:nowrap; }
+/* صفوف بارتفاع ثابت ومحاذاة عمودية نظيفة */
+#appWrap .case-row td{ height:56px; vertical-align:middle; }
+/* خلايا فارغة (—) أهدأ */
+#appWrap .case-row .stage-chip:empty, #appWrap .td-lawyer:empty{ opacity:.4; }
