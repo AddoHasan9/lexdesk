@@ -3463,3 +3463,20 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 #appWrap .case-row td{ height:56px; vertical-align:middle; }
 /* خلايا فارغة (—) أهدأ */
 #appWrap .case-row .stage-chip:empty, #appWrap .td-lawyer:empty{ opacity:.4; }
+
+/* ═══════════ إصلاح تناسق بطاقة المبلغ + شريط المحامي ═══════════ */
+/* بطاقة المبلغ: زجاج محايد مثل باقي البطاقات (بدل التدرّج الأصفر والحد الذهبي السميك) */
+#appWrap .hero-kpi{ border-right:none !important; border-top:2px solid var(--gold) !important; }
+[data-theme="light"] #appWrap .hero-kpi{
+  background:rgba(255,255,255,.68) !important;
+  border-inline:1px solid rgba(255,255,255,.72) !important;
+  border-bottom:1px solid rgba(255,255,255,.72) !important;
+}
+:root:not([data-theme="light"]) #appWrap .hero-kpi{
+  background:rgba(255,255,255,.055) !important;
+  border-inline:1px solid rgba(255,255,255,.09) !important;
+  border-bottom:1px solid rgba(255,255,255,.09) !important;
+}
+/* شريط أداء المحامين: ذهبي أهدأ + مسار أنعم */
+#appWrap :is(.rp-prog-fill,.lawyer-bar){ opacity:.82; }
+#appWrap :is(.rp-prog-bar,.lawyer-bar-wrap){ background:var(--glass2) !important; }
