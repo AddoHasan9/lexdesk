@@ -1030,9 +1030,10 @@ async function wadeaUploadBarcode(id,inp){
 }
 
 function calcCvDeadline(){
-  const d=document.getElementById('cvCertDate').value;
-  const t=document.getElementById('cvShareType').value;
+  const d=document.getElementById('cvCertDate')?.value||'';
+  const t=document.getElementById('cvShareType')?.value||'single';
   const el=document.getElementById('cvDeadlineInfo');
+  if(!el)return;
   if(!d){el.innerHTML='';return;}
   const isMulti=t==='multi';
   const days=isMulti?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
@@ -1060,15 +1061,16 @@ function calcCvDeadline(){
 }
 
 function toggleCvWadea(n){
-  const cb=document.getElementById('cv'+n);cb.checked=!cb.checked;
-  document.getElementById('cvcheck'+n).classList.toggle('checked',cb.checked);
+  const cb=document.getElementById('cv'+n);if(cb)cb.checked=!cb.checked;
+  const chk=document.getElementById('cvcheck'+n);if(chk)chk.classList.toggle('checked',cb.checked);
 }
 
 function confirmConvert(){
   const overlay=document.getElementById('cvOverlay');
+  if(!overlay)return;
   const sourceId=Number(overlay.dataset.sourceId);
-  const certDate=document.getElementById('cvCertDate').value;
-  const shareType=document.getElementById('cvShareType').value;
+  const certDate=document.getElementById('cvCertDate')?.value||'';
+  const shareType=document.getElementById('cvShareType')?.value||'single';
   if(!certDate){toast('أدخل تاريخ الشهادة','err');return;}
   const src=cases.find(x=>x.id===sourceId);if(!src)return;
   // Calc deadline (المهلة الرسمية: 37 يوم لمساهم واحد، 55 يوم لأكثر من مساهم)
@@ -1171,8 +1173,8 @@ function advanceWorkflow(){
 }
 function confirmWorkflowCert(){
   const c=cases.find(x=>x.id===wfCaseId);if(!c)return;
-  const no=document.getElementById('wfCertNo').value.trim();
-  const date=document.getElementById('wfCertDate').value;
+  const no=document.getElementById('wfCertNo')?.value?.trim()||'';
+  const date=document.getElementById('wfCertDate')?.value||'';
   if(!no){toast('أدخل رقم الشهادة','err');return;}
   if(!date){toast('أدخل تاريخ الشهادة','err');return;}
   c.certNo=no;c.certDate=date;
@@ -1377,16 +1379,18 @@ function loadSettingsPage(){
 }
 function renderTags(elId,arr,kind){document.getElementById(elId).innerHTML=arr.map((t,i)=>'<div class="tag">'+t+'<button class="tag-del" onclick="removeItem(\''+kind+'\','+i+')">✕</button></div>').join('');}
 function removeItem(kind,i){if(!isAdmin())return;const map={lawyer:'lawyers',type:'types',dept:'depts'};const key=map[kind];if(!key)return;if(kind==='lawyer'&&cases.some(c=>c.lawyer===settings[key][i])){toast('المحامي عنده معاملات','err');return;}if(kind==='type'&&cases.some(c=>c.type===settings[key][i])){toast('النوع مستخدم','err');return;}settings[key].splice(i,1);saveCfg();loadSettingsPage();populateAllDropdowns();toast('تم الحذف','ok');}
-function addLawyer(){if(!isAdmin())return;const v=document.getElementById('newLawyerInp').value.trim();if(!v)return;settings.lawyers.push(v);saveCfg();document.getElementById('newLawyerInp').value='';loadSettingsPage();populateAllDropdowns();}
-function addType(){if(!isAdmin())return;const v=document.getElementById('newTypeInp').value.trim();if(!v)return;settings.types.push(v);saveCfg();document.getElementById('newTypeInp').value='';loadSettingsPage();populateAllDropdowns();}
-function addDept(){if(!isAdmin())return;const v=document.getElementById('newDeptInp').value.trim();if(!v)return;settings.depts.push(v);saveCfg();document.getElementById('newDeptInp').value='';loadSettingsPage();}
+function addLawyer(){if(!isAdmin())return;const inp=document.getElementById('newLawyerInp');if(!inp)return;const v=inp.value.trim();if(!v)return;settings.lawyers.push(v);saveCfg();inp.value='';loadSettingsPage();populateAllDropdowns();}
+function addType(){if(!isAdmin())return;const inp=document.getElementById('newTypeInp');if(!inp)return;const v=inp.value.trim();if(!v)return;settings.types.push(v);saveCfg();inp.value='';loadSettingsPage();populateAllDropdowns();}
+function addDept(){if(!isAdmin())return;const inp=document.getElementById('newDeptInp');if(!inp)return;const v=inp.value.trim();if(!v)return;settings.depts.push(v);saveCfg();inp.value='';loadSettingsPage();}
 async function saveOfficeSettings(){
-  if(!isAdmin())return;settings.officeName=document.getElementById('setOfficeName').value.trim()||'المحامي منتظر الخزرجي';settings.defCurrency=document.getElementById('setDefCur').value;
+  if(!isAdmin())return;
+  const nameInp=document.getElementById('setOfficeName');if(nameInp)settings.officeName=nameInp.value.trim()||'المحامي منتظر الخزرجي';
+  const curInp=document.getElementById('setDefCur');if(curInp)settings.defCurrency=curInp.value;
   const errEl=document.getElementById('passChangeErr');if(errEl)errEl.classList.remove('show');
-  const oldP=document.getElementById('oldPass').value;const newP=document.getElementById('newPass').value;const newP2=document.getElementById('newPass2').value;
-  if(oldP||newP||newP2){const oldHash=await hashPassword(oldP);if(oldHash!==settings.adminPassHash){if(errEl){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');}return;}if(newP.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newP!==newP2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.adminPassHash=await hashPassword(newP);settings.mustChangeAdminPass=false;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('تم تغيير كلمة مرور الأدمن','ok');}
-  const oldU=document.getElementById('oldUserPass').value;const newU=document.getElementById('newUserPass').value;const newU2=document.getElementById('newUserPass2').value;
-  if(oldU||newU||newU2){const oldUHash=await hashPassword(oldU);if(oldUHash!==settings.userPassHash){if(errEl){errEl.textContent='كلمة مرور المستخدم الحالية غلط';errEl.classList.add('show');}return;}if(newU.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newU!==newU2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.userPassHash=await hashPassword(newU);settings.mustChangeUserPass=false;document.getElementById('oldUserPass').value='';document.getElementById('newUserPass').value='';document.getElementById('newUserPass2').value='';toast('تم تغيير كلمة مرور المستخدم','ok');}
+  const oldP=document.getElementById('oldPass')?.value||'';const newP=document.getElementById('newPass')?.value||'';const newP2=document.getElementById('newPass2')?.value||'';
+  if(oldP||newP||newP2){const oldHash=await hashPassword(oldP);if(oldHash!==settings.adminPassHash){if(errEl){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');}return;}if(newP.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newP!==newP2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.adminPassHash=await hashPassword(newP);settings.mustChangeAdminPass=false;if(document.getElementById('oldPass'))document.getElementById('oldPass').value='';if(document.getElementById('newPass'))document.getElementById('newPass').value='';if(document.getElementById('newPass2'))document.getElementById('newPass2').value='';toast('تم تغيير كلمة مرور الأدمن','ok');}
+  const oldU=document.getElementById('oldUserPass')?.value||'';const newU=document.getElementById('newUserPass')?.value||'';const newU2=document.getElementById('newUserPass2')?.value||'';
+  if(oldU||newU||newU2){const oldUHash=await hashPassword(oldU);if(oldUHash!==settings.userPassHash){if(errEl){errEl.textContent='كلمة مرور المستخدم الحالية غلط';errEl.classList.add('show');}return;}if(newU.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newU!==newU2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.userPassHash=await hashPassword(newU);settings.mustChangeUserPass=false;if(document.getElementById('oldUserPass'))document.getElementById('oldUserPass').value='';if(document.getElementById('newUserPass'))document.getElementById('newUserPass').value='';if(document.getElementById('newUserPass2'))document.getElementById('newUserPass2').value='';toast('تم تغيير كلمة مرور المستخدم','ok');}
   showSyncStatus('saving');
   await saveCfg();
   showSyncStatus('saved');
@@ -1936,7 +1940,7 @@ function printDeficiency(){
   @media print{.close-btn{display:none}}
 </style>
 </head><body>
-<button class="close-btn" onclick="window.parent.document.getElementById('__printFrame').remove()">✕ إغلاق</button>
+<button class="close-btn" onclick="try{window.parent?.document?.getElementById('__printFrame')?.remove();}catch(e){}">✕ إغلاق</button>
 <div class="hdr">
   <h1>سجل النواقص — ${settings.officeName||'المحامي منتظر الخزرجي'}</h1>
   <div class="date">${new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})}</div>
@@ -2609,8 +2613,8 @@ async function imgToPdf(){
   toolSetResult('itpResult','<div class="tool-progress">جاري التحويل...</div>');
   try{
     const {jsPDF}=window.jspdf;
-    const size=document.getElementById('itpSize').value;
-    const ori=document.getElementById('itpOri').value;
+    const size=document.getElementById('itpSize')?.value||'a4';
+    const ori=document.getElementById('itpOri')?.value||'p';
     const pdf=new jsPDF(ori,'mm',size);
     const W=pdf.internal.pageSize.getWidth();
     const H=pdf.internal.pageSize.getHeight();
@@ -2648,8 +2652,8 @@ async function pdfToImg(){
   if(!lib){toast('مكتبة PDF.js لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('ptiResult','<div class="tool-progress">جاري قراءة PDF...</div>');
   try{
-    const scale=parseFloat(document.getElementById('ptiQuality').value);
-    const imgFmt=document.getElementById('ptiFormat').value;
+    const scale=parseFloat(document.getElementById('ptiQuality')?.value||'1.5');
+    const imgFmt=document.getElementById('ptiFormat')?.value||'jpeg';
     const mimeType='image/'+imgFmt;
     const ab=await files[0].arrayBuffer();
     const loadTask=lib.getDocument({data:new Uint8Array(ab)});
@@ -2685,8 +2689,8 @@ async function compressImg(){
   if(!files||!files.length){toast('اختر صورة أولاً','err');return;}
   toolSetResult('ciResult','<div class="tool-progress">جاري الضغط...</div>');
   try{
-    const quality=parseInt(document.getElementById('ciQuality').value)/100;
-    const maxW=parseInt(document.getElementById('ciMaxW').value)||0;
+    const quality=parseInt(document.getElementById('ciQuality')?.value||'80')/100;
+    const maxW=parseInt(document.getElementById('ciMaxW')?.value||'0')||0;
     const file=files[0];const origSize=file.size;
     const objectUrl=URL.createObjectURL(file);
     const img=new Image();img.src=objectUrl;
@@ -2723,7 +2727,7 @@ async function compressPdf(){
   if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('cpResult','<div class="tool-progress">جاري ضغط PDF...</div>');
   try{
-    const level=document.getElementById('cpLevel').value;
+    const level=document.getElementById('cpLevel')?.value||'med';
     const scaleMap={high:0.9,med:1.3,low:1.8};
     const qualMap={high:0.50,med:0.68,low:0.85};
     const scale=scaleMap[level];const imgQ=qualMap[level];
