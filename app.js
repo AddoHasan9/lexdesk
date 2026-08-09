@@ -987,9 +987,10 @@ function wadeaCardHtml(it){
   return '<div class="wadea-card">'
     +'<div class="wadea-card-hd">'
       +'<span class="wadea-card-badge">'+it.done+'/4 محطات</span>'
-      +'<button class="wadea-card-ic" title="فتح المعاملة" onclick="closeDetail();openDetail('+c.id+')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg></button>'
+      +'<img class="wadea-card-logo" src="logo.png" alt="شعار">'
       +'<div class="wadea-card-name">'+esc(c.company)+'</div>'
       +(submitStr?'<div class="wadea-card-sub">أُطلقت بتاريخ '+submitStr+'</div>':'')
+      +'<button class="wadea-card-ic" title="فتح المعاملة" onclick="closeDetail();openDetail('+c.id+')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg></button>'
     +'</div>'
     +'<div class="wadea-card-body">'+step1Html+step2Html+step3Html+step4Html+doneBox+'</div>'
     +footer

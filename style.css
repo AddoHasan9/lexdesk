@@ -3612,3 +3612,44 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .wadea-page-card .rt .fine{ font-family:var(--num,inherit); font-size:11px; color:var(--text2); margin-top:2px; }
 .wadea-empty{ text-align:center; padding:60px 20px; color:var(--text3); }
 .wadea-empty svg{ width:44px; height:44px; opacity:.4; margin-bottom:10px; }
+
+/* ═══════════ صفحة إطلاق وديعة — كارتات سير عمل (v2) ═══════════ */
+.wadea-hd{ margin-bottom:20px; }
+.wadea-hd-t{ font-family:var(--font-d,inherit); font-size:19px; font-weight:800; color:var(--text); }
+.wadea-hd-sub{ font-size:12.5px; color:var(--text2); margin-top:4px; }
+.wadea-kanban{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; align-items:start; }
+.wadea-card{ border:1px solid var(--border); background:var(--bg2); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--sh-sm,0 2px 8px rgba(0,0,0,.06)); }
+.wadea-card-hd{ position:relative; padding:14px 16px 12px; border-bottom:1px solid var(--border); background:var(--glass); }
+.wadea-card-badge{ display:inline-flex; padding:4px 10px; border-radius:999px; background:var(--gold-g); color:var(--gold); font-size:11px; font-weight:800; }
+.wadea-card-ic{ position:absolute; top:12px; inset-inline-end:14px; width:30px; height:30px; border-radius:9px; border:1px solid var(--border); background:var(--bg2); color:var(--text2); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:var(--t); }
+.wadea-card-ic:hover{ color:var(--gold); border-color:var(--gold); }
+.wadea-card-name{ font-size:15px; font-weight:800; color:var(--text); margin-top:9px; line-height:1.4; }
+.wadea-card-sub{ font-size:11.5px; color:var(--text2); margin-top:4px; }
+.wadea-card-body{ padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+.wf4-step{ border:1px solid var(--border); border-radius:12px; padding:11px 13px; }
+.wf4-hd{ display:flex; align-items:center; gap:8px; }
+.wf4-num{ width:20px; height:20px; border-radius:50%; background:var(--bg3); color:var(--text2); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.wf4-name{ flex:1; font-size:13px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:5px; }
+.wf4-chk{ width:14px; height:14px; color:var(--green); flex:0 0 auto; }
+.wf4-badge{ font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:999px; flex:0 0 auto; }
+.wf4-badge.wait{ background:var(--orange-g); color:var(--orange); }
+.wf4-badge.done{ background:var(--green-g); color:var(--green); }
+.wf4-btn{ width:100%; margin-top:9px; height:34px; border:none; border-radius:9px; cursor:pointer; font-family:inherit; font-size:12px; font-weight:800; color:#0A1810; background:var(--green); transition:var(--t); }
+.wf4-btn:hover:not(:disabled){ filter:brightness(1.06); transform:translateY(-1px); }
+.wf4-btn:disabled{ background:var(--bg3); color:var(--text3); cursor:not-allowed; }
+.wf4-warn{ margin-top:9px; padding:9px 11px; border-radius:9px; background:var(--red-g); border:1px solid rgba(255,85,114,.25); color:var(--red); font-size:11.5px; font-weight:600; line-height:1.6; }
+.wf4-upload{ margin-top:9px; }
+.wf4-upload-lbl{ font-size:11.5px; color:var(--text2); font-weight:600; margin-bottom:7px; }
+.wf4-upload input[type=file]{ width:100%; font-size:11px; color:var(--text2); }
+.wf4-file-link{ display:flex; align-items:center; gap:6px; margin-top:9px; padding:8px 11px; border-radius:9px; background:var(--green-g); color:var(--green); font-size:12px; font-weight:700; text-decoration:none; }
+.wf4-success{ display:flex; align-items:flex-start; gap:10px; padding:13px 14px; border-radius:13px; background:var(--green-g); border:1px solid rgba(34,211,160,.3); color:var(--green); }
+.wf4-success b{ font-size:12.5px; display:block; }
+.wf4-success-sub{ font-size:11px; color:var(--text2); font-weight:400; margin-top:4px; line-height:1.6; }
+.wf4-foot{ display:flex; align-items:center; gap:7px; padding:11px 16px; border-top:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text2); }
+.wf4-foot.soon{ color:var(--orange); background:var(--orange-g); }
+.wf4-foot.late{ color:var(--red); background:var(--red-g); }
+.wf4-foot.done{ color:var(--green); background:var(--green-g); }
+.wf4-foot-date{ margin-inline-start:auto; font-weight:500; color:var(--text3); font-size:11px; }
+
+/* شعار صغير برأس بطاقة إطلاق الوديعة */
+.wadea-card-logo{ position:absolute; top:12px; inset-inline-end:52px; width:28px; height:28px; object-fit:contain; }
