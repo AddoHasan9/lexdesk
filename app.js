@@ -65,12 +65,13 @@ function sanitizeCase(c){
   const safe = {};
   const allowed = ['id','company','type','lawyer','status','currency','amountIQD','amountUSD',
     'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
-    'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone'];
+    'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
+    'workflowStage','workflowDates','certNo','certDate','amountIncludes'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
-    if(k === 'log' || k === 'comments'){
-      try { safe[k] = JSON.parse(JSON.stringify(v||[])); } catch(e){ safe[k]=[]; }
+    if(k === 'log' || k === 'comments' || k === 'workflowDates' || k === 'amountIncludes'){
+      try { safe[k] = JSON.parse(JSON.stringify(v||(k==='amountIncludes'?[]:{}))); } catch(e){ safe[k]=(k==='amountIncludes'?[]:{}); }
     } else {
       safe[k] = (typeof v === 'string'||typeof v === 'number'||typeof v === 'boolean'||v===null) ? v : String(v||'');
     }
