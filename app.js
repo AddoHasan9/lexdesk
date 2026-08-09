@@ -66,7 +66,8 @@ function sanitizeCase(c){
   const allowed = ['id','company','type','lawyer','status','currency','amountIQD','amountUSD',
     'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
-    'workflowStage','workflowDates','certNo','certDate','amountIncludes'];
+    'workflowStage','workflowDates','certNo','certDate','amountIncludes',
+    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
@@ -892,6 +893,17 @@ function renderWadeaAlerts(){
 }
 
 // ══ صفحة إطلاق وديعة (شريط جانبي) ══
+const WADEA_STEP_NAMES=['أُرسلت على النظام','كتاب المشاور مكتمل','كتاب المحاسب مكتمل','رفع باركود / QR الشركة'];
+
+function wadeaStepsDone(c){
+  let n=0;
+  if(c.wadeaStep1)n++;
+  if(c.wadeaStep2)n++;
+  if(c.wadeaStep3)n++;
+  if(c.wadeaBarcodeUrl)n++;
+  return n;
+}
+
 function buildWadeaPage(){
   const body=document.getElementById('wadeaBody');if(!body)return;
   const today=new Date();today.setHours(0,0,0,0);
@@ -905,28 +917,110 @@ function buildWadeaPage(){
       const d=Math.round((canSendFrom-today)/(1000*60*60*24));
       if(d>0)earlyDiff=d;
     }
-    return {c,diff,fine,earlyDiff};
+    return {c,diff,fine,earlyDiff,done:wadeaStepsDone(c)};
   }).sort((a,b)=>a.diff-b.diff);
 
   if(!list.length){
     body.innerHTML='<div class="wadea-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h12M6 22h12M6 2c0 5 4 6 6 10 2-4 6-5 6-10M6 22c0-5 4-6 6-10"/></svg><div>لا توجد شركات بانتظار إطلاق الوديعة حالياً</div></div>';
     return;
   }
-  body.innerHTML='<div class="wadea-page-list">'+list.map(it=>{
-    const late=it.diff<0;const soon=!late&&it.diff<=7;
-    const cls=late?'late':soon?'soon':'ok';
-    const icon=late?'⚠':it.earlyDiff?'⏳':soon?'⏰':'✓';
-    let statusTxt,fineTxt='';
-    if(it.earlyDiff){statusTxt='لا تُرسل قبل '+it.earlyDiff+' يوم';}
-    else if(late){statusTxt='متأخرة '+Math.abs(it.diff)+' يوم';fineTxt=it.fine.toLocaleString()+' د.ع';}
-    else{statusTxt='باقي '+it.diff+' يوم';}
-    const deadlineStr=new Date(it.c.wadeaDeadline).toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
-    return '<div class="wadea-page-card '+cls+'" onclick="closeDetail();openDetail('+it.c.id+')">'
-      +'<div class="ic">'+icon+'</div>'
-      +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">الموعد النهائي: '+deadlineStr+' • '+(it.c.wadeaShareholderType==='multi'?'أكثر من مساهم':'مساهم واحد')+'</div></div>'
-      +'<div class="rt"><div class="st">'+statusTxt+'</div>'+(fineTxt?'<div class="fine">'+fineTxt+'</div>':'')+'</div>'
-      +'</div>';
-  }).join('')+'</div>';
+
+  body.innerHTML='<div class="wadea-hd"><div class="wadea-hd-t">إدارة إطلاق الوديعة والمحطات الأربع الإلزامية</div><div class="wadea-hd-sub">'+list.length+' ودائع متابعة</div></div>'
+    +'<div class="wadea-kanban">'+list.map(it=>wadeaCardHtml(it)).join('')+'</div>';
+}
+
+function wadeaCardHtml(it){
+  const c=it.c;
+  const deadlineStr=new Date(c.wadeaDeadline).toLocaleDateString('ar-IQ',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'/');
+  const submitStr=c.wadeaCertDate?new Date(c.wadeaCertDate).toLocaleDateString('ar-IQ',{year:'numeric',month:'2-digit',day:'2-digit'}):'';
+  const allDone3=c.wadeaStep1&&c.wadeaStep2&&c.wadeaStep3;
+  const barcodeDone=!!c.wadeaBarcodeUrl;
+
+  // ── الخطوة 1: الإرسال على النظام (مع تنبيه المنع المبكر) ──
+  let step1Html='<div class="wf4-step"><div class="wf4-hd"><span class="wf4-badge '+(c.wadeaStep1?'done':'wait')+'">'+(c.wadeaStep1?'مكتملة':'في الانتظار')+'</span><span class="wf4-name">'+(c.wadeaStep1?'<svg class="wf4-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ':'')+'أُرسلت على النظام</span><span class="wf4-num">1</span></div>';
+  if(it.earlyDiff&&!c.wadeaStep1){
+    step1Html+='<div class="wf4-warn">⚠ شركة شركاء متعدّدين: يتطلّب الانتظار '+it.earlyDiff+' يوماً إضافياً من تاريخ الشهادة للإرسال على النظام.</div>';
+  }
+  if(!c.wadeaStep1){
+    step1Html+='<button class="wf4-btn" '+(it.earlyDiff?'disabled title="لا يمكن الإرسال قبل انتهاء المهلة"':'')+' onclick="wadeaStepDone('+c.id+',1)">✓ تأكيد الإكمال</button>';
+  }
+  step1Html+='</div>';
+
+  // ── الخطوة 2: كتاب المشاور ──
+  let step2Html='<div class="wf4-step"><div class="wf4-hd"><span class="wf4-badge '+(c.wadeaStep2?'done':'wait')+'">'+(c.wadeaStep2?'مكتملة':'في الانتظار')+'</span><span class="wf4-name">'+(c.wadeaStep2?'<svg class="wf4-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ':'')+'كتاب المشاور مكتمل</span><span class="wf4-num">2</span></div>'
+    +(!c.wadeaStep2?'<button class="wf4-btn" onclick="wadeaStepDone('+c.id+',2)">✓ تأكيد الإكمال</button>':'')
+    +'</div>';
+
+  // ── الخطوة 3: كتاب المحاسب ──
+  let step3Html='<div class="wf4-step"><div class="wf4-hd"><span class="wf4-badge '+(c.wadeaStep3?'done':'wait')+'">'+(c.wadeaStep3?'مكتملة':'في الانتظار')+'</span><span class="wf4-name">'+(c.wadeaStep3?'<svg class="wf4-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ':'')+'كتاب المحاسب مكتمل</span><span class="wf4-num">3</span></div>'
+    +(!c.wadeaStep3?'<button class="wf4-btn" onclick="wadeaStepDone('+c.id+',3)">✓ تأكيد الإكمال</button>':'')
+    +'</div>';
+
+  // ── الخطوة 4: رفع باركود/QR ──
+  let step4Html='<div class="wf4-step"><div class="wf4-hd"><span class="wf4-badge '+(barcodeDone?'done':'wait')+'">'+(barcodeDone?'مكتملة':'في الانتظار')+'</span><span class="wf4-name">'+(barcodeDone?'<svg class="wf4-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> ':'')+'رفع باركود / QR الشركة</span><span class="wf4-num">4</span></div>';
+  if(barcodeDone){
+    step4Html+='<a class="wf4-file-link" href="'+safeUrl(c.wadeaBarcodeUrl)+'" target="_blank" rel="noopener">📎 '+esc(c.wadeaBarcodeName||'الملف المرفوع')+'</a>';
+  }else{
+    step4Html+='<div class="wf4-upload"><div class="wf4-upload-lbl">اختر صورة الباركود/QR الخاصة بالشركة للرفع:</div><input type="file" accept="image/*" id="wf4File_'+c.id+'" onchange="wadeaUploadBarcode('+c.id+',this)"></div>';
+  }
+  step4Html+='</div>';
+
+  // ── صندوق الحالة النهائية (لو 3 خطوات مكتملة وبانتظار الباركود بس) ──
+  let doneBox='';
+  if(allDone3&&!barcodeDone){
+    doneBox='<div class="wf4-success"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg>'
+      +'<div><b>أُرسلت على النظام (بانتظار رفع الباركود لإكمال الإطلاق)</b>'
+      +'<div class="wf4-success-sub">توقّف احتساب الغرامة — يرجى رفع باركود الشركة لاستكمال الإطلاق النهائي.</div></div></div>';
+  }
+
+  // ── تذييل: أيام متبقية / مكتملة ──
+  let footer='';
+  if(barcodeDone){
+    footer='<div class="wf4-foot done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> اكتمل الإطلاق</div>';
+  }else{
+    const late=it.diff<0;
+    footer='<div class="wf4-foot '+(late?'late':it.diff<=7?'soon':'')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '
+      +(late?'متأخرة '+Math.abs(it.diff)+' يوم':it.diff+' يوم متبقٍ')
+      +'<span class="wf4-foot-date">تنتهي المهلة بتاريخ '+deadlineStr+'</span></div>';
+  }
+
+  return '<div class="wadea-card">'
+    +'<div class="wadea-card-hd">'
+      +'<span class="wadea-card-badge">'+it.done+'/4 محطات</span>'
+      +'<button class="wadea-card-ic" title="فتح المعاملة" onclick="closeDetail();openDetail('+c.id+')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg></button>'
+      +'<div class="wadea-card-name">'+esc(c.company)+'</div>'
+      +(submitStr?'<div class="wadea-card-sub">أُطلقت بتاريخ '+submitStr+'</div>':'')
+    +'</div>'
+    +'<div class="wadea-card-body">'+step1Html+step2Html+step3Html+step4Html+doneBox+'</div>'
+    +footer
+    +'</div>';
+}
+
+function wadeaStepDone(id,step){
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  const dateStr=new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  c['wadeaStep'+step]=true;
+  c['wadeaStep'+step+'Date']=dateStr;
+  addLog(c,'edit','إطلاق الوديعة: '+WADEA_STEP_NAMES[step-1],currentUser||'الأدمن');
+  saveData();
+  buildWadeaPage();
+  renderWadeaAlerts();
+}
+
+async function wadeaUploadBarcode(id,inp){
+  const file=inp.files[0];if(!file)return;
+  if(file.size>10*1024*1024){toast('الملف أكبر من 10MB','err');return;}
+  const c=cases.find(x=>x.id===id);if(!c)return;
+  toast('جاري رفع الملف...','ok');
+  const url=await uploadAttachment(file,c.company);
+  if(!url)return;
+  c.wadeaBarcodeUrl=url;
+  c.wadeaBarcodeName=file.name;
+  addLog(c,'edit','إطلاق الوديعة: '+WADEA_STEP_NAMES[3],currentUser||'الأدمن');
+  saveData();
+  buildWadeaPage();
+  renderWadeaAlerts();
+  toast('✓ تم رفع الباركود','ok');
 }
 
 function calcCvDeadline(){
