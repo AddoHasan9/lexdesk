@@ -191,7 +191,7 @@ async function loadAll(){
   let localSettings={};
   try{const s=localStorage.getItem(SK_S);localSettings=s?JSON.parse(s):{};}catch(e){localSettings={};}
   settings=localSettings;
-  settings.officeName=settings.officeName||'مكتب المحاماة';
+  settings.officeName=settings.officeName||'المحامي منتظر الخزرجي';
   settings.defCurrency=settings.defCurrency||'IQD';
   settings.lawyers=settings.lawyers||[...DEFAULT_LAWYERS];
   settings.types=settings.types||[...DEFAULT_TYPES];
@@ -534,7 +534,7 @@ function showApp(){
   const mnMnAv=document.getElementById('mobMenuAv');if(mnMnAv)mnMnAv.textContent=_initials;
   const mnMnName=document.getElementById('mobMenuName');if(mnMnName)mnMnName.textContent=_displayName;
   const mnMnRole=document.getElementById('mobMenuRole');if(mnMnRole)mnMnRole.textContent=isAdmin()?'مدير النظام':'مستخدم';
-  const officeName=settings.officeName||'مكتب المحاماة';
+  const officeName=settings.officeName||'المحامي منتظر الخزرجي';
   const tb=document.getElementById('officeTitle');if(tb)tb.textContent=officeName;
   const ls=document.getElementById('loginOfficeSub');if(ls)ls.textContent=officeName;
   const sl=document.getElementById('sbLogoText');if(sl)sl.textContent=officeName;
@@ -1219,7 +1219,7 @@ function addLawyer(){if(!isAdmin())return;const v=document.getElementById('newLa
 function addType(){if(!isAdmin())return;const v=document.getElementById('newTypeInp').value.trim();if(!v)return;settings.types.push(v);saveCfg();document.getElementById('newTypeInp').value='';loadSettingsPage();populateAllDropdowns();}
 function addDept(){if(!isAdmin())return;const v=document.getElementById('newDeptInp').value.trim();if(!v)return;settings.depts.push(v);saveCfg();document.getElementById('newDeptInp').value='';loadSettingsPage();}
 async function saveOfficeSettings(){
-  if(!isAdmin())return;settings.officeName=document.getElementById('setOfficeName').value.trim()||'مكتب المحاماة';settings.defCurrency=document.getElementById('setDefCur').value;
+  if(!isAdmin())return;settings.officeName=document.getElementById('setOfficeName').value.trim()||'المحامي منتظر الخزرجي';settings.defCurrency=document.getElementById('setDefCur').value;
   const errEl=document.getElementById('passChangeErr');if(errEl)errEl.classList.remove('show');
   const oldP=document.getElementById('oldPass').value;const newP=document.getElementById('newPass').value;const newP2=document.getElementById('newPass2').value;
   if(oldP||newP||newP2){const oldHash=await hashPassword(oldP);if(oldHash!==settings.adminPassHash){if(errEl){errEl.textContent='كلمة مرور الأدمن الحالية غلط';errEl.classList.add('show');}return;}if(newP.length<6){if(errEl){errEl.textContent='لازم 6 أحرف على الأقل';errEl.classList.add('show');}return;}if(newP!==newP2){if(errEl){errEl.textContent='كلمتا المرور غير متطابقتان';errEl.classList.add('show');}return;}settings.adminPassHash=await hashPassword(newP);settings.mustChangeAdminPass=false;document.getElementById('oldPass').value='';document.getElementById('newPass').value='';document.getElementById('newPass2').value='';toast('تم تغيير كلمة مرور الأدمن','ok');}
@@ -1755,7 +1755,7 @@ function printDeficiency(){
   doc.open();
   doc.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
 <meta charset="UTF-8">
-<title>سجل النواقص — ${settings.officeName||'مكتب المحاماة'}</title>
+<title>سجل النواقص — ${settings.officeName||'المحامي منتظر الخزرجي'}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:Tajawal,Arial,sans-serif;color:#000;background:#fff;padding:28px 36px;direction:rtl;font-size:14px}
@@ -1776,7 +1776,7 @@ function printDeficiency(){
 </head><body>
 <button class="close-btn" onclick="window.parent.document.getElementById('__printFrame').remove()">✕ إغلاق</button>
 <div class="hdr">
-  <h1>سجل النواقص — ${settings.officeName||'مكتب المحاماة'}</h1>
+  <h1>سجل النواقص — ${settings.officeName||'المحامي منتظر الخزرجي'}</h1>
   <div class="date">${new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})}</div>
 </div>
 ${rows}
@@ -1807,7 +1807,7 @@ ${rows}
     document.getElementById('loginScreen').style.display='grid';
     document.getElementById('appWrap').style.display='none';
     const officeSub=document.getElementById('loginOfficeSub');
-    if(officeSub) officeSub.textContent=settings.officeName||'مكتب المحاماة';
+    if(officeSub) officeSub.textContent=settings.officeName||'المحامي منتظر الخزرجي';
     switchLoginMode('login');
     setTimeout(()=>{ const e=document.getElementById('emailInp'); if(e)e.focus(); },300);
   }
