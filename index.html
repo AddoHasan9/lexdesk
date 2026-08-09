@@ -161,6 +161,13 @@
       <span class="tip">متابعة نواقص الشركات</span>
     </button>
 
+    <button class="sb-btn" id="sbWadea" onclick="goPage('wadea')">
+      <span class="iconify" data-icon="solar:hourglass-line-bold-duotone" data-width="18"></span>
+      <span class="sb-lbl">إطلاق وديعة</span>
+      <span class="tip">شركات بانتظار إطلاق الوديعة</span>
+      <span class="tip-badge" id="sbWadeaBadge" style="display:none"></span>
+    </button>
+
     <div class="sb-sep"></div>
 
     <!-- Add new -->
@@ -784,6 +791,14 @@
   <div id="defBody" style="padding:0 20px 20px"></div>
 </div>
 <div id="defPrintArea" class="def-print-area"></div>
+
+<!-- WADEA PAGE (إطلاق وديعة) -->
+<div class="page" id="pageWadea" style="display:none">
+  <div class="page-hd">
+    <div><div class="page-title"><span class="iconify" data-icon="solar:hourglass-line-bold-duotone" data-width="20" style="color:var(--gold)"></span> إطلاق وديعة</div><div class="page-sub">الشركات اللي أسّست وبانتظار إطلاق الوديعة — مرتّبة حسب الأقرب للمهلة</div></div>
+  </div>
+  <div id="wadeaBody" style="padding:0 20px 20px"></div>
+</div>
 
 <!-- SETTINGS PAGE -->
 <div class="page" id="pageSettings">

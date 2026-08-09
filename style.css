@@ -3584,3 +3584,31 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 @media (prefers-reduced-motion:reduce){ .wf-spinner{ animation:none; } .wf-step{ animation:none; opacity:1; transform:none; } }
 @keyframes wfPop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 .wf-dot.pop{ animation:wfPop .5s cubic-bezier(.34,1.4,.5,1); }
+
+/* ═══════════ قسم إطلاق وديعة (شريط جانبي + صفحة + زر إخفاء) ═══════════ */
+.tip-badge{ position:absolute; top:6px; inset-inline-start:10px; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
+  background:var(--red); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; }
+.wadea-alert{ position:relative; padding-inline-end:40px; }
+.wadea-alert-x{ position:absolute; top:8px; inset-inline-end:8px; width:24px; height:24px; border-radius:50%; border:none;
+  background:rgba(0,0,0,.06); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--t); }
+.wadea-alert-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
+.wadea-page-list{ display:flex; flex-direction:column; gap:10px; }
+.wadea-page-card{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--glass); cursor:pointer; transition:var(--t); }
+.wadea-page-card:hover{ transform:translateY(-1px); border-color:var(--gold); }
+.wadea-page-card.late{ border-color:rgba(255,85,114,.35); background:var(--red-g); }
+.wadea-page-card.soon{ border-color:rgba(251,146,60,.35); background:var(--orange-g); }
+.wadea-page-card .ic{ width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; flex:0 0 auto; }
+.wadea-page-card.late .ic{ background:rgba(255,85,114,.16); }
+.wadea-page-card.soon .ic{ background:rgba(251,146,60,.16); }
+.wadea-page-card.ok .ic{ background:var(--green-g); }
+.wadea-page-card .tx{ flex:1; min-width:0; }
+.wadea-page-card .tn{ font-size:14px; font-weight:700; color:var(--text); }
+.wadea-page-card .ts{ font-size:12px; color:var(--text2); margin-top:3px; }
+.wadea-page-card .rt{ text-align:left; flex:0 0 auto; }
+.wadea-page-card .rt .st{ font-size:12.5px; font-weight:800; }
+.wadea-page-card.late .rt .st{ color:var(--red); }
+.wadea-page-card.soon .rt .st{ color:var(--orange); }
+.wadea-page-card.ok .rt .st{ color:var(--green); }
+.wadea-page-card .rt .fine{ font-family:var(--num,inherit); font-size:11px; color:var(--text2); margin-top:2px; }
+.wadea-empty{ text-align:center; padding:60px 20px; color:var(--text3); }
+.wadea-empty svg{ width:44px; height:44px; opacity:.4; margin-bottom:10px; }

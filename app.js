@@ -647,6 +647,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 function render(){
   renderWadeaAlerts();
+  const pgWadea=document.getElementById('pageWadea');
+  if(pgWadea&&pgWadea.style.display!=='none')buildWadeaPage();
   const q=(document.getElementById('searchInp').value||'').trim().toLowerCase();
   const ft=document.getElementById('filterType').value;
   const fl=document.getElementById('filterLawyer').value;
@@ -840,20 +842,40 @@ function calcWadeaFine(daysLate){
 }
 
 // ══ تنبيهات مهلة إطلاق الوديعة (اللوحة الرئيسية) ══
+function getWadeaDismissed(){
+  try{return JSON.parse(localStorage.getItem('lexdesk_wadea_dismissed')||'{}');}catch(e){return {};}
+}
+function dismissWadeaAlert(id,key,ev){
+  if(ev)ev.stopPropagation();
+  const d=getWadeaDismissed();
+  d[id]=key;
+  localStorage.setItem('lexdesk_wadea_dismissed',JSON.stringify(d));
+  renderWadeaAlerts();
+}
 function renderWadeaAlerts(){
   const box=document.getElementById('wadeaAlerts');
-  if(!box)return;
   const today=new Date();today.setHours(0,0,0,0);
-  const items=[];
+  const dismissed=getWadeaDismissed();
+  const items=[];let lateCount=0;
   cases.forEach(c=>{
     if(c.type!==WADEA_TYPE||!c.wadeaDeadline||c.wadeaDone)return;
     const deadline=new Date(c.wadeaDeadline);
     const diff=Math.round((deadline-today)/(1000*60*60*24));
+    if(diff<0)lateCount++;
     if(diff<=7){ // متأخرة أو باقي أسبوع فأقل
       const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
-      items.push({c,diff,fine});
+      const key='d'+diff;
+      if(dismissed[c.id]===key)return;
+      items.push({c,diff,fine,key});
     }
   });
+  // بادج الشريط الجانبي
+  const badge=document.getElementById('sbWadeaBadge');
+  if(badge){
+    if(lateCount>0){badge.style.display='flex';badge.textContent=lateCount;}
+    else badge.style.display='none';
+  }
+  if(!box)return;
   if(!items.length){box.style.display='none';box.innerHTML='';return;}
   items.sort((a,b)=>a.diff-b.diff);
   box.style.display='flex';box.className='wadea-alert-wrap';
@@ -864,8 +886,47 @@ function renderWadeaAlerts(){
       +'<div class="ic">'+(late?'⚠':'⏰')+'</div>'
       +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">'+msg+'</div></div>'
       +(late?'<div class="fine">'+it.fine.toLocaleString()+' د.ع</div>':'')
+      +'<button class="wadea-alert-x" title="إخفاء" onclick="dismissWadeaAlert('+it.c.id+',\''+it.key+'\',event)">✕</button>'
       +'</div>';
   }).join('');
+}
+
+// ══ صفحة إطلاق وديعة (شريط جانبي) ══
+function buildWadeaPage(){
+  const body=document.getElementById('wadeaBody');if(!body)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const list=cases.filter(c=>c.type===WADEA_TYPE&&c.wadeaDeadline&&!c.wadeaDone).map(c=>{
+    const deadline=new Date(c.wadeaDeadline);
+    const diff=Math.round((deadline-today)/(1000*60*60*24));
+    const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
+    let earlyDiff=null;
+    if(c.wadeaShareholderType==='multi'&&c.wadeaCertDate){
+      const canSendFrom=new Date(c.wadeaCertDate);canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
+      const d=Math.round((canSendFrom-today)/(1000*60*60*24));
+      if(d>0)earlyDiff=d;
+    }
+    return {c,diff,fine,earlyDiff};
+  }).sort((a,b)=>a.diff-b.diff);
+
+  if(!list.length){
+    body.innerHTML='<div class="wadea-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2h12M6 22h12M6 2c0 5 4 6 6 10 2-4 6-5 6-10M6 22c0-5 4-6 6-10"/></svg><div>لا توجد شركات بانتظار إطلاق الوديعة حالياً</div></div>';
+    return;
+  }
+  body.innerHTML='<div class="wadea-page-list">'+list.map(it=>{
+    const late=it.diff<0;const soon=!late&&it.diff<=7;
+    const cls=late?'late':soon?'soon':'ok';
+    const icon=late?'⚠':it.earlyDiff?'⏳':soon?'⏰':'✓';
+    let statusTxt,fineTxt='';
+    if(it.earlyDiff){statusTxt='لا تُرسل قبل '+it.earlyDiff+' يوم';}
+    else if(late){statusTxt='متأخرة '+Math.abs(it.diff)+' يوم';fineTxt=it.fine.toLocaleString()+' د.ع';}
+    else{statusTxt='باقي '+it.diff+' يوم';}
+    const deadlineStr=new Date(it.c.wadeaDeadline).toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+    return '<div class="wadea-page-card '+cls+'" onclick="closeDetail();openDetail('+it.c.id+')">'
+      +'<div class="ic">'+icon+'</div>'
+      +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">الموعد النهائي: '+deadlineStr+' • '+(it.c.wadeaShareholderType==='multi'?'أكثر من مساهم':'مساهم واحد')+'</div></div>'
+      +'<div class="rt"><div class="st">'+statusTxt+'</div>'+(fineTxt?'<div class="fine">'+fineTxt+'</div>':'')+'</div>'
+      +'</div>';
+  }).join('')+'</div>';
 }
 
 function calcCvDeadline(){
@@ -1200,8 +1261,8 @@ function setView(v){
 }
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
-  ['dash','charts','reports','tools','settings','deficiency'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
-  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);
+  ['dash','charts','reports','tools','settings','deficiency','wadea'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
+  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);
 }
 function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
