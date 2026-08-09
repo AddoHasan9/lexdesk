@@ -783,7 +783,7 @@ function closeAllDrops(){const d=document.getElementById('flDrop');if(d)d.remove
 // ══ FORM ══
 let selLawyer='',selStatus='قيد المعالجة',selCur='IQD',selDept='';
 const WADEA_TYPE='إطلاق وديعة';
-const AMT_INC_ITEMS=['هوية ضريبية','قوة مستورد','كتاب مستشار قانوني','كتاب محاسب','كتاب مصرف','قوة اتحاد مقاولين'];
+const AMT_INC_ITEMS=['هوية ضريبية','هوية مستورد','كتاب مستشار قانوني','كتاب محاسب','كتاب مصرف','هوية اتحاد مقاولين','هوية غرفة تجارة'];
 let selAmtInc=[];
 function buildAmtIncGrid(){
   document.getElementById('amtIncGrid').innerHTML=AMT_INC_ITEMS.map((it,i)=>{
@@ -938,6 +938,92 @@ function closeCvOverlay(){
   setTimeout(()=>{ov.style.display='none';},200);
 }
 
+// ══════════════ تتبّع سير العمل (تأسيس شركة) ══════════════
+const WF_STEPS=['الإرسال على النظام','موافقة غرفة التجارة','موافقة اتحاد الغرف','إصدار كتاب مصرف','عمل إضبارة الشركة','الموظف المختص','رفع القرار للتوقيع','إصدار شهادة التأسيس'];
+let wfCaseId=null;
+let wfPhase='flow'; // flow → cert
+
+function faNum(n){return String(n).replace(/[0-9]/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);}
+
+function openWorkflow(id){
+  id=Number(id);const c=cases.find(x=>x.id===id);if(!c)return;
+  wfCaseId=id;wfPhase=c.workflowStage>=WF_STEPS.length?'done':'flow';
+  document.getElementById('wfCoName').textContent=c.company||'—';
+  document.getElementById('wfOverlay').style.display='flex';
+  setTimeout(()=>document.getElementById('wfOverlay').classList.add('open'),10);
+  renderWorkflow();
+}
+function closeWorkflow(){
+  const ov=document.getElementById('wfOverlay');
+  ov.classList.remove('open');
+  setTimeout(()=>{ov.style.display='none';},200);
+}
+function renderWorkflow(){
+  const c=cases.find(x=>x.id===wfCaseId);if(!c)return;
+  const cur=typeof c.workflowStage==='number'?c.workflowStage:0;
+  const dates=c.workflowDates||{};
+  const box=document.getElementById('wfSteps');
+  box.innerHTML=WF_STEPS.map((n,i)=>{
+    const st=i<cur?'done':i===cur?'current':'wait';
+    const meta=i<cur?('<svg class="wf-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg> '+(dates[i]||'مكتملة')):i===cur?'◷ جاري التنفيذ':'في الانتظار';
+    const dotContent=i<cur?'✓':i===cur?'<span class="wf-spinner"></span>':faNum(i+1);
+    return '<div class="wf-step '+st+'" style="animation-delay:'+(i*55)+'ms"><span class="wf-line"></span><div class="wf-dot">'+dotContent+'</div><div class="wf-stb"><div class="wf-stn">'+n+'</div><div class="wf-stm">'+meta+'</div></div></div>';
+  }).join('');
+  const pc=Math.round(Math.min(cur,WF_STEPS.length)/WF_STEPS.length*100);
+  document.getElementById('wfPct').textContent=faNum(pc)+'%';
+  setTimeout(()=>document.getElementById('wfPfill').style.width=pc+'%',60);
+  document.getElementById('wfCurName').textContent=cur<WF_STEPS.length?WF_STEPS[cur]:'مكتملة ✓';
+  document.getElementById('wfNxName').textContent=cur+1<WF_STEPS.length?WF_STEPS[cur+1]:(cur<WF_STEPS.length?'—':'إطلاق الوديعة');
+  renderWorkflowAct();
+}
+function renderWorkflowAct(){
+  const c=cases.find(x=>x.id===wfCaseId);if(!c)return;
+  const cur=typeof c.workflowStage==='number'?c.workflowStage:0;
+  const a=document.getElementById('wfAct');
+  if(wfPhase==='flow'){
+    if(cur<WF_STEPS.length-1){
+      a.innerHTML='<button class="wf-btn wf-btn-em" onclick="advanceWorkflow()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M20 6 9 17l-5-5"/></svg> إكمال «'+esc(WF_STEPS[cur])+'»</button>';
+    } else if(cur<WF_STEPS.length){
+      a.innerHTML='<button class="wf-btn wf-btn-gold" onclick="wfPhase=\'cert\';renderWorkflowAct()">إتمام إصدار شهادة التأسيس</button>';
+    } else {
+      a.innerHTML='<button class="wf-btn wf-btn-em" onclick="closeWorkflow();openConvertToWadea(wfCaseId)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> التحويل لإطلاق الوديعة</button>';
+    }
+  } else if(wfPhase==='cert'){
+    a.innerHTML='<div class="wf-cert"><h4>◆ بيانات شهادة التأسيس</h4>'
+      +'<div class="wf-fld"><label>رقم الشهادة</label><input id="wfCertNo" placeholder="مثال: 12345" value="'+esc(c.certNo||'')+'"></div>'
+      +'<div class="wf-fld"><label>تاريخ الشهادة</label><input id="wfCertDate" type="date" value="'+(c.certDate||'')+'"></div>'
+      +'<button class="wf-btn wf-btn-gold" onclick="confirmWorkflowCert()">موافق — إتمام التأسيس</button></div>';
+  }
+}
+function advanceWorkflow(){
+  const c=cases.find(x=>x.id===wfCaseId);if(!c)return;
+  const cur=typeof c.workflowStage==='number'?c.workflowStage:0;
+  const dots=document.querySelectorAll('#wfSteps .wf-dot');
+  if(dots[cur])dots[cur].classList.add('pop');
+  if(!c.workflowDates)c.workflowDates={};
+  c.workflowDates[cur]=new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  c.workflowStage=cur+1;
+  addLog(c,'edit','سير العمل: إكمال «'+WF_STEPS[cur]+'»',currentUser||'الأدمن');
+  saveData();
+  setTimeout(()=>renderWorkflow(),260);
+}
+function confirmWorkflowCert(){
+  const c=cases.find(x=>x.id===wfCaseId);if(!c)return;
+  const no=document.getElementById('wfCertNo').value.trim();
+  const date=document.getElementById('wfCertDate').value;
+  if(!no){toast('أدخل رقم الشهادة','err');return;}
+  if(!date){toast('أدخل تاريخ الشهادة','err');return;}
+  c.certNo=no;c.certDate=date;
+  if(!c.workflowDates)c.workflowDates={};
+  c.workflowDates[WF_STEPS.length-1]=new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  c.workflowStage=WF_STEPS.length;
+  addLog(c,'edit','صدرت شهادة التأسيس رقم '+no,currentUser||'الأدمن');
+  saveData();render();
+  wfPhase='flow';
+  toast('✓ تم تسجيل بيانات الشهادة','ok');
+  renderWorkflow();
+}
+
 
 function openForm(id){
   editingId=id;document.getElementById('formTitle').textContent=id?'تعديل المعاملة':'معاملة جديدة';
@@ -957,6 +1043,7 @@ function openForm(id){
   selLawyer=c.lawyer||'';selStatus=c.status||'قيد المعالجة';selCur=c.currency||settings.defCurrency||'IQD';selDept=c.stage||'';
   buildLawyerSel();buildStatusOpts();buildDeptOpts();setCur(selCur);populateFormTypes();
   document.getElementById('fType').value=c.type||'';
+  document.getElementById('fAmountLbl').textContent=(c.type||'')===TASIS_TYPE?'المبلغ المستلم':'المبلغ';
   document.getElementById('holdRow').style.display=selStatus==='معلقة'?'block':'none';
   document.getElementById('stageRow').style.display=(selStatus!=='منجزة'&&selStatus!=='معلقة')?'block':'none';
   const isWadea=(c.type||'')===WADEA_TYPE;document.getElementById('wadeaRow').style.display=isWadea?'block':'none';setWadeaChecks(isWadea?(c.wadeaChecks||''):'');
@@ -988,6 +1075,7 @@ function setCur(c){selCur=c;document.getElementById('ctIQD').classList.toggle('a
 function populateFormTypes(){const s=document.getElementById('fType');const v=s.value;s.innerHTML='<option value="">— اختر النوع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');s.value=v;s.onchange=onTypeChange;}
 function onTypeChange(){
   const t=document.getElementById('fType').value;
+  document.getElementById('fAmountLbl').textContent=t===TASIS_TYPE?'المبلغ المستلم':'المبلغ';
   document.getElementById('wadeaRow').style.display=t===WADEA_TYPE?'block':'none';
   // Show complete button only when editing an existing wadea case not yet completed
   const completeRow=document.getElementById('wadeaCompleteRow');
@@ -1193,6 +1281,24 @@ function openDetail(id){
   document.getElementById('detName').textContent=c.company||'—';document.getElementById('detType').textContent=c.type||'—';
   document.getElementById('detDate').textContent=c.date?new Date(c.date).toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'}):'بلا تاريخ';
   const editBtn=document.getElementById('detEditBtn');const newEditBtn=editBtn.cloneNode(true);editBtn.parentNode.replaceChild(newEditBtn,editBtn);newEditBtn.addEventListener('click',()=>{closeDetail();openForm(id);});
+  // Show/hide workflow tracker button (تأسيس شركة فقط، قبل التحويل لوديعة)
+  const wfBtn=document.getElementById('detWorkflowBtn');
+  if(wfBtn){
+    wfBtn.style.display=(c.type===TASIS_TYPE&&!c.tasisDone&&!c.wadeaLinkedId)?'flex':'none';
+  }
+  // Show certificate number/date if recorded
+  const certEl=document.getElementById('detCertInfo');
+  if(certEl){
+    if(c.certNo&&c.certDate){
+      certEl.style.display='block';
+      const dStr=new Date(c.certDate).toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+      certEl.innerHTML='<div class="detail-section-title">◆ شهادة التأسيس</div>'
+        +'<div class="detail-grid" style="margin-top:10px">'
+        +'<div class="detail-field"><div class="detail-field-lbl">رقم الشهادة</div><div class="detail-field-val">'+esc(c.certNo)+'</div></div>'
+        +'<div class="detail-field"><div class="detail-field-lbl">تاريخ الشهادة</div><div class="detail-field-val">'+dStr+'</div></div>'
+        +'</div>';
+    } else certEl.style.display='none';
+  }
   // Show/hide convert button
   const cvBtn=document.getElementById('detConvertBtn');
   if(cvBtn){
