@@ -645,6 +645,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 function render(){
+  renderWadeaAlerts();
   const q=(document.getElementById('searchInp').value||'').trim().toLowerCase();
   const ft=document.getElementById('filterType').value;
   const fl=document.getElementById('filterLawyer').value;
@@ -782,6 +783,21 @@ function closeAllDrops(){const d=document.getElementById('flDrop');if(d)d.remove
 // ══ FORM ══
 let selLawyer='',selStatus='قيد المعالجة',selCur='IQD',selDept='';
 const WADEA_TYPE='إطلاق وديعة';
+const AMT_INC_ITEMS=['هوية ضريبية','قوة مستورد','كتاب مستشار قانوني','كتاب محاسب','كتاب مصرف','قوة اتحاد مقاولين'];
+let selAmtInc=[];
+function buildAmtIncGrid(){
+  document.getElementById('amtIncGrid').innerHTML=AMT_INC_ITEMS.map((it,i)=>{
+    const on=selAmtInc.includes(it);
+    return '<div class="amt-inc-item'+(on?' on':'')+'" onclick="toggleAmtInc('+i+')"><span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span>'+it+'</div>';
+  }).join('');
+}
+function toggleAmtInc(i){
+  const it=AMT_INC_ITEMS[i];
+  const p=selAmtInc.indexOf(it);
+  if(p===-1)selAmtInc.push(it);else selAmtInc.splice(p,1);
+  buildAmtIncGrid();
+}
+
 const WADEA_ITEMS=['كتاب مشاور','كتاب محاسب','أرسلت على النظام'];
 const TASIS_TYPE='تأسيس شركة';
 
@@ -810,24 +826,75 @@ function openConvertToWadea(id){
   document.getElementById('cvShareType').onchange=calcCvDeadline;
 }
 
+// المهلة القانونية الرسمية لإطلاق الوديعة (حسب تعليمات مسجل الشركات)
+const WADEA_GRACE_SINGLE=37;   // مساهم واحد: من تاريخ الشهادة
+const WADEA_GRACE_MULTI=55;    // أكثر من مساهم: من تاريخ الشهادة
+const WADEA_MULTI_WAIT=15;     // أكثر من مساهم: لا يُرسل قبل مرور هذي المدة
+const WADEA_FINE_PER_DAY=50000;
+const WADEA_FINE_CAP=5154000;
+
+function calcWadeaFine(daysLate){
+  if(daysLate<=0)return 0;
+  return Math.min(daysLate*WADEA_FINE_PER_DAY,WADEA_FINE_CAP);
+}
+
+// ══ تنبيهات مهلة إطلاق الوديعة (اللوحة الرئيسية) ══
+function renderWadeaAlerts(){
+  const box=document.getElementById('wadeaAlerts');
+  if(!box)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const items=[];
+  cases.forEach(c=>{
+    if(c.type!==WADEA_TYPE||!c.wadeaDeadline||c.wadeaDone)return;
+    const deadline=new Date(c.wadeaDeadline);
+    const diff=Math.round((deadline-today)/(1000*60*60*24));
+    if(diff<=7){ // متأخرة أو باقي أسبوع فأقل
+      const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
+      items.push({c,diff,fine});
+    }
+  });
+  if(!items.length){box.style.display='none';box.innerHTML='';return;}
+  items.sort((a,b)=>a.diff-b.diff);
+  box.style.display='flex';box.className='wadea-alert-wrap';
+  box.innerHTML=items.map(it=>{
+    const late=it.diff<0;
+    const msg=late?('متأخرة '+Math.abs(it.diff)+' يوم — الغرامة: '+it.fine.toLocaleString()+' د.ع'):('باقي '+it.diff+' يوم على انتهاء المهلة');
+    return '<div class="wadea-alert '+(late?'late':'soon')+'" onclick="openDetail('+it.c.id+')">'
+      +'<div class="ic">'+(late?'⚠':'⏰')+'</div>'
+      +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">'+msg+'</div></div>'
+      +(late?'<div class="fine">'+it.fine.toLocaleString()+' د.ع</div>':'')
+      +'</div>';
+  }).join('');
+}
+
 function calcCvDeadline(){
   const d=document.getElementById('cvCertDate').value;
   const t=document.getElementById('cvShareType').value;
   const el=document.getElementById('cvDeadlineInfo');
   if(!d){el.innerHTML='';return;}
-  const days=t==='multi'?57:30;
+  const isMulti=t==='multi';
+  const days=isMulti?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
   const certDate=new Date(d);
-  const deadline=new Date(certDate);
-  deadline.setDate(deadline.getDate()+days);
+  const deadline=new Date(certDate);deadline.setDate(deadline.getDate()+days);
+  const canSendFrom=new Date(certDate);
+  if(isMulti)canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
   const today=new Date();today.setHours(0,0,0,0);
-  const diff=Math.round((deadline-today)/(1000*60*60*24));
+  const diffDeadline=Math.round((deadline-today)/(1000*60*60*24));
+  const diffCanSend=Math.round((canSendFrom-today)/(1000*60*60*24));
   const deadlineStr=deadline.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  const fine=diffDeadline<0?calcWadeaFine(Math.abs(diffDeadline)):0;
+  let html='';
+  // تنبيه المهلة القبل-إرسال لحالة تعدد المساهمين
+  if(isMulti&&diffCanSend>0){
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:var(--orange-g);border:1px solid rgba(251,146,60,.3);margin-bottom:8px"><span style="font-size:16px">⏳</span><div><div style="font-size:12.5px;font-weight:700;color:var(--orange)">هذه الشركة فيها أكثر من مساهم — لا تُرسل على النظام إلا بعد مرور '+WADEA_MULTI_WAIT+' يوم من تاريخ الشهادة</div><div style="font-size:11px;color:var(--text2)">باقي '+diffCanSend+' يوم لحين يصير بالإمكان الإرسال (تاريخ الإرسال المسموح: '+canSendFrom.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+')</div></div></div>';
+  }
   let color='var(--green)';let icon='✓';let msg='';
-  if(diff<0){color='var(--red)';icon='⚠';msg='متأخرة '+Math.abs(diff)+' يوم!';}
-  else if(diff<=7){color='var(--red)';icon='⚠';msg='باقي '+diff+' يوم فقط!';}
-  else if(diff<=14){color='var(--orange)';icon='⏰';msg='باقي '+diff+' يوم';}
-  else{icon='✓';msg='باقي '+diff+' يوم';}
-  el.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:'+(diff<0?'var(--red-g)':diff<=14?'var(--orange-g)':'var(--green-g)')+';border:1px solid '+(diff<0?'rgba(255,85,114,.3)':diff<=14?'rgba(251,146,60,.3)':'rgba(34,211,160,.3)')+'"><span style="font-size:16px">'+icon+'</span><div><div style="font-size:12px;font-weight:700;color:'+color+'">Deadline: '+deadlineStr+'</div><div style="font-size:11px;color:var(--text2)">'+days+' يوم من تاريخ الشهادة • '+msg+'</div></div></div>';
+  if(diffDeadline<0){color='var(--red)';icon='⚠';msg='متأخرة '+Math.abs(diffDeadline)+' يوم — غرامة مستحقّة';}
+  else if(diffDeadline<=7){color='var(--red)';icon='⚠';msg='باقي '+diffDeadline+' يوم فقط!';}
+  else if(diffDeadline<=14){color='var(--orange)';icon='⏰';msg='باقي '+diffDeadline+' يوم';}
+  else{icon='✓';msg='باقي '+diffDeadline+' يوم';}
+  html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:'+(diffDeadline<0?'var(--red-g)':diffDeadline<=14?'var(--orange-g)':'var(--green-g)')+';border:1px solid '+(diffDeadline<0?'rgba(255,85,114,.3)':diffDeadline<=14?'rgba(251,146,60,.3)':'rgba(34,211,160,.3)')+'"><span style="font-size:16px">'+icon+'</span><div><div style="font-size:12px;font-weight:700;color:'+color+'">الموعد النهائي: '+deadlineStr+'</div><div style="font-size:11px;color:var(--text2)">'+days+' يوم من تاريخ الشهادة • '+msg+(fine>0?' • الغرامة حتى اليوم: '+fine.toLocaleString()+' د.ع':'')+'</div></div></div>';
+  el.innerHTML=html;
 }
 
 function toggleCvWadea(n){
@@ -842,8 +909,8 @@ function confirmConvert(){
   const shareType=document.getElementById('cvShareType').value;
   if(!certDate){toast('أدخل تاريخ الشهادة','err');return;}
   const src=cases.find(x=>x.id===sourceId);if(!src)return;
-  // Calc deadline
-  const days=shareType==='multi'?57:30;
+  // Calc deadline (المهلة الرسمية: 37 يوم لمساهم واحد، 55 يوم لأكثر من مساهم)
+  const days=shareType==='multi'?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
   const certDateObj=new Date(certDate);
   const deadline=new Date(certDateObj);deadline.setDate(deadline.getDate()+days);
   // Get checks
@@ -884,6 +951,8 @@ function openForm(id){
   else{cur.style.display='none';cur.innerHTML='';document.getElementById('attachZone').style.display='block';}
   document.getElementById('fHoldReason').value=c.holdReason||'';
   document.getElementById('fAmount').value=c.currency==='USD'?(c.amountUSD||''):(c.amountIQD||'');
+  selAmtInc=Array.isArray(c.amountIncludes)?c.amountIncludes.slice():[];
+  buildAmtIncGrid();
   ['errCompany','errType','errLawyer'].forEach(e=>document.getElementById(e).classList.remove('show'));
   selLawyer=c.lawyer||'';selStatus=c.status||'قيد المعالجة';selCur=c.currency||settings.defCurrency||'IQD';selDept=c.stage||'';
   buildLawyerSel();buildStatusOpts();buildDeptOpts();setCur(selCur);populateFormTypes();
@@ -974,7 +1043,7 @@ async function saveCase(){
   if(!ok)return;
   const rawAmt=parseAmt(document.getElementById('fAmount').value);
   const stageVal=selDept==='أخرى'?(document.getElementById('fStageOther').value.trim()||'أخرى'):selDept;
-  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():''};
+  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():'',amountIncludes:selAmtInc.slice()};
   if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1){const old=cases[idx];const logEntry={id:Date.now(),type:'edit',msg:'تم تعديل المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()};if(old.status!==data.status)logEntry.msg='تغيير الحالة: '+old.status+' → '+data.status;cases[idx]={...old,...data,log:[...(old.log||[]),logEntry],comments:old.comments||[]};if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','معاملة معلقة: '+data.company);else addNotif('edit','تعديل: '+data.company);}toast('تم التعديل','ok');}
   else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);_lastAddedId=newCase.id;addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
   if(pendingAttachFile){const url=await uploadAttachment(pendingAttachFile, data.company);if(url){data.attachUrl=url;data.attachName=pendingAttachFile.name;if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1)cases[idx]={...cases[idx],...data};}else cases[cases.length-1]={...cases[cases.length-1],...data};}}
@@ -1155,17 +1224,32 @@ function openDetail(id){
       const today=new Date();today.setHours(0,0,0,0);
       const diff=Math.round((deadline-today)/(1000*60*60*24));
       const deadlineStr=deadline.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
-      const days=c.wadeaShareholderType==='multi'?57:30;
+      const isMulti=c.wadeaShareholderType==='multi';
+      const days=isMulti?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
+      const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
       let bg,bc,icon,msg;
       if(diff<0){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='متأخرة '+Math.abs(diff)+' يوم!';}
       else if(diff<=7){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='باقي '+diff+' يوم فقط!';}
       else if(diff<=14){bg='var(--orange-g)';bc='rgba(251,146,60,.3)';icon='⏰';msg='باقي '+diff+' يوم';}
       else{bg='var(--green-g)';bc='rgba(34,211,160,.3)';icon='✓';msg='باقي '+diff+' يوم';}
+      let earlyBlock='';
+      if(isMulti&&c.wadeaCertDate){
+        const canSendFrom=new Date(c.wadeaCertDate);canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
+        const diffCanSend=Math.round((canSendFrom-today)/(1000*60*60*24));
+        if(diffCanSend>0){
+          earlyBlock='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:var(--orange-g);border:1px solid rgba(251,146,60,.3);margin-top:8px">'
+            +'<span style="font-size:20px">⏳</span>'
+            +'<div><div style="font-size:13px;font-weight:800;color:var(--orange)">هذه الشركة فيها أكثر من مساهم — لا تُرسل على النظام إلا بعد '+diffCanSend+' يوم</div>'
+            +'<div style="font-size:11px;color:var(--text2)">تاريخ الإرسال المسموح: '+canSendFrom.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</div></div></div>';
+        }
+      }
       wadeaDeadlineEl.innerHTML='<div class="detail-section-title">⏰ مهلة الغرامة</div>'
+        +earlyBlock
         +'<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:'+bg+';border:1px solid '+bc+';margin-top:10px">'
         +'<span style="font-size:22px">'+icon+'</span>'
         +'<div><div style="font-size:14px;font-weight:800;color:'+(diff<0?'var(--red)':diff<=7?'var(--red)':diff<=14?'var(--orange)':'var(--green)')+'">'+msg+'</div>'
-        +'<div style="font-size:11px;color:var(--text2)">Deadline: '+deadlineStr+' ('+days+' يوم من تاريخ الشهادة)</div>'
+        +'<div style="font-size:11px;color:var(--text2)">الموعد النهائي: '+deadlineStr+' ('+days+' يوم من تاريخ الشهادة)</div>'
+        +(fine>0?'<div style="font-size:12px;font-weight:700;color:var(--red);margin-top:3px">الغرامة المستحقّة: '+fine.toLocaleString()+' د.ع</div>':'')
         +(c.tasisLinkedId?'<div style="font-size:11px;color:var(--text2);cursor:pointer;text-decoration:underline;margin-top:2px" onclick="closeDetail();setTimeout(()=>openDetail('+c.tasisLinkedId+'),150)">↑ معاملة التأسيس الأصلية</div>':'')
         +'</div></div>';
     } else wadeaDeadlineEl.style.display='none';
@@ -1174,6 +1258,13 @@ function openDetail(id){
   document.getElementById('detStatus').innerHTML='<span class="status-badge '+statusClass(c.status)+'">'+c.status+'</span>'+(c.holdReason?'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+esc(c.holdReason)+'</div>':'');
   const amt=c.currency==='USD'?'<span style="color:var(--green);font-family:Cairo;font-size:18px;font-weight:900">$'+fmt(c.amountUSD)+'</span>':'<span style="color:var(--gold);font-family:Cairo;font-size:18px;font-weight:900">'+fmt(c.amountIQD)+' د.ع</span>';
   document.getElementById('detAmount').innerHTML=amt;document.getElementById('detStage').textContent=c.stage||'—';
+  const amtIncEl=document.getElementById('detAmtInc');
+  if(amtIncEl){
+    if(Array.isArray(c.amountIncludes)&&c.amountIncludes.length){
+      amtIncEl.style.display='flex';
+      amtIncEl.innerHTML=c.amountIncludes.map(t=>'<span class="amt-inc-tag">✓ '+esc(t)+'</span>').join('');
+    } else { amtIncEl.style.display='none'; amtIncEl.innerHTML=''; }
+  }
   document.getElementById('detDefRow').style.display=c.deficiency?'block':'none';document.getElementById('detDef').textContent=c.deficiency||'—';
   document.getElementById('detNotesRow').style.display=c.notes?'block':'none';document.getElementById('detNotes').textContent=c.notes||'—';
   const attachRow=document.getElementById('detAttachRow');if(c.attachUrl){attachRow.style.display='block';document.getElementById('detAttach').innerHTML='<a href="'+safeUrl(c.attachUrl)+'" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">'+esc(c.attachName||'فتح المرفق')+' ↗</a>';}else attachRow.style.display='none';

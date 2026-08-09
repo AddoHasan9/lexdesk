@@ -271,6 +271,7 @@
 <div class="page active" id="pageDash">
   <div class="dash-main">
     <!-- الصف العلوي: الإجمالي + الدونات -->
+    <div id="wadeaAlerts" style="display:none"></div>
     <div class="dash-top-row">
       <div class="hero-kpi">
         <div class="hero-kpi-top">
@@ -1198,6 +1199,8 @@
               <button class="ct-btn" id="ctUSD" onclick="setCur('USD')">USD</button>
             </div>
           </div>
+          <div class="amt-inc-lbl">المبلغ يشمل:</div>
+          <div class="amt-inc-grid" id="amtIncGrid"></div>
         </div>
         <div>
           <label class="fm-lbl">النواقص</label>
@@ -1332,6 +1335,7 @@
           <div class="detail-field">
             <div class="detail-field-lbl">المبلغ</div>
             <div class="detail-field-val" id="detAmount">—</div>
+            <div class="amt-inc-view" id="detAmtInc" style="display:none"></div>
           </div>
           <div class="detail-field">
             <div class="detail-field-lbl">وين واصلة</div>
