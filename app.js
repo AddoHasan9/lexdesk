@@ -870,11 +870,16 @@ function renderWadeaAlerts(){
       items.push({c,diff,fine,key});
     }
   });
-  // بادج الشريط الجانبي
+  // بادج الشريط الجانبي + قائمة الموبايل
   const badge=document.getElementById('sbWadeaBadge');
+  const mBadge=document.getElementById('mnWadeaBadge');
   if(badge){
     if(lateCount>0){badge.style.display='flex';badge.textContent=lateCount;}
     else badge.style.display='none';
+  }
+  if(mBadge){
+    if(lateCount>0){mBadge.style.display='flex';mBadge.textContent=lateCount;}
+    else mBadge.style.display='none';
   }
   if(!box)return;
   if(!items.length){box.style.display='none';box.innerHTML='';return;}
