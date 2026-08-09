@@ -3485,3 +3485,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
 /* دخول البطاقات بمنحنى حريري */
 #appWrap :is(.hero-kpi,.stat-mini,.cases-panel,.rp-card,.chart-card,.report-card){ animation-timing-function:var(--ease-out) !important; }
+
+/* إخفاء زر + العائم (FAB) */
+#fabWrap{ display:none !important; }
