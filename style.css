@@ -2081,7 +2081,10 @@ body { padding-bottom:0; }
     border-radius:22px 22px 0 0;
     width:100%;
   }
-  .detail-hd{padding:16px 16px 12px;}
+  .detail-hd{padding:16px 16px 12px;flex-wrap:wrap;row-gap:12px;}
+  .detail-hd-info{order:1;flex-basis:100%;}
+  .detail-hd-acts{order:3;flex-basis:100%;justify-content:flex-end;}
+  .detail-company-av{order:2;}
   .detail-body{padding:14px 16px;}
   .detail-grid{grid-template-columns:1fr 1fr;}
   .detail-field.full{grid-column:1/-1;}
