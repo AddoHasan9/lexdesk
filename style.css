@@ -2087,6 +2087,8 @@ body { padding-bottom:0; }
   .detail-field.full{grid-column:1/-1;}
   .detail-hd-acts{gap:6px;}
   #detConvertBtn{font-size:11px;padding:5px 10px;}
+  #detWorkflowBtn{font-size:11px;padding:5px 10px;}
+  #detWorkflowBtn span,#detConvertBtn span{display:none;}
 
   /* ── Settings ── */
   .page-hd{padding:14px 14px 0;flex-wrap:wrap;gap:10px;}
