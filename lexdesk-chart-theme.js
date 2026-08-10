@@ -17,7 +17,7 @@ const LEX_CATEGORICAL = ['#F5A623', '#3B82F6', '#22D3A0', '#A78BFA', '#FB923C', 
 
 /* ثيم عام يُطبّق على كل المخططات */
 function applyLexChartTheme() {
-  Chart.defaults.font.family = cssVar('--font', "'IBM Plex Sans Arabic', 'Tajawal', sans-serif");
+  Chart.defaults.font.family = cssVar('--font', "'Noto Kufi Arabic', sans-serif");
   Chart.defaults.color = cssVar('--text2', '#9395A8');
   Chart.defaults.borderColor = cssVar('--border', 'rgba(255,255,255,.10)');
   Chart.defaults.plugins.legend.rtl = true;      // مفتاح المخطط يمين→يسار

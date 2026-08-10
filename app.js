@@ -1528,7 +1528,7 @@ function openDetail(id){
   }
   document.getElementById('detLawyer').innerHTML='<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:'+lc+';display:inline-block"></span>'+c.lawyer+'</span>';
   document.getElementById('detStatus').innerHTML='<span class="status-badge '+statusClass(c.status)+'">'+c.status+'</span>'+(c.holdReason?'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+esc(c.holdReason)+'</div>':'');
-  const amt=c.currency==='USD'?'<span style="color:var(--green);font-family:Cairo;font-size:18px;font-weight:900">$'+fmt(c.amountUSD)+'</span>':'<span style="color:var(--gold);font-family:Cairo;font-size:18px;font-weight:900">'+fmt(c.amountIQD)+' د.ع</span>';
+  const amt=c.currency==='USD'?'<span style="color:var(--green);font-family:var(--font-d);font-size:18px;font-weight:900">$'+fmt(c.amountUSD)+'</span>':'<span style="color:var(--gold);font-family:var(--font-d);font-size:18px;font-weight:900">'+fmt(c.amountIQD)+' د.ع</span>';
   document.getElementById('detAmount').innerHTML=amt;document.getElementById('detStage').textContent=c.stage||'—';
   const amtIncEl=document.getElementById('detAmtInc');
   if(amtIncEl){
@@ -1563,7 +1563,7 @@ function buildReports(){
   const repM=document.getElementById('repMonthly');if(repM){if(!sortedMonths.length){repM.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا توجد بيانات</div>';return;}repM.innerHTML=sortedMonths.map(([,v])=>'<div class="month-row"><div class="month-lbl">'+v.lbl+'</div><div class="month-bar-wrap"><div class="month-bar-fill" style="background:linear-gradient(90deg,var(--gold),var(--gold2));width:'+Math.max(v.iqd/maxIQD*100,3)+'%">'+(v.iqd>0?'<span>'+v.count+' معاملة</span>':'')+'</div></div><div class="month-amt">'+fmt(v.iqd)+' د.ع</div><div class="month-count">'+(v.usd>0?'$'+fmt(v.usd):'')+'</div></div>').join('');}
   const repL=document.getElementById('repLawyers');if(repL)repL.innerHTML=settings.lawyers.map((l,i)=>{const lCases=filtered.filter(c=>c.lawyer===l);const lIQD=lCases.reduce((s,c)=>s+(c.amountIQD||0),0);const col=LAWYER_COLORS[i%LAWYER_COLORS.length];return '<div class="lawyer-report-row"><div class="lr-av" style="background:'+col+'">'+l[0]+'</div><div class="lr-info"><div class="lr-name">'+l+'</div><div class="lr-stats"><div class="lr-stat">معاملات: <span>'+lCases.length+'</span></div></div></div><div class="lr-amts"><div class="lr-iqd">'+fmt(lIQD)+' د.ع</div></div></div>';}).join('');
   const repS=document.getElementById('repStatuses');if(repS){const sList=['قيد المعالجة','منجزة','معلقة','مراجعة','ناقصة'];const sColors={'قيد المعالجة':'var(--green)','منجزة':'var(--blue2)','معلقة':'var(--red)','مراجعة':'var(--gold)','ناقصة':'var(--purple)'};repS.innerHTML=sList.map(s=>{const n=filtered.filter(c=>c.status===s).length;const pct=filtered.length?Math.round(n/filtered.length*100):0;return '<div class="rep-summary-row"><div class="rep-sum-lbl"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+sColors[s]+';margin-left:6px"></span>'+s+'</div><div style="display:flex;align-items:center;gap:10px"><div class="rep-sum-val">'+n+'</div><div style="font-size:11px;color:var(--text3)">'+pct+'%</div></div></div>';}).join('');}
-  const repT=document.getElementById('repTopClients');if(repT){const sorted=[...filtered].sort((a,b)=>(b.amountIQD||0)-(a.amountIQD||0)).slice(0,5);if(!sorted.length){repT.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا توجد بيانات</div>';return;}const maxAmt=Math.max(...sorted.map(c=>c.amountIQD||0),1);repT.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">'+sorted.map((c,i)=>{const pct=Math.max((c.amountIQD||0)/maxAmt*100,4);return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">'+(i+1)+'</div><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+esc(c.company)+'</div><div style="font-size:11px;color:var(--text2);margin-bottom:8px">'+c.type+'</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px"></div></div><div style="font-family:Cairo;font-size:16px;font-weight:900;color:var(--gold)">'+fmt(c.amountIQD)+' د.ع</div></div>';}).join('')+'</div>';}
+  const repT=document.getElementById('repTopClients');if(repT){const sorted=[...filtered].sort((a,b)=>(b.amountIQD||0)-(a.amountIQD||0)).slice(0,5);if(!sorted.length){repT.innerHTML='<div style="text-align:center;color:var(--text3);padding:20px">لا توجد بيانات</div>';return;}const maxAmt=Math.max(...sorted.map(c=>c.amountIQD||0),1);repT.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">'+sorted.map((c,i)=>{const pct=Math.max((c.amountIQD||0)/maxAmt*100,4);return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px"><div style="font-size:18px;margin-bottom:6px">'+(i+1)+'</div><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+esc(c.company)+'</div><div style="font-size:11px;color:var(--text2);margin-bottom:8px">'+c.type+'</div><div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px"></div></div><div style="font-family:var(--font-d);font-size:16px;font-weight:900;color:var(--gold)">'+fmt(c.amountIQD)+' د.ع</div></div>';}).join('')+'</div>';}
 }
 function exportReportPDF(){window.print();toast('جاري الطباعة','ok');}
 
@@ -1924,7 +1924,7 @@ function printDeficiency(){
 <title>سجل النواقص — ${settings.officeName||'المحامي منتظر الخزرجي'}</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Tajawal,Arial,sans-serif;color:#000;background:#fff;padding:28px 36px;direction:rtl;font-size:14px}
+  body{font-family:'Noto Kufi Arabic',Arial,sans-serif;color:#000;background:#fff;padding:28px 36px;direction:rtl;font-size:14px}
   h1{font-size:20px;font-weight:800;margin-bottom:3px}
   .date{font-size:12px;color:#666;margin-bottom:24px}
   .hdr{text-align:center;border-bottom:2px solid #222;padding-bottom:14px;margin-bottom:24px}
@@ -1936,7 +1936,7 @@ function printDeficiency(){
   li:last-child{border-bottom:none}
   li.done{color:#999;text-decoration:line-through}
   .cb{font-size:16px;line-height:1;flex-shrink:0}
-  .close-btn{position:fixed;top:14px;left:14px;padding:8px 16px;background:#222;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:Tajawal,Arial,sans-serif;z-index:100}
+  .close-btn{position:fixed;top:14px;left:14px;padding:8px 16px;background:#222;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Noto Kufi Arabic',Arial,sans-serif;z-index:100}
   @media print{.close-btn{display:none}}
 </style>
 </head><body>
