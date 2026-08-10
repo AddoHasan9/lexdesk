@@ -544,6 +544,7 @@ function showApp(){
   populateAllDropdowns();applyRoleUI();render();updateStats();
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();});
+  loadTasks().then(()=>{renderTaskAlerts();buildTasksPage();});
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
 }
@@ -1363,8 +1364,8 @@ function setView(v){
 }
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
-  ['dash','charts','reports','tools','settings','deficiency','wadea'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
-  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);
+  ['dash','charts','reports','tools','settings','deficiency','wadea','tasks'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea',tasks:'sbTasks'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
+  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);if(p==='tasks')setTimeout(buildTasksPage,50);
 }
 function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
@@ -2944,3 +2945,174 @@ async function peExport(){
     toolSetResult('peResult','<div class="tool-err">خطأ: '+e.message+'</div>');
   }
 }
+
+// ═══════════════════ قسم المهام (Tasks) ═══════════════════
+const SK_TASKS='lexdesk_tasks_v1';
+let tasks=[];
+let editingTaskId=null;
+const TASK_COLS=[
+  {id:'new',name:'بدء التكليف'},
+  {id:'progress',name:'قيد المعالجة'},
+  {id:'done',name:'مكتملة'}
+];
+
+async function loadTasks(){
+  const cloud=await sbLoadMeta('tasks');
+  if(cloud&&Array.isArray(cloud))tasks=cloud;
+  else{try{tasks=JSON.parse(localStorage.getItem(SK_TASKS)||'[]');}catch(e){tasks=[];}}
+}
+function saveTasks(){
+  try{localStorage.setItem(SK_TASKS,JSON.stringify(tasks));}catch(e){}
+  sbSaveMeta('tasks',tasks);
+}
+
+function openTaskForm(id){
+  editingTaskId=id;
+  const t=id?tasks.find(x=>x.id===id):{};
+  document.getElementById('taskFormTitle').textContent=id?'تعديل المهمة':'مهمة جديدة';
+  document.getElementById('tkCompany').value=t.company||'';
+  // الجهة
+  const deptSel=document.getElementById('tkDept');
+  const knownDepts=['الضمان الاجتماعي','مسجل الشركات','الهيئة العامة للضرائب','الگمارك العامة','غرفة تجارة','اتحاد الغرف','اتحاد المقاولين','إيداع مبلغ للمصرف'];
+  if(t.dept&&!knownDepts.includes(t.dept)){deptSel.value='أخرى';document.getElementById('tkDeptOther').style.display='block';document.getElementById('tkDeptOther').value=t.dept;}
+  else{deptSel.value=t.dept||'';document.getElementById('tkDeptOther').style.display='none';document.getElementById('tkDeptOther').value='';}
+  document.getElementById('tkType').value=t.taskType||'';
+  document.getElementById('tkAmount').value=t.amount||'';
+  document.getElementById('tkPriority').value=t.priority||'normal';
+  document.getElementById('tkAssignDate').value=t.assignDate||new Date().toISOString().slice(0,10);
+  document.getElementById('tkDueDate').value=t.dueDate||'';
+  document.getElementById('tkNotes').value=t.notes||'';
+  // المحامون
+  const lw=document.getElementById('tkLawyer');
+  lw.innerHTML='<option value="">— بدون</option>'+(settings.lawyers||[]).map(l=>'<option>'+l+'</option>').join('');
+  lw.value=t.lawyer||'';
+  const ov=document.getElementById('taskOverlay');
+  ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
+}
+function closeTaskForm(){
+  const ov=document.getElementById('taskOverlay');
+  ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);
+  editingTaskId=null;
+}
+function onTaskDeptChange(){
+  const v=document.getElementById('tkDept').value;
+  document.getElementById('tkDeptOther').style.display=(v==='أخرى')?'block':'none';
+}
+function saveTask(){
+  const company=document.getElementById('tkCompany').value.trim();
+  let dept=document.getElementById('tkDept').value;
+  if(dept==='أخرى')dept=document.getElementById('tkDeptOther').value.trim();
+  const taskType=document.getElementById('tkType').value.trim();
+  if(!company){toast('أدخل اسم الشركة','err');return;}
+  if(!dept){toast('اختر جهة المهمة','err');return;}
+  if(!taskType){toast('أدخل نوع المهمة','err');return;}
+  const data={
+    company,dept,taskType,
+    amount:parseFloat(document.getElementById('tkAmount').value)||0,
+    priority:document.getElementById('tkPriority').value,
+    assignDate:document.getElementById('tkAssignDate').value,
+    dueDate:document.getElementById('tkDueDate').value,
+    lawyer:document.getElementById('tkLawyer').value,
+    notes:document.getElementById('tkNotes').value.trim()
+  };
+  if(editingTaskId){
+    const t=tasks.find(x=>x.id===editingTaskId);
+    if(t)Object.assign(t,data);
+    toast('تم تحديث المهمة','ok');
+  }else{
+    data.id=Date.now();data.col='new';data.createdAt=new Date().toISOString();
+    tasks.push(data);
+    toast('تمت إضافة المهمة','ok');
+  }
+  saveTasks();closeTaskForm();buildTasksPage();renderTaskAlerts();
+}
+function deleteTask(id,ev){
+  if(ev)ev.stopPropagation();
+  tasks=tasks.filter(t=>t.id!==id);
+  saveTasks();buildTasksPage();renderTaskAlerts();
+}
+function moveTask(id,col){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.col=col;
+  saveTasks();buildTasksPage();renderTaskAlerts();
+}
+
+function taskDueInfo(t){
+  if(!t.dueDate)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  const due=new Date(t.dueDate);
+  const diff=Math.round((due-today)/(1000*60*60*24));
+  return diff;
+}
+function taskCardHtml(t){
+  const diff=taskDueInfo(t);
+  let dueHtml='';
+  if(diff!==null&&t.col!=='done'){
+    let cls='ok',txt='';
+    if(diff<0){cls='late';txt='متأخرة '+Math.abs(diff)+' يوم';}
+    else if(diff===0){cls='soon';txt='مستحقّة اليوم';}
+    else if(diff<=3){cls='soon';txt='باقي '+diff+' يوم';}
+    else{cls='ok';txt='باقي '+diff+' يوم';}
+    dueHtml='<div class="tk-card-due '+cls+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '+txt+'</div>';
+  }
+  const amtHtml=t.amount>0?'<span><span class="tk-card-amt">'+t.amount.toLocaleString()+'</span> د.ع</span>':'';
+  const progressDot=t.col==='progress'?'<span class="tk-card-progress-dot"></span> ':'';
+  let actBtn='';
+  if(t.col==='new')actBtn='<button class="tk-card-btn" onclick="moveTask('+t.id+',\'progress\')">بدء المعالجة ←</button>';
+  else if(t.col==='progress')actBtn='<button class="tk-card-btn done" onclick="completeTask('+t.id+')">✓ إكمال</button>';
+  else actBtn='<button class="tk-card-btn" onclick="moveTask('+t.id+',\'progress\')">↩ إرجاع</button>';
+  return '<div class="tk-card '+(t.priority==='urgent'?'urgent':'')+'" draggable="true" data-id="'+t.id+'" ondragstart="tkDragStart(event,'+t.id+')" ondragend="tkDragEnd(event)" onclick="if(event.target.closest(\'button\'))return;openTaskForm('+t.id+')">'
+    +'<button class="tk-card-del" title="حذف" onclick="deleteTask('+t.id+',event)">🗑</button>'
+    +'<div class="tk-card-top"><div class="tk-card-co">'+progressDot+esc(t.company)+'</div>'
+    +'<span class="tk-card-badge '+(t.priority==='urgent'?'urgent':'normal')+'">'+(t.priority==='urgent'?'عاجلة':'عادية')+'</span></div>'
+    +'<div class="tk-card-type">'+esc(t.taskType)+'</div>'
+    +'<div class="tk-card-meta"><span>🏛 '+esc(t.dept)+'</span>'+(amtHtml?' '+amtHtml:'')+(t.lawyer?' <span>👤 '+esc(t.lawyer)+'</span>':'')+'</div>'
+    +dueHtml
+    +'<div class="tk-card-acts">'+actBtn+'</div>'
+    +'</div>';
+}
+function completeTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.col='done';t.completedAt=new Date().toISOString();
+  saveTasks();buildTasksPage();renderTaskAlerts();
+  toast('✓ اكتملت المهمة','ok');
+}
+function buildTasksPage(){
+  const body=document.getElementById('tasksBody');if(!body)return;
+  body.innerHTML='<div class="tasks-kanban">'+TASK_COLS.map(col=>{
+    const items=tasks.filter(t=>t.col===col.id);
+    // ترتيب: العاجلة أول، بعدها الأقرب استحقاقاً
+    items.sort((a,b)=>{
+      if((b.priority==='urgent')-(a.priority==='urgent'))return (b.priority==='urgent')-(a.priority==='urgent');
+      const da=taskDueInfo(a),db=taskDueInfo(b);
+      if(da===null)return 1;if(db===null)return -1;return da-db;
+    });
+    return '<div class="tk-col" data-col="'+col.id+'" ondragover="tkDragOver(event)" ondragleave="tkDragLeave(event)" ondrop="tkDrop(event,\''+col.id+'\')">'
+      +'<div class="tk-col-hd"><span class="dot"></span>'+col.name+'<span class="count">'+items.length+'</span></div>'
+      +'<div class="tk-cards">'+(items.length?items.map(taskCardHtml).join(''):'<div class="tk-col-empty">لا مهام</div>')+'</div>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+// السحب والإفلات
+let _tkDragId=null;
+function tkDragStart(ev,id){_tkDragId=id;ev.target.classList.add('dragging');}
+function tkDragEnd(ev){ev.target.classList.remove('dragging');}
+function tkDragOver(ev){ev.preventDefault();ev.currentTarget.classList.add('drag-over');}
+function tkDragLeave(ev){ev.currentTarget.classList.remove('drag-over');}
+function tkDrop(ev,col){ev.preventDefault();ev.currentTarget.classList.remove('drag-over');if(_tkDragId!=null){moveTask(_tkDragId,col);_tkDragId=null;}}
+
+// تنبيهات المهام (رئيسية) — المستحقّة خلال 3 أيام + المتأخرة
+function renderTaskAlerts(){
+  const today=new Date();today.setHours(0,0,0,0);
+  let count=0;
+  tasks.forEach(t=>{
+    if(t.col==='done'||!t.dueDate)return;
+    const diff=taskDueInfo(t);
+    if(diff!==null&&diff<=3)count++;
+  });
+  const badge=document.getElementById('sbTasksBadge');
+  if(badge){if(count>0){badge.style.display='flex';badge.textContent=count;}else badge.style.display='none';}
+  const mBadge=document.getElementById('mnTasksBadge');
+  if(mBadge){if(count>0){mBadge.style.display='flex';mBadge.textContent=count;}else mBadge.style.display='none';}
+}
+

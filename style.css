@@ -3653,3 +3653,53 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 
 /* شعار صغير برأس بطاقة إطلاق الوديعة */
 .wadea-card-logo{ position:absolute; top:12px; inset-inline-end:52px; width:28px; height:28px; object-fit:contain; }
+
+/* ═══════════════ قسم المهام (Kanban) ═══════════════ */
+.tasks-kanban{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; align-items:start; }
+.tk-col{ background:var(--glass); border:1px solid var(--border); border-radius:16px; padding:12px; min-height:120px; transition:var(--t); }
+.tk-col.drag-over{ border-color:var(--gold); background:var(--gold-g); }
+.tk-col-hd{ display:flex; align-items:center; gap:8px; padding:6px 8px 12px; font-size:13.5px; font-weight:800; }
+.tk-col-hd .dot{ width:9px; height:9px; border-radius:50%; }
+.tk-col-hd .count{ margin-inline-start:auto; font-family:var(--num,inherit); font-size:11px; background:var(--bg3); color:var(--text2); padding:2px 8px; border-radius:99px; }
+.tk-col[data-col="new"] .tk-col-hd .dot{ background:var(--blue); }
+.tk-col[data-col="progress"] .tk-col-hd .dot{ background:var(--gold); }
+.tk-col[data-col="done"] .tk-col-hd .dot{ background:var(--green); }
+.tk-cards{ display:flex; flex-direction:column; gap:10px; min-height:40px; }
+.tk-card{ background:var(--bg2); border:1px solid var(--border); border-radius:13px; padding:13px; cursor:grab; transition:transform .2s var(--ease-out),box-shadow .2s,border-color .2s; position:relative; animation:tkRise .4s var(--ease-out) both; }
+.tk-card:hover{ transform:translateY(-2px); box-shadow:0 10px 24px -12px rgba(0,0,0,.4); border-color:var(--gold); }
+.tk-card:active{ cursor:grabbing; }
+.tk-card.dragging{ opacity:.5; }
+.tk-card.urgent{ border-inline-start:3px solid var(--red); }
+.tk-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.tk-card-co{ font-size:13.5px; font-weight:700; color:var(--text); line-height:1.4; }
+.tk-card-badge{ font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:99px; flex:0 0 auto; }
+.tk-card-badge.urgent{ background:var(--red-g); color:var(--red); }
+.tk-card-badge.normal{ background:var(--blue-g); color:var(--blue); }
+.tk-card-type{ font-size:12px; color:var(--gold); font-weight:600; margin-bottom:6px; }
+.tk-card-meta{ display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:var(--text2); }
+.tk-card-meta span{ display:inline-flex; align-items:center; gap:4px; }
+.tk-card-amt{ font-family:var(--num,inherit); font-weight:700; color:var(--text); }
+.tk-card-due{ margin-top:8px; font-size:11px; font-weight:700; display:flex; align-items:center; gap:5px; }
+.tk-card-due.late{ color:var(--red); }
+.tk-card-due.soon{ color:var(--orange); }
+.tk-card-due.ok{ color:var(--text3); }
+.tk-card-progress-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); animation:tkPulse 1.6s ease-in-out infinite; }
+.tk-card-acts{ display:flex; gap:6px; margin-top:10px; }
+.tk-card-btn{ flex:1; height:30px; border:1px solid var(--border); background:var(--glass); border-radius:8px; font-family:inherit; font-size:11px; font-weight:700; color:var(--text2); cursor:pointer; transition:var(--t); display:flex; align-items:center; justify-content:center; gap:4px; }
+.tk-card-btn:hover{ border-color:var(--gold); color:var(--gold); }
+.tk-card-btn.done{ background:var(--green); color:#0A1810; border-color:var(--green); }
+.tk-card-btn.done:hover{ filter:brightness(1.05); color:#0A1810; }
+.tk-card-del{ position:absolute; top:10px; inset-inline-start:10px; width:22px; height:22px; border-radius:6px; border:none; background:transparent; color:var(--text3); cursor:pointer; font-size:13px; opacity:0; transition:var(--t); }
+.tk-card:hover .tk-card-del{ opacity:1; }
+.tk-card-del:hover{ background:var(--red-g); color:var(--red); }
+.tk-col-empty{ text-align:center; padding:20px; color:var(--text3); font-size:12px; }
+.task-modal .modal-body textarea{ resize:vertical; min-height:70px; font-family:inherit; }
+/* تنبيهات المهام (رئيسية) — تعيد استخدام أسلوب wadea-alert */
+.task-alert .ic{ background:rgba(96,165,250,.16)!important; }
+.task-alert.late .ic{ background:rgba(255,85,114,.16)!important; }
+@keyframes tkRise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@keyframes tkPulse{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(.8); opacity:.5; } }
+@keyframes tkPop{ 0%{ transform:scale(.7); } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
+.tk-card.just-done{ animation:tkPop .5s var(--ease-bounce); }
+@media (max-width:900px){ .tasks-kanban{ grid-template-columns:1fr; } }
+@media (prefers-reduced-motion:reduce){ .tk-card,.tk-card-progress-dot{ animation:none; } }
