@@ -3519,6 +3519,13 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
   0%,100%{ box-shadow:0 0 0 0 rgba(255,85,114,.35); }
   50%{ box-shadow:0 0 0 6px rgba(255,85,114,0); }
 }
+/* تذكيرات الداشبورد: زرّين (خلصت / إخفاء) جنب بعض بدون تصادم مع تنسيق زر الوديعة الوحيد */
+.wadea-alert.rem-alert{ padding-inline-end:16px; }
+.rem-alert-acts{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+.rem-alert-done{ border:1px solid rgba(0,0,0,.12); background:rgba(255,255,255,.5); color:var(--text2); border-radius:20px; padding:5px 11px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s, color .15s; }
+.rem-alert-done:hover{ background:var(--green-g); color:var(--green); border-color:rgba(0,196,140,.3); }
+.rem-alert-x{ width:24px; height:24px; flex:0 0 auto; border-radius:50%; border:none; background:rgba(0,0,0,.06); color:var(--text2); cursor:pointer; font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; transition:background .15s, color .15s; }
+.rem-alert-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
 
 /* ═══════════ مربعات «المبلغ يشمل» ═══════════ */
 .amt-inc-lbl{ font-size:11.5px; font-weight:700; color:var(--text2); margin:12px 0 8px; }

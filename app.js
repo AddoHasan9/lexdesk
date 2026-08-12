@@ -1771,11 +1771,13 @@ function renderRemAlerts(){
     else if(late)msg='تذكير عاجل — متأخر '+Math.abs(it.diff)+' يوم';
     else if(it.diff===0)msg=it.urgent?'تذكير عاجل — موعده اليوم':'موعده اليوم';
     else msg=it.urgent?'تذكير عاجل':'';
-    return '<div class="wadea-alert '+(it.urgent?'late':'soon')+(it.urgent?' rem-urgent-pulse':'')+'" onclick="toggleRemPanel()">'
+    return '<div class="wadea-alert rem-alert '+(it.urgent?'late':'soon')+(it.urgent?' rem-urgent-pulse':'')+'" onclick="toggleRemPanel()">'
       +'<div class="ic">'+(it.urgent?'⚠':'⏰')+'</div>'
       +'<div class="tx"><div class="tn">'+esc(it.r.text)+'</div><div class="ts">'+msg+'</div></div>'
-      +'<button class="rem-act done-btn" style="flex:0 0 auto" onclick="toggleRemDone('+it.r.id+');event.stopPropagation()">✓ خلصت</button>'
-      +'<button class="wadea-alert-x" title="إخفاء اليوم" onclick="dismissRemAlert('+it.r.id+',\''+it.key+'\',event)">✕</button>'
+      +'<div class="rem-alert-acts">'
+        +'<button class="rem-alert-done" onclick="toggleRemDone('+it.r.id+');event.stopPropagation()">✓ خلصت</button>'
+        +'<button class="rem-alert-x" title="إخفاء اليوم" onclick="dismissRemAlert('+it.r.id+',\''+it.key+'\',event)">✕</button>'
+      +'</div>'
       +'</div>';
   }).join('');
 }
