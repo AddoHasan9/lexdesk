@@ -67,7 +67,7 @@ function sanitizeCase(c){
     'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
     'workflowStage','workflowDates','certNo','certDate','amountIncludes',
-    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName'];
+    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
@@ -824,9 +824,25 @@ function openConvertToWadea(id){
   ['cvcheck1','cvcheck2','cvcheck3'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('checked');});
   // Store source id
   document.getElementById('cvOverlay').dataset.sourceId=id;
+  document.querySelector('#cvOverlay .modal-title').textContent='تحويل لإطلاق وديعة';
+  const cvWrap=document.getElementById('cvChecksWrap');if(cvWrap)cvWrap.style.display='block';
   document.getElementById('cvOverlay').style.display='flex';
   setTimeout(()=>document.getElementById('cvOverlay').classList.add('open'),10);
   // Auto calc deadline when date changes
+  document.getElementById('cvCertDate').oninput=calcCvDeadline;
+  document.getElementById('cvShareType').onchange=calcCvDeadline;
+}
+
+function openEditWadeaDate(id){
+  const c=cases.find(x=>x.id===id);if(!c||c.type!==WADEA_TYPE)return;
+  document.getElementById('cvCompanyName').textContent=c.company;
+  document.getElementById('cvCertDate').value=c.wadeaCertDate?c.wadeaCertDate.slice(0,10):'';
+  document.getElementById('cvShareType').value=c.wadeaShareholderType||'single';
+  document.getElementById('cvOverlay').dataset.sourceId=id;
+  document.querySelector('#cvOverlay .modal-title').textContent='تعديل تاريخ الشهادة';
+  const cvWrap=document.getElementById('cvChecksWrap');if(cvWrap)cvWrap.style.display='none';
+  document.getElementById('cvOverlay').style.display='flex';
+  setTimeout(()=>{document.getElementById('cvOverlay').classList.add('open');calcCvDeadline();},10);
   document.getElementById('cvCertDate').oninput=calcCvDeadline;
   document.getElementById('cvShareType').onchange=calcCvDeadline;
 }
@@ -1023,7 +1039,9 @@ async function wadeaUploadBarcode(id,inp){
   if(!url)return;
   c.wadeaBarcodeUrl=url;
   c.wadeaBarcodeName=file.name;
-  addLog(c,'edit','إطلاق الوديعة: '+WADEA_STEP_NAMES[3],currentUser||'الأدمن');
+  c.wadeaDone=true;
+  c.wadeaCompletedAt=new Date().toISOString();
+  addLog(c,'edit','إطلاق الوديعة: '+WADEA_STEP_NAMES[3]+' — اكتمل الإطلاق بالكامل ✓',currentUser||'الأدمن');
   saveData();
   buildWadeaPage();
   renderWadeaAlerts();
@@ -1078,6 +1096,19 @@ function confirmConvert(){
   const days=shareType==='multi'?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
   const certDateObj=new Date(certDate);
   const deadline=new Date(certDateObj);deadline.setDate(deadline.getDate()+days);
+  const isAlreadyWadea=(src.type===WADEA_TYPE);
+  src.wadeaCertDate=certDate;
+  src.wadeaShareholderType=shareType;
+  src.wadeaDeadline=deadline.toISOString();
+  if(isAlreadyWadea){
+    // تعديل تاريخ شهادة لمعاملة موجودة أصلاً — لا نلمس النوع/الحالة/الإكمال
+    addLog(src,'edit','تم تعديل تاريخ شهادة التأسيس وإعادة حساب مهلة الغرامة',currentUser||'الأدمن');
+    saveData();render();renderWadeaAlerts();
+    closeCvOverlay();
+    toast('✓ تم تحديث تاريخ الشهادة لـ'+src.company,'ok');
+    setTimeout(()=>openDetail(sourceId),300);
+    return;
+  }
   // Get checks
   const checks=WADEA_ITEMS.filter((_,i)=>{const cb=document.getElementById('cv'+(i+1));return cb&&cb.checked;}).join('، ');
   // ── تحويل نفس المعاملة (لا ننشئ معاملة جديدة) ──
@@ -1085,9 +1116,6 @@ function confirmConvert(){
   src.tasisDone=true;
   src.date=certDate;
   src.wadeaChecks=checks;
-  src.wadeaCertDate=certDate;
-  src.wadeaShareholderType=shareType;
-  src.wadeaDeadline=deadline.toISOString();
   src.status='قيد المعالجة';
   addLog(src,'edit','تم تحويل المعاملة من تأسيس شركة إلى إطلاق وديعة',currentUser||'الأدمن');
   saveData();render();
@@ -1524,6 +1552,7 @@ function openDetail(id){
         +'<div style="font-size:11px;color:var(--text2)">الموعد النهائي: '+deadlineStr+' ('+days+' يوم من تاريخ الشهادة)</div>'
         +(fine>0?'<div style="font-size:12px;font-weight:700;color:var(--red);margin-top:3px">الغرامة المستحقّة: '+fine.toLocaleString()+' د.ع</div>':'')
         +(c.tasisLinkedId?'<div style="font-size:11px;color:var(--text2);cursor:pointer;text-decoration:underline;margin-top:2px" onclick="closeDetail();setTimeout(()=>openDetail('+c.tasisLinkedId+'),150)">↑ معاملة التأسيس الأصلية</div>':'')
+        +'<button style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text2);background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer" onclick="openEditWadeaDate('+c.id+')">✎ تعديل تاريخ الشهادة</button>'
         +'</div></div>';
     } else wadeaDeadlineEl.style.display='none';
   }

@@ -434,7 +434,7 @@ svg { flex-shrink:0; }
 }
 
 /* ══════════ PAGES ══════════ */
-.page { display:none; flex:1; flex-direction:column; overflow-y:auto; }
+.page { display:none; flex:1; flex-direction:column; overflow-y:auto; padding-bottom:60px; }
 .page.active { display:flex; }
 #pageDash { padding:0; overflow:hidden; }
 
@@ -3586,7 +3586,7 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .wf-dot.pop{ animation:wfPop .5s cubic-bezier(.34,1.4,.5,1); }
 
 /* ═══════════ قسم إطلاق وديعة (شريط جانبي + صفحة + زر إخفاء) ═══════════ */
-.tip-badge{ position:absolute; top:6px; inset-inline-start:10px; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
+.tip-badge{ position:absolute; top:6px; inset-inline-end:10px; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
   background:var(--red); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; }
 .wadea-alert{ position:relative; padding-inline-end:40px; }
 .wadea-alert-x{ position:absolute; top:8px; inset-inline-end:8px; width:24px; height:24px; border-radius:50%; border:none;
