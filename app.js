@@ -3044,6 +3044,16 @@ function taskDueInfo(t){
   const diff=Math.round((due-today)/(1000*60*60*24));
   return diff;
 }
+function taskStepperHtml(t){
+  const ci=TASK_COLS.findIndex(c=>c.id===t.col);
+  return '<div class="task-steps">'+TASK_COLS.map((col,i)=>{
+    const st=i<ci?'done':i===ci?'current':'wait';
+    const dotContent=i<ci?'✓':i===ci?'<span class="ts-flicker"></span>':(i+1);
+    const html='<div class="task-step '+st+'" title="'+col.name+'" onclick="event.stopPropagation();jumpTaskStage('+t.id+',\''+col.id+'\')"><div class="ts-dot">'+dotContent+'</div><div class="ts-label">'+col.name+'</div></div>';
+    if(i===0)return html;
+    return '<div class="task-step-line '+(i<=ci?'done':'')+'"></div>'+html;
+  }).join('')+'</div>';
+}
 function taskCardHtml(t){
   const diff=taskDueInfo(t);
   let dueHtml='';
@@ -3053,22 +3063,23 @@ function taskCardHtml(t){
     else if(diff===0){cls='soon';txt='مستحقّة اليوم';}
     else if(diff<=3){cls='soon';txt='باقي '+diff+' يوم';}
     else{cls='ok';txt='باقي '+diff+' يوم';}
-    dueHtml='<div class="tk-card-due '+cls+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '+txt+'</div>';
+    dueHtml='<div class="task-card-due '+cls+'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '+txt+'</div>';
   }
-  const amtHtml=t.amount>0?'<span><span class="tk-card-amt">'+t.amount.toLocaleString()+'</span> د.ع</span>':'';
-  const progressDot=t.col==='progress'?'<span class="tk-card-progress-dot"></span> ':'';
+  const amtHtml=t.amount>0?'<span><span class="task-card-amt">'+t.amount.toLocaleString()+'</span> د.ع</span>':'';
   let actBtn='';
-  if(t.col==='new')actBtn='<button class="tk-card-btn" onclick="moveTask('+t.id+',\'progress\')">بدء المعالجة ←</button>';
-  else if(t.col==='progress')actBtn='<button class="tk-card-btn done" onclick="completeTask('+t.id+')">✓ إكمال</button>';
-  else actBtn='<button class="tk-card-btn" onclick="moveTask('+t.id+',\'progress\')">↩ إرجاع</button>';
-  return '<div class="tk-card '+(t.priority==='urgent'?'urgent':'')+'" draggable="true" data-id="'+t.id+'" ondragstart="tkDragStart(event,'+t.id+')" ondragend="tkDragEnd(event)" onclick="if(event.target.closest(\'button\'))return;openTaskForm('+t.id+')">'
-    +'<button class="tk-card-del" title="حذف" onclick="deleteTask('+t.id+',event)">🗑</button>'
-    +'<div class="tk-card-top"><div class="tk-card-co">'+progressDot+esc(t.company)+'</div>'
-    +'<span class="tk-card-badge '+(t.priority==='urgent'?'urgent':'normal')+'">'+(t.priority==='urgent'?'عاجلة':'عادية')+'</span></div>'
-    +'<div class="tk-card-type">'+esc(t.taskType)+'</div>'
-    +'<div class="tk-card-meta"><span>🏛 '+esc(t.dept)+'</span>'+(amtHtml?' '+amtHtml:'')+(t.lawyer?' <span>👤 '+esc(t.lawyer)+'</span>':'')+'</div>'
+  if(t.col==='new')actBtn='<button class="task-card-btn primary" onclick="moveTask('+t.id+',\'progress\')">بدء المعالجة ←</button>';
+  else if(t.col==='progress')actBtn='<button class="task-card-btn primary" onclick="completeTask('+t.id+')">✓ إكمال المهمة</button>';
+  else actBtn='<button class="task-card-btn" onclick="moveTask('+t.id+',\'progress\')">↩ إرجاع لقيد المعالجة</button>';
+  return '<div class="task-card '+(t.priority==='urgent'?'urgent':'')+(t.col==='done'?' is-done':'')+'" data-id="'+t.id+'">'
+    +'<button class="task-card-del" title="حذف" onclick="deleteTask('+t.id+',event)">🗑</button>'
+    +'<div class="task-card-top" onclick="openTaskForm('+t.id+')"><div class="task-card-co">'+esc(t.company)+'</div>'
+    +'<span class="task-card-badge '+(t.priority==='urgent'?'urgent':'normal')+'">'+(t.priority==='urgent'?'عاجلة':'عادية')+'</span></div>'
+    +'<div class="task-card-type" onclick="openTaskForm('+t.id+')">'+esc(t.taskType)+'</div>'
+    +'<div class="task-card-meta"><span>🏛 '+esc(t.dept)+'</span>'+(amtHtml?' '+amtHtml:'')+(t.lawyer?' <span>👤 '+esc(t.lawyer)+'</span>':'')+'</div>'
     +dueHtml
-    +'<div class="tk-card-acts">'+actBtn+'</div>'
+    +(t.notes?'<div class="task-card-notes">'+esc(t.notes)+'</div>':'')
+    +taskStepperHtml(t)
+    +'<div class="task-card-acts">'+actBtn+'</div>'
     +'</div>';
 }
 function completeTask(id){
@@ -3077,29 +3088,24 @@ function completeTask(id){
   saveTasks();buildTasksPage();renderTaskAlerts();
   toast('✓ اكتملت المهمة','ok');
 }
+function jumpTaskStage(id,col){
+  const t=tasks.find(x=>x.id===id);if(!t||t.col===col)return;
+  moveTask(id,col);
+}
 function buildTasksPage(){
   const body=document.getElementById('tasksBody');if(!body)return;
-  body.innerHTML='<div class="tasks-kanban">'+TASK_COLS.map(col=>{
-    const items=tasks.filter(t=>t.col===col.id);
-    // ترتيب: العاجلة أول، بعدها الأقرب استحقاقاً
-    items.sort((a,b)=>{
-      if((b.priority==='urgent')-(a.priority==='urgent'))return (b.priority==='urgent')-(a.priority==='urgent');
-      const da=taskDueInfo(a),db=taskDueInfo(b);
-      if(da===null)return 1;if(db===null)return -1;return da-db;
-    });
-    return '<div class="tk-col" data-col="'+col.id+'" ondragover="tkDragOver(event)" ondragleave="tkDragLeave(event)" ondrop="tkDrop(event,\''+col.id+'\')">'
-      +'<div class="tk-col-hd"><span class="dot"></span>'+col.name+'<span class="count">'+items.length+'</span></div>'
-      +'<div class="tk-cards">'+(items.length?items.map(taskCardHtml).join(''):'<div class="tk-col-empty">لا مهام</div>')+'</div>'
-      +'</div>';
-  }).join('')+'</div>';
+  const items=tasks.slice().sort((a,b)=>{
+    if((a.col==='done')!==(b.col==='done'))return (a.col==='done')?1:-1;
+    if((b.priority==='urgent')-(a.priority==='urgent'))return (b.priority==='urgent')-(a.priority==='urgent');
+    const da=taskDueInfo(a),db=taskDueInfo(b);
+    if(da===null)return 1;if(db===null)return -1;return da-db;
+  });
+  if(!items.length){
+    body.innerHTML='<div class="tasks-grid"><div class="tasks-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><div>لا توجد مهام — اضغط «إضافة مهمة جديدة»</div></div></div>';
+    return;
+  }
+  body.innerHTML='<div class="tasks-grid">'+items.map(taskCardHtml).join('')+'</div>';
 }
-// السحب والإفلات
-let _tkDragId=null;
-function tkDragStart(ev,id){_tkDragId=id;ev.target.classList.add('dragging');}
-function tkDragEnd(ev){ev.target.classList.remove('dragging');}
-function tkDragOver(ev){ev.preventDefault();ev.currentTarget.classList.add('drag-over');}
-function tkDragLeave(ev){ev.currentTarget.classList.remove('drag-over');}
-function tkDrop(ev,col){ev.preventDefault();ev.currentTarget.classList.remove('drag-over');if(_tkDragId!=null){moveTask(_tkDragId,col);_tkDragId=null;}}
 
 // تنبيهات المهام (رئيسية) — المستحقّة خلال 3 أيام + المتأخرة
 function renderTaskAlerts(){
