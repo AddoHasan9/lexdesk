@@ -67,7 +67,7 @@ function sanitizeCase(c){
     'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
     'workflowStage','workflowDates','certNo','certDate','amountIncludes',
-    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt'];
+    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt','wadeaSubmittedDate'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
@@ -818,6 +818,7 @@ function openConvertToWadea(id){
   document.getElementById('cvCompanyName').textContent=c.company;
   document.getElementById('cvCertDate').value='';
   document.getElementById('cvShareType').value='single';
+  document.getElementById('cvSubmittedDate').value='';
   document.getElementById('cvDeadlineInfo').textContent='';
   // Reset checkboxes
   ['cv1','cv2','cv3'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
@@ -831,6 +832,7 @@ function openConvertToWadea(id){
   // Auto calc deadline when date changes
   document.getElementById('cvCertDate').oninput=calcCvDeadline;
   document.getElementById('cvShareType').onchange=calcCvDeadline;
+  document.getElementById('cvSubmittedDate').oninput=calcCvDeadline;
 }
 
 function openEditWadeaDate(id){
@@ -838,6 +840,7 @@ function openEditWadeaDate(id){
   document.getElementById('cvCompanyName').textContent=c.company;
   document.getElementById('cvCertDate').value=c.wadeaCertDate?c.wadeaCertDate.slice(0,10):'';
   document.getElementById('cvShareType').value=c.wadeaShareholderType||'single';
+  document.getElementById('cvSubmittedDate').value=c.wadeaSubmittedDate||'';
   document.getElementById('cvOverlay').dataset.sourceId=id;
   document.querySelector('#cvOverlay .modal-title').textContent='تعديل تاريخ الشهادة';
   const cvWrap=document.getElementById('cvChecksWrap');if(cvWrap)cvWrap.style.display='none';
@@ -845,6 +848,7 @@ function openEditWadeaDate(id){
   setTimeout(()=>{document.getElementById('cvOverlay').classList.add('open');calcCvDeadline();},10);
   document.getElementById('cvCertDate').oninput=calcCvDeadline;
   document.getElementById('cvShareType').onchange=calcCvDeadline;
+  document.getElementById('cvSubmittedDate').oninput=calcCvDeadline;
 }
 
 // المهلة القانونية الرسمية لإطلاق الوديعة (حسب تعليمات مسجل الشركات)
@@ -877,6 +881,7 @@ function renderWadeaAlerts(){
   const items=[];let lateCount=0;
   cases.forEach(c=>{
     if(c.type!==WADEA_TYPE||!c.wadeaDeadline||c.wadeaDone)return;
+    if(c.wadeaSubmittedDate)return; // أُرسلت فعلياً — ما عادت تحتاج تنبيه
     const deadline=new Date(c.wadeaDeadline);
     const diff=Math.round((deadline-today)/(1000*60*60*24));
     if(diff<0)lateCount++;
@@ -931,15 +936,17 @@ function buildWadeaPage(){
   const today=new Date();today.setHours(0,0,0,0);
   const list=cases.filter(c=>c.type===WADEA_TYPE&&c.wadeaDeadline&&!c.wadeaDone).map(c=>{
     const deadline=new Date(c.wadeaDeadline);
-    const diff=Math.round((deadline-today)/(1000*60*60*24));
+    const submitted=c.wadeaSubmittedDate?new Date(c.wadeaSubmittedDate):null;
+    const refDate=submitted||today;
+    const diff=Math.round((deadline-refDate)/(1000*60*60*24));
     const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
     let earlyDiff=null;
-    if(c.wadeaShareholderType==='multi'&&c.wadeaCertDate){
+    if(c.wadeaShareholderType==='multi'&&c.wadeaCertDate&&!submitted){
       const canSendFrom=new Date(c.wadeaCertDate);canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
       const d=Math.round((canSendFrom-today)/(1000*60*60*24));
       if(d>0)earlyDiff=d;
     }
-    return {c,diff,fine,earlyDiff,done:wadeaStepsDone(c)};
+    return {c,diff,fine,earlyDiff,submitted,done:wadeaStepsDone(c)};
   }).sort((a,b)=>a.diff-b.diff);
 
   if(!list.length){
@@ -1001,9 +1008,15 @@ function wadeaCardHtml(it){
     footer='<div class="wf4-foot done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> اكتمل الإطلاق</div>';
   }else{
     const late=it.diff<0;
-    footer='<div class="wf4-foot '+(late?'late':it.diff<=7?'soon':'')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '
-      +(late?'متأخرة '+Math.abs(it.diff)+' يوم':it.diff+' يوم متبقٍ')
-      +'<span class="wf4-foot-date">تنتهي المهلة بتاريخ '+deadlineStr+'</span></div>';
+    if(it.submitted){
+      footer='<div class="wf4-foot '+(late?'late':'done')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> '
+        +(late?'أُرسلت متأخرة '+Math.abs(it.diff)+' يوم':'أُرسلت قبل انتهاء المهلة')
+        +'<span class="wf4-foot-date">'+(late?'الغرامة النهائية: '+it.fine.toLocaleString()+' د.ع':'لا توجد غرامة')+'</span></div>';
+    }else{
+      footer='<div class="wf4-foot '+(late?'late':it.diff<=7?'soon':'')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> '
+        +(late?'متأخرة '+Math.abs(it.diff)+' يوم':it.diff+' يوم متبقٍ')
+        +'<span class="wf4-foot-date">تنتهي المهلة بتاريخ '+deadlineStr+'</span></div>';
+    }
   }
 
   return '<div class="wadea-card">'
@@ -1051,6 +1064,7 @@ async function wadeaUploadBarcode(id,inp){
 function calcCvDeadline(){
   const d=document.getElementById('cvCertDate')?.value||'';
   const t=document.getElementById('cvShareType')?.value||'single';
+  const sub=document.getElementById('cvSubmittedDate')?.value||'';
   const el=document.getElementById('cvDeadlineInfo');
   if(!el)return;
   if(!d){el.innerHTML='';return;}
@@ -1061,13 +1075,19 @@ function calcCvDeadline(){
   const canSendFrom=new Date(certDate);
   if(isMulti)canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
   const today=new Date();today.setHours(0,0,0,0);
-  const diffDeadline=Math.round((deadline-today)/(1000*60*60*24));
+  // إذا تحدّد تاريخ الإرسال الفعلي — نجمّد الحساب عنده بدل اليوم الحالي
+  const refDate=sub?new Date(sub):today;
+  const diffDeadline=Math.round((deadline-refDate)/(1000*60*60*24));
   const diffCanSend=Math.round((canSendFrom-today)/(1000*60*60*24));
   const deadlineStr=deadline.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
   const fine=diffDeadline<0?calcWadeaFine(Math.abs(diffDeadline)):0;
   let html='';
-  // تنبيه المهلة القبل-إرسال لحالة تعدد المساهمين
-  if(isMulti&&diffCanSend>0){
+  if(sub){
+    const subStr=refDate.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:var(--green-g);border:1px solid rgba(34,211,160,.3);margin-bottom:8px"><span style="font-size:16px">✓</span><div><div style="font-size:12.5px;font-weight:700;color:var(--green)">تم الإرسال على النظام بتاريخ '+subStr+' — توقّف احتساب الغرامة عند هذا التاريخ</div></div></div>';
+  }
+  // تنبيه المهلة القبل-إرسال لحالة تعدد المساهمين (يبقى مرتبط باليوم الحالي، غير متأثر بتاريخ الإرسال)
+  if(isMulti&&!sub&&diffCanSend>0){
     html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:var(--orange-g);border:1px solid rgba(251,146,60,.3);margin-bottom:8px"><span style="font-size:16px">⏳</span><div><div style="font-size:12.5px;font-weight:700;color:var(--orange)">هذه الشركة فيها أكثر من مساهم — لا تُرسل على النظام إلا بعد مرور '+WADEA_MULTI_WAIT+' يوم من تاريخ الشهادة</div><div style="font-size:11px;color:var(--text2)">باقي '+diffCanSend+' يوم لحين يصير بالإمكان الإرسال (تاريخ الإرسال المسموح: '+canSendFrom.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+')</div></div></div>';
   }
   let color='var(--green)';let icon='✓';let msg='';
@@ -1075,7 +1095,8 @@ function calcCvDeadline(){
   else if(diffDeadline<=7){color='var(--red)';icon='⚠';msg='باقي '+diffDeadline+' يوم فقط!';}
   else if(diffDeadline<=14){color='var(--orange)';icon='⏰';msg='باقي '+diffDeadline+' يوم';}
   else{icon='✓';msg='باقي '+diffDeadline+' يوم';}
-  html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:'+(diffDeadline<0?'var(--red-g)':diffDeadline<=14?'var(--orange-g)':'var(--green-g)')+';border:1px solid '+(diffDeadline<0?'rgba(255,85,114,.3)':diffDeadline<=14?'rgba(251,146,60,.3)':'rgba(34,211,160,.3)')+'"><span style="font-size:16px">'+icon+'</span><div><div style="font-size:12px;font-weight:700;color:'+color+'">الموعد النهائي: '+deadlineStr+'</div><div style="font-size:11px;color:var(--text2)">'+days+' يوم من تاريخ الشهادة • '+msg+(fine>0?' • الغرامة حتى اليوم: '+fine.toLocaleString()+' د.ع':'')+'</div></div></div>';
+  if(sub&&diffDeadline>=0){color='var(--green)';icon='✓';msg='أُرسلت قبل انتهاء المهلة — لا توجد غرامة';}
+  html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;background:'+(diffDeadline<0?'var(--red-g)':diffDeadline<=14&&!sub?'var(--orange-g)':'var(--green-g)')+';border:1px solid '+(diffDeadline<0?'rgba(255,85,114,.3)':diffDeadline<=14&&!sub?'rgba(251,146,60,.3)':'rgba(34,211,160,.3)')+'"><span style="font-size:16px">'+icon+'</span><div><div style="font-size:12px;font-weight:700;color:'+color+'">الموعد النهائي: '+deadlineStr+'</div><div style="font-size:11px;color:var(--text2)">'+days+' يوم من تاريخ الشهادة • '+msg+(fine>0?' • الغرامة '+(sub?'النهائية':'حتى اليوم')+': '+fine.toLocaleString()+' د.ع':'')+'</div></div></div>';
   el.innerHTML=html;
 }
 
@@ -1090,6 +1111,7 @@ function confirmConvert(){
   const sourceId=Number(overlay.dataset.sourceId);
   const certDate=document.getElementById('cvCertDate')?.value||'';
   const shareType=document.getElementById('cvShareType')?.value||'single';
+  const submittedDate=document.getElementById('cvSubmittedDate')?.value||'';
   if(!certDate){toast('أدخل تاريخ الشهادة','err');return;}
   const src=cases.find(x=>x.id===sourceId);if(!src)return;
   // Calc deadline (المهلة الرسمية: 37 يوم لمساهم واحد، 55 يوم لأكثر من مساهم)
@@ -1100,6 +1122,11 @@ function confirmConvert(){
   src.wadeaCertDate=certDate;
   src.wadeaShareholderType=shareType;
   src.wadeaDeadline=deadline.toISOString();
+  src.wadeaSubmittedDate=submittedDate||null;
+  if(submittedDate&&!src.wadeaStep1){
+    src.wadeaStep1=true;
+    src.wadeaStep1Date=new Date(submittedDate).toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+  }
   if(isAlreadyWadea){
     // تعديل تاريخ شهادة لمعاملة موجودة أصلاً — لا نلمس النوع/الحالة/الإكمال
     addLog(src,'edit','تم تعديل تاريخ شهادة التأسيس وإعادة حساب مهلة الغرامة',currentUser||'الأدمن');
@@ -1523,18 +1550,25 @@ function openDetail(id){
       wadeaDeadlineEl.style.display='block';
       const deadline=new Date(c.wadeaDeadline);
       const today=new Date();today.setHours(0,0,0,0);
-      const diff=Math.round((deadline-today)/(1000*60*60*24));
+      const submitted=c.wadeaSubmittedDate?new Date(c.wadeaSubmittedDate):null;
+      const refDate=submitted||today;
+      const diff=Math.round((deadline-refDate)/(1000*60*60*24));
       const deadlineStr=deadline.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
       const isMulti=c.wadeaShareholderType==='multi';
       const days=isMulti?WADEA_GRACE_MULTI:WADEA_GRACE_SINGLE;
       const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
       let bg,bc,icon,msg;
-      if(diff<0){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='متأخرة '+Math.abs(diff)+' يوم!';}
-      else if(diff<=7){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='باقي '+diff+' يوم فقط!';}
-      else if(diff<=14){bg='var(--orange-g)';bc='rgba(251,146,60,.3)';icon='⏰';msg='باقي '+diff+' يوم';}
-      else{bg='var(--green-g)';bc='rgba(34,211,160,.3)';icon='✓';msg='باقي '+diff+' يوم';}
+      if(submitted){
+        if(diff<0){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='أُرسلت متأخرة '+Math.abs(diff)+' يوم — غرامة نهائية';}
+        else{bg='var(--green-g)';bc='rgba(34,211,160,.3)';icon='✓';msg='أُرسلت قبل انتهاء المهلة — لا توجد غرامة';}
+      }else{
+        if(diff<0){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='متأخرة '+Math.abs(diff)+' يوم!';}
+        else if(diff<=7){bg='var(--red-g)';bc='rgba(255,85,114,.3)';icon='⚠';msg='باقي '+diff+' يوم فقط!';}
+        else if(diff<=14){bg='var(--orange-g)';bc='rgba(251,146,60,.3)';icon='⏰';msg='باقي '+diff+' يوم';}
+        else{bg='var(--green-g)';bc='rgba(34,211,160,.3)';icon='✓';msg='باقي '+diff+' يوم';}
+      }
       let earlyBlock='';
-      if(isMulti&&c.wadeaCertDate){
+      if(isMulti&&!submitted&&c.wadeaCertDate){
         const canSendFrom=new Date(c.wadeaCertDate);canSendFrom.setDate(canSendFrom.getDate()+WADEA_MULTI_WAIT);
         const diffCanSend=Math.round((canSendFrom-today)/(1000*60*60*24));
         if(diffCanSend>0){
@@ -1544,15 +1578,23 @@ function openDetail(id){
             +'<div style="font-size:11px;color:var(--text2)">تاريخ الإرسال المسموح: '+canSendFrom.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})+'</div></div></div>';
         }
       }
+      let submittedBlock='';
+      if(submitted){
+        const subStr=submitted.toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'});
+        submittedBlock='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:var(--green-g);border:1px solid rgba(34,211,160,.3);margin-top:8px">'
+          +'<span style="font-size:20px">✓</span>'
+          +'<div><div style="font-size:13px;font-weight:800;color:var(--green)">أُرسلت على النظام بتاريخ '+subStr+'</div>'
+          +'<div style="font-size:11px;color:var(--text2)">توقّف احتساب الغرامة عند هذا التاريخ</div></div></div>';
+      }
       wadeaDeadlineEl.innerHTML='<div class="detail-section-title">⏰ مهلة الغرامة</div>'
-        +earlyBlock
+        +earlyBlock+submittedBlock
         +'<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:'+bg+';border:1px solid '+bc+';margin-top:10px">'
         +'<span style="font-size:22px">'+icon+'</span>'
-        +'<div><div style="font-size:14px;font-weight:800;color:'+(diff<0?'var(--red)':diff<=7?'var(--red)':diff<=14?'var(--orange)':'var(--green)')+'">'+msg+'</div>'
+        +'<div><div style="font-size:14px;font-weight:800;color:'+(diff<0?'var(--red)':(!submitted&&diff<=7)?'var(--red)':(!submitted&&diff<=14)?'var(--orange)':'var(--green)')+'">'+msg+'</div>'
         +'<div style="font-size:11px;color:var(--text2)">الموعد النهائي: '+deadlineStr+' ('+days+' يوم من تاريخ الشهادة)</div>'
-        +(fine>0?'<div style="font-size:12px;font-weight:700;color:var(--red);margin-top:3px">الغرامة المستحقّة: '+fine.toLocaleString()+' د.ع</div>':'')
+        +(fine>0?'<div style="font-size:12px;font-weight:700;color:var(--red);margin-top:3px">الغرامة '+(submitted?'النهائية':'المستحقّة')+': '+fine.toLocaleString()+' د.ع</div>':'')
         +(c.tasisLinkedId?'<div style="font-size:11px;color:var(--text2);cursor:pointer;text-decoration:underline;margin-top:2px" onclick="closeDetail();setTimeout(()=>openDetail('+c.tasisLinkedId+'),150)">↑ معاملة التأسيس الأصلية</div>':'')
-        +'<button style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text2);background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer" onclick="openEditWadeaDate('+c.id+')">✎ تعديل تاريخ الشهادة</button>'
+        +'<button style="margin-top:8px;font-size:11px;font-weight:700;color:var(--text2);background:var(--glass);border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer" onclick="openEditWadeaDate('+c.id+')">✎ تعديل التواريخ</button>'
         +'</div></div>';
     } else wadeaDeadlineEl.style.display='none';
   }
