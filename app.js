@@ -3046,12 +3046,15 @@ function taskDueInfo(t){
 }
 function taskStepperHtml(t){
   const ci=TASK_COLS.findIndex(c=>c.id===t.col);
+  const fullyDone=(t.col==='done');
   return '<div class="task-steps">'+TASK_COLS.map((col,i)=>{
-    const st=i<ci?'done':i===ci?'current':'wait';
-    const dotContent=i<ci?'✓':i===ci?'<span class="ts-flicker"></span>':(i+1);
+    const isDone=fullyDone||i<ci;
+    const isCurrent=!fullyDone&&i===ci;
+    const st=isDone?'done':isCurrent?'current':'wait';
+    const dotContent=isDone?'✓':isCurrent?'<span class="ts-flicker"></span>':(i+1);
     const html='<div class="task-step '+st+'" title="'+col.name+'" onclick="event.stopPropagation();jumpTaskStage('+t.id+',\''+col.id+'\')"><div class="ts-dot">'+dotContent+'</div><div class="ts-label">'+col.name+'</div></div>';
     if(i===0)return html;
-    return '<div class="task-step-line '+(i<=ci?'done':'')+'"></div>'+html;
+    return '<div class="task-step-line '+((fullyDone||i<=ci)?'done':'')+'"></div>'+html;
   }).join('')+'</div>';
 }
 function taskCardHtml(t){
@@ -3071,10 +3074,11 @@ function taskCardHtml(t){
   else if(t.col==='progress')actBtn='<button class="task-card-btn primary" onclick="completeTask('+t.id+')">✓ إكمال المهمة</button>';
   else actBtn='<button class="task-card-btn" onclick="moveTask('+t.id+',\'progress\')">↩ إرجاع لقيد المعالجة</button>';
   return '<div class="task-card '+(t.priority==='urgent'?'urgent':'')+(t.col==='done'?' is-done':'')+'" data-id="'+t.id+'">'
-    +'<button class="task-card-del" title="حذف" onclick="deleteTask('+t.id+',event)">🗑</button>'
-    +'<div class="task-card-top" onclick="openTaskForm('+t.id+')"><div class="task-card-co">'+esc(t.company)+'</div>'
-    +'<span class="task-card-badge '+(t.priority==='urgent'?'urgent':'normal')+'">'+(t.priority==='urgent'?'عاجلة':'عادية')+'</span></div>'
-    +'<div class="task-card-type" onclick="openTaskForm('+t.id+')">'+esc(t.taskType)+'</div>'
+    +'<div class="task-card-top"><div class="task-card-co" onclick="openTaskForm('+t.id+')" style="cursor:pointer">'+esc(t.company)+'</div>'
+    +'<div style="display:flex;align-items:center;gap:6px;flex:0 0 auto"><span class="task-card-badge '+(t.priority==='urgent'?'urgent':'normal')+'">'+(t.priority==='urgent'?'عاجلة':'عادية')+'</span>'
+    +'<button class="act-btn" title="تعديل" onclick="openTaskForm('+t.id+')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+    +'<button class="act-btn del" title="حذف" onclick="deleteTask('+t.id+',event)"><svg class="del-svg" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button></div></div>'
+    +'<div class="task-card-type" onclick="openTaskForm('+t.id+')" style="cursor:pointer">'+esc(t.taskType)+'</div>'
     +'<div class="task-card-meta"><span>🏛 '+esc(t.dept)+'</span>'+(amtHtml?' '+amtHtml:'')+(t.lawyer?' <span>👤 '+esc(t.lawyer)+'</span>':'')+'</div>'
     +dueHtml
     +(t.notes?'<div class="task-card-notes">'+esc(t.notes)+'</div>':'')
