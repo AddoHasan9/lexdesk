@@ -1713,7 +1713,7 @@ function exportReportPDF(){window.print();toast('جاري الطباعة','ok');
 // ══ REMINDERS ══
 const SK_REM='lexdesk_reminders';let reminders=[];let selRemCat='عام';let selRemColor='var(--gold)';
 const REM_CATS={'عام':{color:'var(--gold)',bg:'var(--gold-g)'},'أوراق':{color:'var(--blue2)',bg:'var(--blue-g)'},'فلوس':{color:'var(--green)',bg:'var(--green-g)'},'موعد':{color:'var(--purple)',bg:'var(--purple-g)'},'عاجل':{color:'var(--red)',bg:'var(--red-g)'}};
-async function loadReminders(){const cloud=await sbLoadMeta('reminders');if(cloud&&Array.isArray(cloud))reminders=cloud;else{try{reminders=JSON.parse(localStorage.getItem(SK_REM)||'[]');}catch(e){reminders=[];}}renderRemBadge();renderRemList();}
+async function loadReminders(){const cloud=await sbLoadMeta('reminders');if(cloud&&Array.isArray(cloud))reminders=cloud;else{try{reminders=JSON.parse(localStorage.getItem(SK_REM)||'[]');}catch(e){reminders=[];}}renderRemBadge();renderRemList();renderRemAlerts();}
 function saveReminders(){try{localStorage.setItem(SK_REM,JSON.stringify(reminders));}catch(e){}sbSaveMeta('reminders',reminders);}
 function renderRemBadge(){const active=reminders.filter(r=>!r.done).length;const b=document.getElementById('remBadge');if(!b)return;b.textContent=active>9?'9+':active;b.classList.toggle('show',active>0);}
 function renderRemList(){const el=document.getElementById('remList');if(!el)return;if(!reminders.length){el.innerHTML='<div class="rem-empty">لا توجد تذكيرات</div>';return;}const sorted=[...reminders].sort((a,b)=>{if(a.done!==b.done)return a.done?1:-1;return(b.addedAt||0)-(a.addedAt||0);});el.innerHTML=sorted.map(r=>{const c=REM_CATS[r.cat]||REM_CATS['عام'];return '<div class="rem-item'+(r.done?' done':'')+'"><div class="rem-color" style="background:'+c.color+'"></div><div class="rem-body"><div class="rem-text">'+esc(r.text)+'</div><div class="rem-meta"><span class="rem-tag" style="background:'+c.bg+';color:'+c.color+'">'+r.cat+'</span>'+(r.date?'<span class="rem-date">'+r.date+'</span>':'')+'</div></div><div class="rem-acts"><button class="rem-act done-btn" onclick="toggleRemDone('+r.id+')">✓</button><button class="rem-act del" onclick="deleteRem('+r.id+')">✕</button></div></div>';}).join('');}
@@ -1721,9 +1721,106 @@ function toggleRemPanel(){const p=document.getElementById('remPanel');document.g
 function openRemForm(){document.getElementById('remForm').style.display='block';document.getElementById('remText').focus();}
 function closeRemForm(){document.getElementById('remForm').style.display='none';document.getElementById('remText').value='';document.getElementById('remDate').value='';}
 function pickRemCat(el){document.querySelectorAll('.rem-cat-opt').forEach(o=>{o.classList.remove('sel');o.style.background='';o.style.color='';o.style.borderColor='';});el.classList.add('sel');const c=REM_CATS[el.dataset.cat]||REM_CATS['عام'];el.style.background=c.bg;el.style.color=c.color;selRemCat=el.dataset.cat;}
-function saveReminder(){const text=(document.getElementById('remText').value||'').trim();if(!text)return;reminders.unshift({id:Date.now(),text,cat:selRemCat,date:document.getElementById('remDate').value||'',done:false,addedAt:Date.now()});saveReminders();renderRemList();renderRemBadge();closeRemForm();SFX.play('add');toast('تم حفظ التذكير','ok');}
-function toggleRemDone(id){const r=reminders.find(x=>x.id===id);if(!r)return;r.done=!r.done;saveReminders();renderRemList();renderRemBadge();}
-function deleteRem(id){reminders=reminders.filter(x=>x.id!==id);saveReminders();renderRemList();renderRemBadge();toast('تم الحذف','ok');}
+function saveReminder(){const text=(document.getElementById('remText').value||'').trim();if(!text)return;const r={id:Date.now(),text,cat:selRemCat,date:document.getElementById('remDate').value||'',done:false,addedAt:Date.now()};reminders.unshift(r);saveReminders();renderRemList();renderRemBadge();renderRemAlerts();syncReminderIndex(r);closeRemForm();SFX.play('add');toast('تم حفظ التذكير','ok');}
+function toggleRemDone(id){const r=reminders.find(x=>x.id===id);if(!r)return;r.done=!r.done;saveReminders();renderRemList();renderRemBadge();renderRemAlerts();syncReminderIndex(r);}
+function deleteRem(id){reminders=reminders.filter(x=>x.id!==id);saveReminders();renderRemList();renderRemBadge();renderRemAlerts();deleteReminderIndex(id);toast('تم الحذف','ok');}
+
+// ══ REMINDERS: mirror to a real DB table so the server-side cron job can find due reminders ══
+// (The list itself still lives in the fast meta-blob above; this index only carries what the
+// scheduler needs — text, category, due date, done, and whether a push was already sent.)
+async function syncReminderIndex(r){
+  try{
+    await sbFetch(SB_URL+'/rest/v1/reminders_index',{
+      method:'POST',
+      headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({id:r.id,text:r.text,cat:r.cat,due_date:r.date||null,done:!!r.done,pushed_at:r.done?undefined:null,updated_at:new Date().toISOString()})
+    });
+  }catch(e){}
+}
+async function deleteReminderIndex(id){
+  try{ await sbFetch(SB_URL+'/rest/v1/reminders_index?id=eq.'+id,{method:'DELETE',headers:SB_H}); }catch(e){}
+}
+
+// ══ REMINDERS: prominent dashboard banner — especially for "عاجل" (urgent) reminders ══
+function getRemDismissed(){try{return JSON.parse(localStorage.getItem('lexdesk_rem_dismissed')||'{}');}catch(e){return {};}}
+function setRemDismissed(o){try{localStorage.setItem('lexdesk_rem_dismissed',JSON.stringify(o));}catch(e){}}
+function dismissRemAlert(id,key,ev){if(ev)ev.stopPropagation();const d=getRemDismissed();d[id]=key;setRemDismissed(d);renderRemAlerts();}
+function renderRemAlerts(){
+  const box=document.getElementById('remAlerts');if(!box)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=today.toISOString().slice(0,10);
+  const dismissed=getRemDismissed();
+  const items=[];
+  reminders.forEach(r=>{
+    if(r.done)return;
+    const urgent=r.cat==='عاجل';
+    let diff=null;
+    if(r.date){const d=new Date(r.date);d.setHours(0,0,0,0);diff=Math.round((d-today)/(1000*60*60*24));}
+    if(!urgent&&(diff===null||diff>0))return; // نعرض بس العاجل دائماً، والباقي إذا اليوم أو متأخر
+    const key='d'+todayStr;
+    if(dismissed[r.id]===key)return;
+    items.push({r,urgent,diff,key});
+  });
+  if(!items.length){box.style.display='none';box.innerHTML='';return;}
+  items.sort((a,b)=>(b.urgent-a.urgent)||((a.diff??0)-(b.diff??0)));
+  box.style.display='flex';box.className='wadea-alert-wrap';
+  box.innerHTML=items.map(it=>{
+    const late=it.diff!==null&&it.diff<0;
+    let msg;
+    if(it.urgent&&it.diff===null)msg='تذكير عاجل بدون موعد محدد';
+    else if(late)msg='تذكير عاجل — متأخر '+Math.abs(it.diff)+' يوم';
+    else if(it.diff===0)msg=it.urgent?'تذكير عاجل — موعده اليوم':'موعده اليوم';
+    else msg=it.urgent?'تذكير عاجل':'';
+    return '<div class="wadea-alert '+(it.urgent?'late':'soon')+(it.urgent?' rem-urgent-pulse':'')+'" onclick="toggleRemPanel()">'
+      +'<div class="ic">'+(it.urgent?'⚠':'⏰')+'</div>'
+      +'<div class="tx"><div class="tn">'+esc(it.r.text)+'</div><div class="ts">'+msg+'</div></div>'
+      +'<button class="rem-act done-btn" style="flex:0 0 auto" onclick="toggleRemDone('+it.r.id+');event.stopPropagation()">✓ خلصت</button>'
+      +'<button class="wadea-alert-x" title="إخفاء اليوم" onclick="dismissRemAlert('+it.r.id+',\''+it.key+'\',event)">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+// ══ REMINDERS: real push notifications (phone / desktop, works even if the site is closed) ══
+const VAPID_PUBLIC_KEY='BGvCUXf2NhxeEAaWE79Sw1d-Y9sJGIZW8aYti1u4M4nKCzst5aBTtOiGyrcQRVLqFiSsOaenta-cwMIRDRVJWBM';
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);const out=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
+  return out;
+}
+async function enableDeviceNotifications(){
+  const btn=document.getElementById('remPushBtn');
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)){toast('متصفحك لا يدعم إشعارات الدفع','err');return;}
+  try{
+    const ok=await requestNotifPermission();
+    if(!ok)return;
+    const reg=await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    }
+    const j=sub.toJSON();
+    await sbFetch(SB_URL+'/rest/v1/push_subscriptions',{
+      method:'POST',
+      headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({endpoint:j.endpoint,p256dh:j.keys.p256dh,auth_key:j.keys.auth,last_seen_at:new Date().toISOString()})
+    });
+    if(btn){btn.textContent='🔔✓';btn.title='إشعارات هذا الجهاز مفعّلة';btn.style.color='var(--green)';btn.style.borderColor='var(--green)';}
+    toast('تم تفعيل إشعارات هذا الجهاز — راح توصلك حتى لو الموقع مسكر','ok');
+  }catch(e){console.error(e);toast('صار خطأ بتفعيل الإشعارات','err');}
+}
+async function checkDeviceNotifStatus(){
+  const btn=document.getElementById('remPushBtn');if(!btn)return;
+  if(!('serviceWorker'in navigator)||!('PushManager'in window))return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    const sub=reg&&await reg.pushManager.getSubscription();
+    if(sub){btn.textContent='🔔✓';btn.title='إشعارات هذا الجهاز مفعّلة';btn.style.color='var(--green)';btn.style.borderColor='var(--green)';}
+  }catch(e){}
+}
+if(document.readyState!=='loading')checkDeviceNotifStatus();else document.addEventListener('DOMContentLoaded',checkDeviceNotifStatus);
 
 // ══ PARTICLES ══
 (function(){const canvas=document.getElementById('particles');if(!canvas)return;const ctx=canvas.getContext('2d');let W,H,particles=[];function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}resize();window.addEventListener('resize',resize);const isDark=()=>document.documentElement.getAttribute('data-theme')!=='light';for(let i=0;i<55;i++)particles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.5+0.3,dx:(Math.random()-.5)*0.25,dy:(Math.random()-.5)*0.25,o:Math.random()*0.5+0.15});function draw(){ctx.clearRect(0,0,W,H);const color=isDark()?'240,165,0':'11,29,58';particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba('+color+','+p.o+')';ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>W)p.dx*=-1;if(p.y<0||p.y>H)p.dy*=-1;});for(let i=0;i<particles.length;i++)for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x;const dy=particles[i].y-particles[j].y;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<120){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle='rgba('+color+','+(0.06*(1-dist/120))+')';ctx.lineWidth=0.5;ctx.stroke();}}requestAnimationFrame(draw);}draw();})();
