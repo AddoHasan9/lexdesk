@@ -1775,7 +1775,7 @@ function renderRemAlerts(){
       +'<div class="ic">'+(it.urgent?'⚠':'⏰')+'</div>'
       +'<div class="tx"><div class="tn">'+esc(it.r.text)+'</div><div class="ts">'+msg+'</div></div>'
       +'<div class="rem-alert-acts">'
-        +'<button class="rem-alert-done" onclick="toggleRemDone('+it.r.id+');event.stopPropagation()">✓ خلصت</button>'
+        +'<button class="rem-alert-done" onclick="toggleRemDone('+it.r.id+');event.stopPropagation()">✓ مكتمل</button>'
         +'<button class="rem-alert-x" title="إخفاء اليوم" onclick="dismissRemAlert('+it.r.id+',\''+it.key+'\',event)">✕</button>'
       +'</div>'
       +'</div>';
