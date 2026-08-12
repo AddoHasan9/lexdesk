@@ -243,8 +243,6 @@ function updateThemeBtn(t){
   const sunSVG='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
   const moonSVG='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
   const html = t==='light' ? sunSVG : moonSVG;
-  const icon=document.getElementById('sbThemeIcon');
-  if(icon) icon.innerHTML=html;
   const mobIcon=document.getElementById('mobThemeIcon');
   if(mobIcon) mobIcon.innerHTML=html;
 }
@@ -303,6 +301,8 @@ async function resetPassword(){
 let currentUser = null;   // email
 let currentUserName = ''; // display name
 let currentRole = null;   // 'admin' | 'user'
+let currentAvatarUrl = ''; // profile picture URL
+let currentPhone = '';    // phone number
 let _sbSession = null;    // supabase session token
 
 // ─ Sign Up ─
@@ -339,9 +339,12 @@ async function doSignUp(){
       currentUser     = d.user.email;
       currentUserName = meta.full_name||name;
       currentRole     = meta.role==='admin'?'admin':'user';
+      currentAvatarUrl = meta.avatar_url||'';
+      currentPhone     = meta.phone||'';
       try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
         token:d.access_token, refresh:d.refresh_token,
         user:currentUser, name:currentUserName, role:currentRole,
+        avatar:currentAvatarUrl, phone:currentPhone,
         expires: Date.now()+(d.expires_in||3600)*1000
       }));}catch(e){}
       toast('✓ أهلاً '+currentUserName,'ok');
@@ -387,10 +390,13 @@ async function doLogin(){
     currentUser     = d.user.email;
     currentUserName = meta.full_name || email.split('@')[0];
     currentRole     = meta.role === 'admin' ? 'admin' : 'user';
+    currentAvatarUrl = meta.avatar_url||'';
+    currentPhone     = meta.phone||'';
     const sessExp = Date.now()+(d.expires_in||3600)*1000;
     try{ localStorage.setItem('lexdesk_sb_session', JSON.stringify({
       token: d.access_token, refresh: d.refresh_token,
-      user: currentUser, name: currentUserName, role: currentRole, expires: sessExp
+      user: currentUser, name: currentUserName, role: currentRole,
+      avatar: currentAvatarUrl, phone: currentPhone, expires: sessExp
     })); }catch(e){}
     scheduleSessionRefresh(sessExp);
     SFX.play('login');
@@ -445,7 +451,7 @@ async function restoreSbSession(){
     if(!saved)return false;
     // الجلسة لسا صالحة
     if(Date.now()<=saved.expires-60000){
-      _sbSession=saved.token;currentUser=saved.user;currentUserName=saved.name;currentRole=saved.role;
+      _sbSession=saved.token;currentUser=saved.user;currentUserName=saved.name;currentRole=saved.role;currentAvatarUrl=saved.avatar||'';currentPhone=saved.phone||'';
       scheduleSessionRefresh(saved.expires);
       return true;
     }
@@ -457,8 +463,9 @@ async function restoreSbSession(){
         _sbSession=d.access_token;
         const meta=d.user?.user_metadata||{};
         currentUser=d.user.email;currentUserName=meta.full_name||currentUser.split('@')[0];currentRole=meta.role==='admin'?'admin':'user';
+        currentAvatarUrl=meta.avatar_url||'';currentPhone=meta.phone||'';
         const newExp=Date.now()+(d.expires_in||3600)*1000;
-        try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({token:d.access_token,refresh:d.refresh_token||saved.refresh,user:currentUser,name:currentUserName,role:currentRole,expires:newExp}));}catch(e){}
+        try{localStorage.setItem('lexdesk_sb_session',JSON.stringify({token:d.access_token,refresh:d.refresh_token||saved.refresh,user:currentUser,name:currentUserName,role:currentRole,avatar:currentAvatarUrl,phone:currentPhone,expires:newExp}));}catch(e){}
         scheduleSessionRefresh(newExp);
         return true;
       }
@@ -470,6 +477,7 @@ async function restoreSbSession(){
 // ─ Logout ─
 function logout(){
   currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
+  currentAvatarUrl=''; currentPhone='';
   if(_sessionRefreshTimer){clearTimeout(_sessionRefreshTimer);_sessionRefreshTimer=null;}
   try{ localStorage.removeItem('lexdesk_sb_session'); }catch(e){}
   document.getElementById('emailInp').value='';
@@ -479,7 +487,64 @@ function logout(){
   document.getElementById('appWrap').style.display='none';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
+  closeProfile();
   switchLoginMode('login');
+}
+
+// ══ الملف الشخصي ══
+function openProfile(){
+  document.getElementById('profileFullName').value=currentUserName||'';
+  document.getElementById('profilePhone').value=currentPhone||'';
+  document.getElementById('profileEmail').value=currentUser||'';
+  const prev=document.getElementById('profileAvPreview');
+  prev.innerHTML=currentAvatarUrl?('<img src="'+currentAvatarUrl+'" alt="">'):((currentUserName||'م').trim()[0]||'م');
+  document.getElementById('profileAvStatus').textContent='';
+  const ov=document.getElementById('profileOverlay');
+  ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
+}
+function closeProfile(){
+  const ov=document.getElementById('profileOverlay');
+  ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);
+}
+async function uploadProfileAvatar(inp){
+  const file=inp.files[0];if(!file)return;
+  if(file.size>5*1024*1024){toast('الصورة أكبر من 5MB','err');return;}
+  const statusEl=document.getElementById('profileAvStatus');
+  statusEl.textContent='جاري رفع الصورة...';
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    const fileName='avatar_'+Date.now()+'.'+ext;
+    const res=await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+fileName,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type,'x-upsert':'true'},body:file});
+    if(!res.ok){statusEl.textContent='';toast('فشل رفع الصورة','err');return;}
+    const url=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+fileName;
+    currentAvatarUrl=url;
+    document.getElementById('profileAvPreview').innerHTML='<img src="'+url+'" alt="">';
+    statusEl.textContent='✓ تم رفع الصورة — اضغط حفظ لتثبيتها';
+  }catch(e){statusEl.textContent='';toast('خطأ بالاتصال','err');}
+}
+async function saveProfile(){
+  const fullName=document.getElementById('profileFullName').value.trim();
+  const phone=document.getElementById('profilePhone').value.trim();
+  if(!fullName){toast('أدخل الاسم الكامل','err');return;}
+  if(!_sbSession){toast('الجلسة غير صالحة، سجّل الدخول من جديد','err');return;}
+  try{
+    const res=await sbFetch(SB_URL+'/auth/v1/user',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+_sbSession},
+      body:JSON.stringify({data:{full_name:fullName,phone:phone,avatar_url:currentAvatarUrl,role:currentRole}})
+    });
+    const d=await res.json();
+    if(!res.ok){toast('فشل الحفظ: '+(d.msg||d.message||'خطأ'),'err');return;}
+    currentUserName=fullName;currentPhone=phone;
+    // تحديث الجلسة المحفوظة محلياً
+    try{
+      const saved=JSON.parse(localStorage.getItem('lexdesk_sb_session')||'null');
+      if(saved){saved.name=fullName;saved.phone=phone;saved.avatar=currentAvatarUrl;localStorage.setItem('lexdesk_sb_session',JSON.stringify(saved));}
+    }catch(e){}
+    showApp();
+    closeProfile();
+    toast('✓ تم تحديث الملف الشخصي','ok');
+  }catch(e){toast('خطأ بالاتصال','err');}
 }
 
 // ─ Switch login/signup modes ─
@@ -527,10 +592,12 @@ function showApp(){
   const sui=document.getElementById('sbUserInfo');if(sui)sui.style.display='flex';
   const _displayName = currentUserName || (isAdmin()?'أدمن':'مستخدم');
   const _initials = _displayName.trim()[0]||'م';
-  const suav=document.getElementById('sbUserAv');if(suav)suav.textContent=_initials;
+  const _avHtml = currentAvatarUrl ? '<img src="'+currentAvatarUrl+'" alt="">' : _initials;
+  const suav=document.getElementById('sbUserAv');if(suav)suav.innerHTML=_avHtml;
   const sun=document.getElementById('sbUserName');if(sun)sun.textContent=_displayName;
   const upn=document.getElementById('userPillName');if(upn)upn.textContent=_displayName;
-  const uav=document.querySelector('.user-av');if(uav)uav.textContent=_initials;
+  const uav=document.querySelector('.user-av');if(uav)uav.innerHTML=_avHtml;
+  const mnav=document.getElementById('mnUserAv');if(mnav)mnav.innerHTML=_avHtml;
   // ─ تحديث زر المستخدم بالموبايل ─
   const mnAv=document.getElementById('mnUserAv');if(mnAv)mnAv.textContent=_initials;
   const mnMnAv=document.getElementById('mobMenuAv');if(mnMnAv)mnMnAv.textContent=_initials;
@@ -555,6 +622,10 @@ function showMobUserMenu(){
   const isOpen=menu.style.display==='block';
   menu.style.display=isOpen?'none':'block';
   if(!isOpen){
+    const av=document.getElementById('mobMenuAv');
+    const _displayName=currentUserName||(isAdmin()?'أدمن':'مستخدم');
+    if(av)av.innerHTML=currentAvatarUrl?('<img src="'+currentAvatarUrl+'" alt="">'):(_displayName.trim()[0]||'م');
+    const nm=document.getElementById('mobMenuName');if(nm)nm.textContent=_displayName;
     // أغلق لما تضغط خارجه
     setTimeout(()=>document.addEventListener('click',_closeMobMenuOutside,{once:true}),10);
   }

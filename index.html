@@ -206,17 +206,12 @@
       <span class="sb-lbl">الإعدادات</span>
       <span class="tip">الإعدادات</span>
     </button>
-    <!-- Theme toggle -->
-    <button class="sb-theme-btn" onclick="toggleTheme()" id="sbThemeBtn" title="تبديل الوضع">
-      <svg id="sbThemeIcon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      <span class="sb-lbl">الوضع الليلي</span>
-    </button>
     <!-- User info -->
-    <div class="sb-user" onclick="logout()" id="sbUserInfo" style="display:none">
+    <div class="sb-user" onclick="openProfile()" id="sbUserInfo" style="display:none">
       <div class="sb-user-av" id="sbUserAv">م</div>
       <div class="sb-user-info">
         <div class="sb-user-name" id="sbUserName">الأدمن</div>
-        <div class="sb-user-role">تسجيل خروج</div>
+        <div class="sb-user-role">تعديل الملف الشخصي</div>
       </div>
     </div>
   </div>
@@ -262,8 +257,8 @@
       <div class="notif-badge" id="notifBadge">0</div>
     </div>
     <!-- user pill: ديسكتوب فقط -->
-    <div class="user-pill" id="userPill" onclick="logout()" style="display:none">
-      <div class="user-av">م</div>
+    <div class="user-pill" id="userPill" onclick="openProfile()" style="display:none">
+      <div class="user-av" id="userPillAv">م</div>
       <span id="userPillName">الأدمن</span>
     </div>
     <!-- زر إضافة: ديسكتوب فقط -->
@@ -1199,6 +1194,10 @@
     <span class="iconify" data-icon="solar:danger-triangle-bold-duotone" data-width="16"></span>
     النواقص
   </button>
+  <button onclick="openProfile();closeMobUserMenu()" style="width:100%;padding:12px 16px;background:none;border:none;color:var(--text2);font-size:13px;font-family:var(--font);text-align:right;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    الملف الشخصي
+  </button>
   <button onclick="mobGoPage('settings');closeMobUserMenu()" style="width:100%;padding:12px 16px;background:none;border:none;color:var(--text2);font-size:13px;font-family:var(--font);text-align:right;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     الإعدادات
@@ -1680,5 +1679,37 @@
 
 <script src="lexdesk-chart-theme.js"></script>
 <script src="app.js"></script>
+<!-- ══ نافذة الملف الشخصي ══ -->
+<div class="overlay" id="profileOverlay" style="display:none" onclick="if(event.target===this)closeProfile()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd">
+      <div class="modal-title">الملف الشخصي</div>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="position:relative">
+          <div id="profileAvPreview" class="profile-av-lg">م</div>
+          <button class="profile-av-edit" onclick="document.getElementById('profileAvInput').click()" title="تغيير الصورة">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <input type="file" id="profileAvInput" accept="image/*" style="display:none" onchange="uploadProfileAvatar(this)">
+        </div>
+        <div id="profileAvStatus" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <div class="fm-group-inner"><label class="fm-lbl">الاسم الكامل</label><input id="profileFullName" class="fm-inp" placeholder="اسمك الكامل"></div>
+      <div class="fm-group-inner" style="margin-top:12px"><label class="fm-lbl">رقم الهاتف</label><input id="profilePhone" class="fm-inp" type="tel" placeholder="07xxxxxxxxx" dir="ltr" style="text-align:right"></div>
+      <div class="fm-group-inner" style="margin-top:12px"><label class="fm-lbl">البريد الإلكتروني</label><input id="profileEmail" class="fm-inp" disabled style="opacity:.6;cursor:not-allowed"></div>
+    </div>
+    <div class="modal-foot" style="justify-content:space-between">
+      <button class="btn-cancel" style="color:var(--red);border-color:rgba(255,85,114,.3)" onclick="logout()">تسجيل خروج</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-cancel" onclick="closeProfile()">إلغاء</button>
+        <button class="btn-save" onclick="saveProfile()">حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
