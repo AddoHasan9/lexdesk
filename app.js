@@ -612,6 +612,8 @@ function showApp(){
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();checkDueReminders();});
   loadTasks().then(()=>{renderTaskAlerts();buildTasksPage();});
+  try{stStampDataUrl=localStorage.getItem(SK_STAMP);}catch(e){}
+  stUpdateStampStatus();
   toast('أهلاً بك','ok');
   updateUsersTabVisibility();
 }
@@ -2746,6 +2748,362 @@ function toolClearFiles(inputId,zoneId){
   _toolDropFiles[inputId]=[];
   const inp=document.getElementById(inputId);if(inp)inp.value='';
   toolRenderFileChips(inputId,zoneId);
+}
+
+// ══════════════ محرر الصور (تحرير وتعليم) ══════════════
+let ieCanvas=null, ieCtx=null, ieUndoStack=[], ieTool='pen', ieColor='#F5A623', ieDrawing=false, ieLastX=0, ieLastY=0;
+let ieCropStart=null;
+
+function loadImgToEditor(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      openImgEditorWithImage(img);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+}
+function openImgEditorWithImage(img){
+  const ov=document.getElementById('ieOverlay');
+  ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
+  ieCanvas=document.getElementById('ieCanvas');
+  ieCtx=ieCanvas.getContext('2d');
+  // نحدّد حجم الكانفس بحجم الصورة الفعلي (بحد أقصى معقول)
+  const maxDim=1600;
+  let w=img.naturalWidth,h=img.naturalHeight;
+  if(w>maxDim||h>maxDim){const r=Math.min(maxDim/w,maxDim/h);w=Math.round(w*r);h=Math.round(h*r);}
+  ieCanvas.width=w;ieCanvas.height=h;
+  ieCtx.drawImage(img,0,0,w,h);
+  ieUndoStack=[ieCanvas.toDataURL()];
+  ieSetTool('pen');
+  ieBindCanvasEvents();
+}
+function closeImgEditor(){
+  const ov=document.getElementById('ieOverlay');
+  ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);
+}
+function ieSetTool(t){
+  ieTool=t;
+  document.querySelectorAll('.ie-tool').forEach(b=>b.classList.remove('active'));
+  const map={pen:'ieToolPen',text:'ieToolText',crop:'ieToolCrop'};
+  document.getElementById(map[t])?.classList.add('active');
+  document.getElementById('ieCropApply').style.display=(t==='crop')?'flex':'none';
+  document.getElementById('ieCropBox').style.display='none';
+  ieCropStart=null;
+  ieCanvas.style.cursor=(t==='text')?'text':(t==='crop')?'crosshair':'crosshair';
+}
+function ieSetColor(el){
+  ieColor=el.dataset.c;
+  document.querySelectorAll('.ie-color').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function ieSaveUndo(){
+  ieUndoStack.push(ieCanvas.toDataURL());
+  if(ieUndoStack.length>20)ieUndoStack.shift();
+}
+function ieUndo(){
+  if(ieUndoStack.length<=1)return;
+  ieUndoStack.pop();
+  const last=ieUndoStack[ieUndoStack.length-1];
+  const img=new Image();
+  img.onload=()=>{ieCtx.clearRect(0,0,ieCanvas.width,ieCanvas.height);ieCtx.drawImage(img,0,0);};
+  img.src=last;
+}
+function ieGetPos(e){
+  const rect=ieCanvas.getBoundingClientRect();
+  const scaleX=ieCanvas.width/rect.width;
+  const scaleY=ieCanvas.height/rect.height;
+  return {x:(e.clientX-rect.left)*scaleX,y:(e.clientY-rect.top)*scaleY,clientX:e.clientX,clientY:e.clientY,rect};
+}
+function ieBindCanvasEvents(){
+  ieCanvas.onpointerdown=e=>{
+    const p=ieGetPos(e);
+    if(ieTool==='pen'){
+      ieSaveUndo();
+      ieDrawing=true;ieLastX=p.x;ieLastY=p.y;
+      ieCtx.beginPath();ieCtx.arc(p.x,p.y,(document.getElementById('ieBrushSize').value)/2,0,Math.PI*2);
+      ieCtx.fillStyle=ieColor;ieCtx.fill();
+    }else if(ieTool==='text'){
+      ieAddTextInput(p);
+    }else if(ieTool==='crop'){
+      ieCropStart=p;
+      const box=document.getElementById('ieCropBox');
+      box.style.display='block';
+      box.style.left=(p.clientX-p.rect.left)+'px';box.style.top=(p.clientY-p.rect.top)+'px';
+      box.style.width='0px';box.style.height='0px';
+    }
+  };
+  ieCanvas.onpointermove=e=>{
+    const p=ieGetPos(e);
+    if(ieTool==='pen'&&ieDrawing){
+      ieCtx.strokeStyle=ieColor;
+      ieCtx.lineWidth=document.getElementById('ieBrushSize').value;
+      ieCtx.lineCap='round';ieCtx.lineJoin='round';
+      ieCtx.beginPath();ieCtx.moveTo(ieLastX,ieLastY);ieCtx.lineTo(p.x,p.y);ieCtx.stroke();
+      ieLastX=p.x;ieLastY=p.y;
+    }else if(ieTool==='crop'&&ieCropStart){
+      const box=document.getElementById('ieCropBox');
+      const x1=Math.min(ieCropStart.clientX,p.clientX)-p.rect.left;
+      const y1=Math.min(ieCropStart.clientY,p.clientY)-p.rect.top;
+      const w=Math.abs(p.clientX-ieCropStart.clientX);
+      const h=Math.abs(p.clientY-ieCropStart.clientY);
+      box.style.left=x1+'px';box.style.top=y1+'px';box.style.width=w+'px';box.style.height=h+'px';
+    }
+  };
+  ieCanvas.onpointerup=()=>{ieDrawing=false;};
+  ieCanvas.onpointerleave=()=>{ieDrawing=false;};
+}
+function ieAddTextInput(p){
+  const wrap=document.getElementById('ieCanvasWrap');
+  const inp=document.createElement('input');
+  inp.type='text';inp.className='ie-text-input';
+  inp.style.left=(p.clientX-p.rect.left)+'px';
+  inp.style.top=(p.clientY-p.rect.top-14)+'px';
+  inp.style.color=ieColor;
+  inp.style.fontSize=(16)+'px';
+  wrap.appendChild(inp);
+  inp.focus();
+  const commit=()=>{
+    const val=inp.value.trim();
+    if(val){
+      ieSaveUndo();
+      const size=parseInt(document.getElementById('ieBrushSize').value)*3+14;
+      ieCtx.font=size+'px sans-serif';
+      ieCtx.fillStyle=ieColor;
+      ieCtx.direction='rtl';
+      ieCtx.fillText(val,p.x,p.y);
+    }
+    inp.remove();
+  };
+  inp.onblur=commit;
+  inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();}if(e.key==='Escape'){inp.value='';inp.blur();}};
+}
+function ieApplyCrop(){
+  const box=document.getElementById('ieCropBox');
+  if(box.style.display==='none'||!box.style.width||box.style.width==='0px'){toast('حدّد منطقة القص أولاً بالسحب على الصورة','err');return;}
+  const rect=ieCanvas.getBoundingClientRect();
+  const scaleX=ieCanvas.width/rect.width;
+  const scaleY=ieCanvas.height/rect.height;
+  const bx=parseFloat(box.style.left)*scaleX;
+  const by=parseFloat(box.style.top)*scaleY;
+  const bw=parseFloat(box.style.width)*scaleX;
+  const bh=parseFloat(box.style.height)*scaleY;
+  if(bw<5||bh<5)return;
+  ieSaveUndo();
+  const cropped=ieCtx.getImageData(bx,by,bw,bh);
+  ieCanvas.width=bw;ieCanvas.height=bh;
+  ieCtx.putImageData(cropped,0,0);
+  box.style.display='none';
+  ieCropStart=null;
+  toast('✓ تم القص','ok');
+}
+function ieDownload(){
+  const a=document.createElement('a');
+  a.download='lexdesk-edited-'+Date.now()+'.png';
+  a.href=ieCanvas.toDataURL('image/png');
+  a.click();
+  toast('تم تحميل الصورة','ok');
+}
+
+// ══════════════ أداة الختم/التوقيع الرقمي ══════════════
+const SK_STAMP='lexdesk_stamp_v1';
+let stStampDataUrl=null, stDocCanvas=null, stDocCtx=null, stDocImg=null;
+let stDragging=false, stResizing=false, stStampPos={x:100,y:100,w:150,h:80}, stDragOffset={x:0,y:0};
+
+function openStampTool(){
+  const ov=document.getElementById('stOverlay');
+  ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
+  document.getElementById('stStep1').style.display='block';
+  document.getElementById('stStep2').style.display='none';
+  const saved=localStorage.getItem(SK_STAMP);
+  if(saved){
+    document.getElementById('stSavedStampBox').style.display='block';
+    document.getElementById('stUploadBox').style.display='none';
+    document.getElementById('stSavedPreview').src=saved;
+    stStampDataUrl=saved;
+  }else{
+    document.getElementById('stSavedStampBox').style.display='none';
+    document.getElementById('stUploadBox').style.display='block';
+  }
+}
+function closeStampTool(){
+  const ov=document.getElementById('stOverlay');
+  ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);
+}
+function stShowUploadNew(){
+  document.getElementById('stSavedStampBox').style.display='none';
+  document.getElementById('stUploadBox').style.display='block';
+}
+function stUseSavedStamp(){
+  stStep2Init();
+}
+
+// إزالة الخلفية البيضاء (chroma-key) على canvas مؤقّت
+function stRemoveWhiteBg(img){
+  const cv=document.createElement('canvas');
+  cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+  const ctx=cv.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const data=ctx.getImageData(0,0,cv.width,cv.height);
+  const px=data.data;
+  for(let i=0;i<px.length;i+=4){
+    const r=px[i],g=px[i+1],b=px[i+2];
+    const distWhite=Math.sqrt((255-r)**2+(255-g)**2+(255-b)**2);
+    if(distWhite<40){px[i+3]=0;}
+    else if(distWhite<90){px[i+3]=Math.round((distWhite-40)/(90-40)*255);}
+  }
+  ctx.putImageData(data,0,0);
+  return cv.toDataURL('image/png');
+}
+function stLoadStampFile(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const autoRemove=document.getElementById('stAutoRemoveBg').checked;
+      const finalUrl=autoRemove?stRemoveWhiteBg(img):e.target.result;
+      stStampDataUrl=finalUrl;
+      try{localStorage.setItem(SK_STAMP,finalUrl);}catch(err){}
+      stUpdateStampStatus();
+      stStep2Init();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+}
+function stUpdateStampStatus(){
+  const el=document.getElementById('stStampStatus');
+  if(el)el.innerHTML=stStampDataUrl?'<span style="color:var(--green)">✓ عندك ختم محفوظ جاهز</span>':'';
+}
+
+function stStep2Init(){
+  document.getElementById('stStep1').style.display='none';
+  document.getElementById('stStep2').style.display='flex';
+  document.getElementById('stDocInput').click();
+}
+function stLoadDocFile(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      stDocImg=img;
+      stDocCanvas=document.getElementById('stCanvas');
+      stDocCtx=stDocCanvas.getContext('2d');
+      const maxDim=1600;
+      let w=img.naturalWidth,h=img.naturalHeight;
+      if(w>maxDim||h>maxDim){const r=Math.min(maxDim/w,maxDim/h);w=Math.round(w*r);h=Math.round(h*r);}
+      stDocCanvas.width=w;stDocCanvas.height=h;
+      stDocCtx.drawImage(img,0,0,w,h);
+      stPlaceStampOnCanvas();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+}
+function stPlaceStampOnCanvas(){
+  const wrap=document.getElementById('stCanvasWrap');
+  const obj=document.getElementById('stStampObj');
+  const stImg=document.getElementById('stStampImg');
+  stImg.src=stStampDataUrl;
+  obj.style.display='block';
+  const rect=stDocCanvas.getBoundingClientRect();
+  const w=rect.width*0.28;
+  const h=w*0.55;
+  stStampPos={x:rect.width/2-w/2,y:rect.height/2-h/2,w,h,rot:0};
+  document.getElementById('stRotateRange').value=0;
+  document.getElementById('stOpacityRange').value=100;
+  stRenderStampObj();
+  stBindStampEvents();
+}
+function stRenderStampObj(){
+  const obj=document.getElementById('stStampObj');
+  obj.style.left=stStampPos.x+'px';
+  obj.style.top=stStampPos.y+'px';
+  obj.style.width=stStampPos.w+'px';
+  obj.style.height=stStampPos.h+'px';
+  obj.style.transform='rotate('+(stStampPos.rot||0)+'deg)';
+  obj.style.opacity=(document.getElementById('stOpacityRange').value/100);
+}
+function stUpdateStampTransform(){
+  const sizePct=document.getElementById('stSizeRange').value;
+  const rect=stDocCanvas.getBoundingClientRect();
+  const cx=stStampPos.x+stStampPos.w/2, cy=stStampPos.y+stStampPos.h/2;
+  const ratio=stStampPos.h/stStampPos.w||0.55;
+  const newW=rect.width*(sizePct/100);
+  const newH=newW*ratio;
+  stStampPos.x=cx-newW/2;stStampPos.y=cy-newH/2;
+  stStampPos.w=newW;stStampPos.h=newH;
+  stStampPos.rot=parseFloat(document.getElementById('stRotateRange').value);
+  stRenderStampObj();
+}
+function stBindStampEvents(){
+  const obj=document.getElementById('stStampObj');
+  const handle=document.getElementById('stResizeHandle');
+  const wrap=document.getElementById('stCanvasWrap');
+  obj.onpointerdown=e=>{
+    if(e.target===handle)return;
+    stDragging=true;
+    const wrapRect=wrap.getBoundingClientRect();
+    stDragOffset={x:e.clientX-wrapRect.left-stStampPos.x,y:e.clientY-wrapRect.top-stStampPos.y};
+    e.stopPropagation();
+  };
+  handle.onpointerdown=e=>{
+    stResizing=true;
+    e.stopPropagation();
+  };
+  wrap.onpointermove=e=>{
+    const wrapRect=wrap.getBoundingClientRect();
+    if(stDragging){
+      stStampPos.x=e.clientX-wrapRect.left-stDragOffset.x;
+      stStampPos.y=e.clientY-wrapRect.top-stDragOffset.y;
+      stRenderStampObj();
+    }else if(stResizing){
+      const cx=stStampPos.x, cy=stStampPos.y;
+      const newW=Math.max(30,e.clientX-wrapRect.left-cx);
+      const ratio=stStampPos.h/stStampPos.w||0.55;
+      stStampPos.w=newW;stStampPos.h=newW*ratio;
+      document.getElementById('stSizeRange').value=Math.round((newW/wrapRect.width)*100);
+      stRenderStampObj();
+    }
+  };
+  wrap.onpointerup=()=>{stDragging=false;stResizing=false;};
+  wrap.onpointerleave=()=>{stDragging=false;stResizing=false;};
+}
+function stDownload(){
+  if(!stDocImg||!stStampDataUrl)return;
+  const out=document.createElement('canvas');
+  out.width=stDocCanvas.width;out.height=stDocCanvas.height;
+  const ctx=out.getContext('2d');
+  ctx.drawImage(stDocImg,0,0,out.width,out.height);
+  const scaleX=stDocCanvas.width/stDocCanvas.getBoundingClientRect().width;
+  const scaleY=stDocCanvas.height/stDocCanvas.getBoundingClientRect().height;
+  const sx=(stStampPos.x+stStampPos.w/2)*scaleX;
+  const sy=(stStampPos.y+stStampPos.h/2)*scaleY;
+  const sw=stStampPos.w*scaleX;
+  const sh=stStampPos.h*scaleY;
+  const stampImg=new Image();
+  stampImg.onload=()=>{
+    ctx.save();
+    ctx.globalAlpha=document.getElementById('stOpacityRange').value/100;
+    ctx.translate(sx,sy);
+    ctx.rotate((stStampPos.rot||0)*Math.PI/180);
+    ctx.drawImage(stampImg,-sw/2,-sh/2,sw,sh);
+    ctx.restore();
+    const a=document.createElement('a');
+    a.download='lexdesk-stamped-'+Date.now()+'.png';
+    a.href=out.toDataURL('image/png');
+    a.click();
+    toast('تم تحميل المستند المختوم','ok');
+  };
+  stampImg.src=stStampDataUrl;
 }
 function toolRenderFileChips(inputId,zoneId){
   const files=_toolDropFiles[inputId]||[];
