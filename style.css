@@ -3783,7 +3783,7 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .ie-btn.primary{ background:var(--gold); color:#2b1d02; border-color:transparent; }
 .ie-btn.primary:hover{ filter:brightness(1.06); color:#2b1d02; }
 .img-edit-canvas-wrap{ flex:1; overflow:auto; display:flex; align-items:center; justify-content:center; padding:16px; background:var(--bg3); position:relative; min-height:300px; }
-#ieCanvas{ max-width:100%; touch-action:none; cursor:crosshair; box-shadow:0 6px 20px rgba(0,0,0,.25); background:#fff; }
+#ieCanvas{ max-width:100%; max-height:65vh; width:auto; height:auto; touch-action:none; cursor:crosshair; box-shadow:0 6px 20px rgba(0,0,0,.25); background:#fff; }
 #ieCropBox{ position:absolute; border:2px dashed var(--gold); background:rgba(245,166,35,.12); pointer-events:none; }
 .ie-text-input{ position:absolute; border:1.5px dashed var(--gold); background:rgba(255,255,255,.9); padding:2px 6px; font-family:inherit; outline:none; min-width:60px; z-index:5; }
 @media (max-width:640px){ .ie-range{ width:50px; } .ie-btn span{ display:none; } }
@@ -3793,3 +3793,63 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .stamp-obj img{ width:100%; height:100%; display:block; pointer-events:none; -webkit-user-drag:none; }
 .stamp-handle{ position:absolute; width:16px; height:16px; border-radius:50%; background:var(--gold); border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.35); touch-action:none; }
 .stamp-handle.resize{ bottom:-8px; inset-inline-end:-8px; cursor:nwse-resize; }
+
+/* ═══════════ تسجيل الدخول — النموذج المركزي الزجاجي (v3) ═══════════ */
+#loginScreen{
+  display:flex !important;
+  grid-template-columns:none !important;
+  align-items:center; justify-content:center;
+  background:
+    radial-gradient(60% 55% at 82% -8%, rgba(245,166,35,.14), transparent 60%),
+    radial-gradient(55% 55% at -6% 108%, rgba(37,99,235,.10), transparent 60%),
+    radial-gradient(90% 70% at 50% -10%, #133264 0%, #0A1730 55%, #060D1E 100%) !important;
+  padding:30px 16px;
+}
+#loginScreen::before{ display:none !important; }
+.login-hero{ display:none !important; }
+
+.lg3-glow{ position:absolute; border-radius:50%; pointer-events:none; filter:blur(90px); }
+.lg3-glow-a{ width:520px; height:520px; background:radial-gradient(circle, rgba(245,166,35,.10), transparent 70%); top:-180px; right:-140px; }
+.lg3-glow-b{ width:440px; height:440px; background:radial-gradient(circle, rgba(15,50,110,.5), transparent 70%); bottom:-180px; left:-140px; }
+
+.lg3-card{ position:relative; z-index:1; width:100%; max-width:420px; text-align:center; animation:lhUp .7s cubic-bezier(.2,1,.3,1); }
+.lg3-card .login-hero-name{ font-family:var(--font-d,'Noto Kufi Arabic',sans-serif); font-size:22px; font-weight:800; color:#fff; }
+.lg3-card .login-hero-tag{ color:rgba(255,255,255,.6); font-size:12.5px; margin-top:6px; margin-bottom:26px; max-width:none; }
+
+#loginScreen .login-box{
+  background:rgba(255,255,255,.05) !important;
+  border:1px solid rgba(245,166,35,.22) !important;
+  border-radius:20px !important;
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  padding:30px 28px !important;
+  max-width:none !important;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.55) !important;
+  text-align:right;
+}
+#loginScreen .login-brand{ color:#fff !important; text-align:center; font-size:20px; }
+#loginScreen .login-sub{ color:rgba(255,255,255,.55) !important; text-align:center; margin-bottom:24px; }
+#loginScreen .login-lbl{ color:rgba(255,255,255,.82) !important; }
+#loginScreen .pass-inp{
+  background:rgba(255,255,255,.06) !important;
+  border:1.5px solid rgba(255,255,255,.14) !important;
+  color:#fff !important;
+}
+#loginScreen .pass-inp::placeholder{ color:rgba(255,255,255,.35); }
+#loginScreen .pass-inp:focus{ border-color:var(--gold) !important; box-shadow:0 0 0 3px rgba(245,166,35,.18); }
+#loginScreen .inp-wrap .iconify{ color:rgba(255,255,255,.4); }
+#loginScreen .login-eye{ color:rgba(255,255,255,.45); }
+#loginScreen .login-eye:hover{ color:var(--gold); }
+#loginScreen .login-toggle{ color:rgba(255,255,255,.7) !important; }
+#loginScreen #switchModeBtn{ color:rgba(255,255,255,.55) !important; }
+
+.lg3-foot{ margin-top:22px; color:rgba(255,255,255,.35); font-size:11.5px; position:relative; z-index:1; }
+
+@media (max-width:640px){
+  .lg3-card{ max-width:100%; }
+  #loginScreen .login-box{ padding:24px 20px !important; }
+}
+@media (prefers-reduced-motion:reduce){ .lg3-card{ animation:none; } }
+
+/* تأكيد: خط شاشة الدخول = خط الموقع بالضبط (بدون استثناءات) */
+#loginScreen, #loginScreen *{ font-family:var(--font) !important; }

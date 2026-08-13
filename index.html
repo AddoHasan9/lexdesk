@@ -25,65 +25,58 @@
 
 <!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
-  <div class="login-hero">
-    <span class="lh-shine"></span><span class="lh-orb g"></span><span class="lh-orb b"></span>
-    <div class="login-hero-wrap"><div class="login-logo-wrap">
-      <div class="login-logo-svg"><img src="logo.png" alt="شعار" style="width:100%;height:100%;object-fit:contain"></div>
-    </div>
-    </div>
-    <div class="login-hero-name">المحامي منتظر الخزرجي</div>
-    <div class="login-hero-line"></div>
-    <div class="login-hero-tag">نظام متكامل لإدارة القضايا والمعاملات القانونية بأعلى معايير الدقة والأمان.</div>
-    <div class="login-hero-chips">
-      <div class="login-hero-chip"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z"/></svg>حماية</div>
-      <div class="login-hero-chip"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>قضايا</div>
-      <div class="login-hero-chip"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>تقارير</div>
-    </div>
-  </div>
-  <div class="login-box">
-    <div class="login-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M6 21V8l6-4 6 4v13M10 21v-5h4v5"/></svg></div>
-    <div class="login-brand" id="loginModeTitle">تسجيل الدخول</div>
-    <div class="login-sub" id="loginOfficeSub">مكتب المحاماة</div>
+  <div class="lg3-glow lg3-glow-a"></div>
+  <div class="lg3-glow lg3-glow-b"></div>
+  <div class="lg3-card">
+    <div class="login-logo-svg" style="width:150px;height:150px;margin:0 auto"><img src="logo.png" alt="شعار" style="width:100%;height:100%;object-fit:contain"></div>
+    <div class="login-hero-name" id="loginHeroName" style="margin-top:4px">المحامي منتظر الخزرجي</div>
+    <div class="login-hero-tag" style="margin-top:8px">نظام متكامل لإدارة القضايا والمعاملات القانونية</div>
 
-    <!-- Name row (signup only) -->
-    <div id="nameRow" style="display:none">
-      <label class="login-lbl">الاسم الكامل</label>
+    <div class="login-box">
+      <div class="login-brand" id="loginModeTitle">تسجيل الدخول</div>
+      <div class="login-sub" id="loginOfficeSub">مكتب المحاماة</div>
+
+      <!-- Name row (signup only) -->
+      <div id="nameRow" style="display:none">
+        <label class="login-lbl">الاسم الكامل</label>
+        <div class="inp-wrap">
+          <span class="iconify" data-icon="solar:user-linear" data-width="16"></span>
+          <input id="nameInp" type="text" class="pass-inp" placeholder="الاسم الكامل" maxlength="50" style="margin-bottom:0">
+        </div>
+      </div>
+
+      <!-- Email -->
+      <label class="login-lbl">البريد الإلكتروني</label>
       <div class="inp-wrap">
-        <span class="iconify" data-icon="solar:user-linear" data-width="16"></span>
-        <input id="nameInp" type="text" class="pass-inp" placeholder="الاسم الكامل" maxlength="50" style="margin-bottom:0">
+        <span class="iconify" data-icon="solar:letter-linear" data-width="16"></span>
+        <input id="emailInp" type="email" class="pass-inp" placeholder="name@office.iq"
+          onkeydown="if(event.key==='Enter')document.getElementById('passInp').focus()" style="margin-bottom:0">
+      </div>
+
+      <!-- Password -->
+      <label class="login-lbl">كلمة المرور</label>
+      <div class="inp-wrap">
+        <span class="iconify" data-icon="solar:lock-linear" data-width="16"></span>
+        <input id="passInp" type="password" class="pass-inp" placeholder="••••••••" maxlength="64"
+          onkeydown="if(event.key==='Enter')doLogin()" style="margin-bottom:0">
+        <span class="login-eye" onclick="var p=document.getElementById('passInp');p.type=p.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+      </div>
+
+      <div class="pass-err" id="passErr">الإيميل أو كلمة المرور غلط</div>
+
+      <div class="login-row">
+        <label class="login-toggle"><input type="checkbox" id="rememberChk"><span class="login-track"></span> تذكّرني</label>
+        <button id="forgotBtn" type="button" class="reset-pass-btn" onclick="doForgotPass()">نسيت كلمة المرور؟</button>
+      </div>
+
+      <button class="login-btn" id="loginSubmitBtn" onclick="doLogin()">تسجيل الدخول</button>
+
+      <!-- Switch mode -->
+      <div id="switchModeBtn" style="margin-top:14px;font-size:12px;color:var(--text3);text-align:center">
+        ما عندك حساب؟ <span onclick="switchLoginMode('signup')" style="color:var(--gold);cursor:pointer;font-weight:700">أنشئ حساباً</span>
       </div>
     </div>
-
-    <!-- Email -->
-    <label class="login-lbl">البريد الإلكتروني</label>
-    <div class="inp-wrap">
-      <span class="iconify" data-icon="solar:letter-linear" data-width="16"></span>
-      <input id="emailInp" type="email" class="pass-inp" placeholder="name@office.iq"
-        onkeydown="if(event.key==='Enter')document.getElementById('passInp').focus()" style="margin-bottom:0">
-    </div>
-
-    <!-- Password -->
-    <label class="login-lbl">كلمة المرور</label>
-    <div class="inp-wrap">
-      <span class="iconify" data-icon="solar:lock-linear" data-width="16"></span>
-      <input id="passInp" type="password" class="pass-inp" placeholder="••••••••" maxlength="64"
-        onkeydown="if(event.key==='Enter')doLogin()" style="margin-bottom:0">
-      <span class="login-eye" onclick="var p=document.getElementById('passInp');p.type=p.type==='password'?'text':'password'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
-    </div>
-
-    <div class="pass-err" id="passErr">الإيميل أو كلمة المرور غلط</div>
-
-    <div class="login-row">
-      <label class="login-toggle"><input type="checkbox" id="rememberChk"><span class="login-track"></span> تذكّرني</label>
-      <button id="forgotBtn" type="button" class="reset-pass-btn" onclick="doForgotPass()">نسيت كلمة المرور؟</button>
-    </div>
-
-    <button class="login-btn" id="loginSubmitBtn" onclick="doLogin()">تسجيل الدخول</button>
-
-    <!-- Switch mode -->
-    <div id="switchModeBtn" style="margin-top:14px;font-size:12px;color:var(--text3);text-align:center">
-      ما عندك حساب؟ <span onclick="switchLoginMode('signup')" style="color:var(--gold);cursor:pointer;font-weight:700">أنشئ حساباً</span>
-    </div>
+    <div class="lg3-foot">جميع الحقوق محفوظة © 2026</div>
   </div>
 </div>
 
