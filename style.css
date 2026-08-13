@@ -3756,3 +3756,13 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .profile-av-edit:hover{ color:var(--gold); border-color:var(--gold); }
 /* أفاتار الشريط الجانبي/العلوي — تدعم صورة */
 .sb-user-av img, .user-av img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+/* ═══════════════ قوائم ملفات الأدوات — chips قابلة للحذف ═══════════════ */
+.tool-file-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; justify-content:center; }
+.tool-file-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--glass); border:1px solid var(--border); border-radius:9px; padding:5px 8px; font-size:11.5px; max-width:220px; }
+.tfc-name{ color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px; }
+.tfc-size{ color:var(--text3); font-family:var(--num,inherit); flex:0 0 auto; }
+.tfc-del{ border:none; background:transparent; color:var(--text3); cursor:pointer; font-size:12px; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:50%; flex:0 0 auto; transition:var(--t); }
+.tfc-del:hover{ background:var(--red-g); color:var(--red); }
+.tool-file-clear{ border:1px dashed var(--border); background:transparent; color:var(--text2); cursor:pointer; font-size:11px; font-weight:700; padding:5px 10px; border-radius:9px; transition:var(--t); }
+.tool-file-clear:hover{ border-color:var(--red); color:var(--red); }

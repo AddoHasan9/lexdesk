@@ -2730,32 +2730,55 @@ function fileToDataUrl(file){
   return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
 }
 
+// يضيف ملفات جديدة لقائمة الأداة (تراكمية) ويحدّث العرض
+function toolAddFiles(inputId,zoneId,fileList){
+  if(!fileList||!fileList.length)return;
+  if(!Array.isArray(_toolDropFiles[inputId]))_toolDropFiles[inputId]=[];
+  Array.from(fileList).forEach(f=>_toolDropFiles[inputId].push(f));
+  toolRenderFileChips(inputId,zoneId);
+}
+function toolRemoveFile(inputId,zoneId,idx){
+  if(!Array.isArray(_toolDropFiles[inputId]))return;
+  _toolDropFiles[inputId].splice(idx,1);
+  toolRenderFileChips(inputId,zoneId);
+}
+function toolClearFiles(inputId,zoneId){
+  _toolDropFiles[inputId]=[];
+  const inp=document.getElementById(inputId);if(inp)inp.value='';
+  toolRenderFileChips(inputId,zoneId);
+}
+function toolRenderFileChips(inputId,zoneId){
+  const files=_toolDropFiles[inputId]||[];
+  const lblId=zoneId.replace('Zone','Label');
+  const lbl=document.getElementById(lblId);
+  const zone=document.getElementById(zoneId);
+  if(!files.length){
+    if(lbl)lbl.innerHTML='';
+    if(zone)zone.classList.remove('has-file');
+    return;
+  }
+  if(zone)zone.classList.add('has-file');
+  if(lbl){
+    lbl.innerHTML='<div class="tool-file-chips">'+files.map((f,i)=>
+      '<span class="tool-file-chip"><span class="tfc-name">'+esc(f.name)+'</span><span class="tfc-size">'+fmtBytes(f.size)+'</span><button type="button" class="tfc-del" onclick="event.stopPropagation();toolRemoveFile(\''+inputId+'\',\''+zoneId+'\','+i+')" title="حذف">✕</button></span>'
+    ).join('')+(files.length>1?'<button type="button" class="tool-file-clear" onclick="event.stopPropagation();toolClearFiles(\''+inputId+'\',\''+zoneId+'\')">مسح الكل</button>':'')+'</div>';
+  }
+}
+
 function toolDrop(event,inputId,zoneId){
   event.preventDefault();
   document.getElementById(zoneId).classList.remove('drag');
-  _toolDropFiles[inputId]=event.dataTransfer.files;
-  const files=_toolDropFiles[inputId];
-  if(!files||!files.length)return;
-  const lblId=zoneId.replace('Zone','Label');
-  const lbl=document.getElementById(lblId);
-  if(lbl)lbl.textContent=Array.from(files).map(f=>f.name).join('، ');
-  document.getElementById(zoneId).classList.add('has-file');
+  toolAddFiles(inputId,zoneId,event.dataTransfer.files);
 }
 
 function updateDropLabel(zoneId,inp){
-  if(inp.id)delete _toolDropFiles[inp.id];
-  const files=inp.files;
-  if(!files||!files.length)return;
-  const lblId=zoneId.replace('Zone','Label');
-  const lbl=document.getElementById(lblId);
-  if(lbl)lbl.textContent=Array.from(files).map(f=>f.name).join('، ');
-  document.getElementById(zoneId).classList.add('has-file');
+  const inputId=inp.id;
+  toolAddFiles(inputId,zoneId,inp.files);
+  inp.value=''; // نفرّغ input حتى تختيار نفس الملف مرة ثانية يشتغل ويقدر يضيفه
 }
 
 function getToolFiles(inputId){
-  if(_toolDropFiles[inputId]&&_toolDropFiles[inputId].length)return _toolDropFiles[inputId];
-  const inp=document.getElementById(inputId);
-  return inp?inp.files:null;
+  return (_toolDropFiles[inputId]&&_toolDropFiles[inputId].length)?_toolDropFiles[inputId]:null;
 }
 
 function toolSetResult(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
