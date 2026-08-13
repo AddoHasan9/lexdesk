@@ -105,7 +105,29 @@
     </div>
     <div class="rem-form-row">
       <input type="date" class="rem-date-inp" id="remDate" placeholder="تاريخ (اختياري)">
-      <button class="btn-save" style="padding:7px 16px;font-size:12px" onclick="saveReminder()">حفظ</button>
+      <input type="time" class="rem-date-inp" id="remTime" placeholder="الوقت" value="09:00">
+    </div>
+    <div class="rem-form-row" style="margin-top:8px">
+      <select id="remRepeat" class="rem-date-inp" style="flex:1">
+        <option value="once">مرة وحدة</option>
+        <option value="daily">تكرار يومي</option>
+        <option value="weekly">تكرار أسبوعي</option>
+      </select>
+      <select id="remNotifyCount" class="rem-date-inp" style="flex:1">
+        <option value="1">تنبيه مرة وحدة</option>
+        <option value="2">تنبيه مرتين</option>
+        <option value="3" selected>تنبيه 3 مرات</option>
+        <option value="5">تنبيه 5 مرات</option>
+      </select>
+      <select id="remNotifyGap" class="rem-date-inp" style="flex:1">
+        <option value="15">كل 15 دقيقة</option>
+        <option value="30" selected>كل 30 دقيقة</option>
+        <option value="60">كل ساعة</option>
+        <option value="180">كل 3 ساعات</option>
+      </select>
+    </div>
+    <div class="rem-form-row" style="margin-top:8px">
+      <button class="btn-save" style="padding:7px 16px;font-size:12px;flex:1" onclick="saveReminder()">حفظ</button>
       <button class="btn-cancel" style="padding:7px 12px;font-size:12px" onclick="closeRemForm()">إلغاء</button>
     </div>
   </div>
