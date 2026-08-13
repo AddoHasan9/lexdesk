@@ -475,6 +475,24 @@ async function restoreSbSession(){
 }
 
 // ─ Logout ─
+// جزيئات ذهبية عائمة بشاشة الدخول — تُبنى مرة وحدة بلا حلقة رسم مستمرة (أداء خفيف)
+function initLoginParticles(){
+  const box=document.getElementById('lg3Particles');
+  if(!box||box.dataset.built)return;
+  box.dataset.built='1';
+  const n=window.innerWidth<640?12:22;
+  let html='';
+  for(let i=0;i<n;i++){
+    const size=(Math.random()*3+1.5).toFixed(1);
+    const left=(Math.random()*100).toFixed(1);
+    const dur=(Math.random()*14+14).toFixed(1);
+    const delay=(Math.random()*-24).toFixed(1);
+    const drift=Math.round((Math.random()*60-30));
+    html+='<span class="lg3-particle" style="width:'+size+'px;height:'+size+'px;left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+delay+'s;--drift:'+drift+'px"></span>';
+  }
+  box.innerHTML=html;
+}
+
 function logout(){
   currentUser=null; currentUserName=''; currentRole=null; _sbSession=null;
   currentAvatarUrl=''; currentPhone='';
@@ -2751,7 +2769,7 @@ function toolClearFiles(inputId,zoneId){
 }
 
 // ══════════════ محرر الصور (تحرير وتعليم) ══════════════
-let ieCanvas=null, ieCtx=null, ieUndoStack=[], ieTool='pen', ieColor='#F5A623', ieDrawing=false, ieLastX=0, ieLastY=0;
+let ieCanvas=null, ieCtx=null, ieUndoStack=[], ieTool='pen', ieColor='#F5A623', ieDrawing=false, ieLastX=0, ieLastY=0, ieCropDragging=false;
 let ieCropStart=null;
 
 function loadImgToEditor(inp){
@@ -2794,6 +2812,8 @@ function ieSetTool(t){
   document.getElementById('ieCropApply').style.display=(t==='crop')?'flex':'none';
   document.getElementById('ieCropBox').style.display='none';
   ieCropStart=null;
+  ieCropDragging=false;
+  ieDrawing=false;
   ieCanvas.style.cursor=(t==='text')?'text':(t==='crop')?'crosshair':'crosshair';
 }
 function ieSetColor(el){
@@ -2815,9 +2835,10 @@ function ieUndo(){
 }
 function ieGetPos(e){
   const rect=ieCanvas.getBoundingClientRect();
+  const wrapRect=document.getElementById('ieCanvasWrap').getBoundingClientRect();
   const scaleX=ieCanvas.width/rect.width;
   const scaleY=ieCanvas.height/rect.height;
-  return {x:(e.clientX-rect.left)*scaleX,y:(e.clientY-rect.top)*scaleY,clientX:e.clientX,clientY:e.clientY,rect};
+  return {x:(e.clientX-rect.left)*scaleX,y:(e.clientY-rect.top)*scaleY,clientX:e.clientX,clientY:e.clientY,rect,wrapRect};
 }
 function ieBindCanvasEvents(){
   ieCanvas.onpointerdown=e=>{
@@ -2831,9 +2852,10 @@ function ieBindCanvasEvents(){
       ieAddTextInput(p);
     }else if(ieTool==='crop'){
       ieCropStart=p;
+      ieCropDragging=true;
       const box=document.getElementById('ieCropBox');
       box.style.display='block';
-      box.style.left=(p.clientX-p.rect.left)+'px';box.style.top=(p.clientY-p.rect.top)+'px';
+      box.style.left=(p.clientX-p.wrapRect.left)+'px';box.style.top=(p.clientY-p.wrapRect.top)+'px';
       box.style.width='0px';box.style.height='0px';
     }
   };
@@ -2845,24 +2867,24 @@ function ieBindCanvasEvents(){
       ieCtx.lineCap='round';ieCtx.lineJoin='round';
       ieCtx.beginPath();ieCtx.moveTo(ieLastX,ieLastY);ieCtx.lineTo(p.x,p.y);ieCtx.stroke();
       ieLastX=p.x;ieLastY=p.y;
-    }else if(ieTool==='crop'&&ieCropStart){
+    }else if(ieTool==='crop'&&ieCropDragging&&ieCropStart){
       const box=document.getElementById('ieCropBox');
-      const x1=Math.min(ieCropStart.clientX,p.clientX)-p.rect.left;
-      const y1=Math.min(ieCropStart.clientY,p.clientY)-p.rect.top;
+      const x1=Math.min(ieCropStart.clientX,p.clientX)-p.wrapRect.left;
+      const y1=Math.min(ieCropStart.clientY,p.clientY)-p.wrapRect.top;
       const w=Math.abs(p.clientX-ieCropStart.clientX);
       const h=Math.abs(p.clientY-ieCropStart.clientY);
       box.style.left=x1+'px';box.style.top=y1+'px';box.style.width=w+'px';box.style.height=h+'px';
     }
   };
-  ieCanvas.onpointerup=()=>{ieDrawing=false;};
-  ieCanvas.onpointerleave=()=>{ieDrawing=false;};
+  ieCanvas.onpointerup=()=>{ieDrawing=false;ieCropDragging=false;};
+  ieCanvas.onpointerleave=()=>{ieDrawing=false;ieCropDragging=false;};
 }
 function ieAddTextInput(p){
   const wrap=document.getElementById('ieCanvasWrap');
   const inp=document.createElement('input');
   inp.type='text';inp.className='ie-text-input';
-  inp.style.left=(p.clientX-p.rect.left)+'px';
-  inp.style.top=(p.clientY-p.rect.top-14)+'px';
+  inp.style.left=(p.clientX-p.wrapRect.left)+'px';
+  inp.style.top=(p.clientY-p.wrapRect.top-14)+'px';
   inp.style.color=ieColor;
   inp.style.fontSize=(16)+'px';
   wrap.appendChild(inp);
@@ -2886,16 +2908,24 @@ function ieApplyCrop(){
   const box=document.getElementById('ieCropBox');
   if(box.style.display==='none'||!box.style.width||box.style.width==='0px'){toast('حدّد منطقة القص أولاً بالسحب على الصورة','err');return;}
   const rect=ieCanvas.getBoundingClientRect();
+  const wrapRect=document.getElementById('ieCanvasWrap').getBoundingClientRect();
+  const canvasOffsetX=rect.left-wrapRect.left;
+  const canvasOffsetY=rect.top-wrapRect.top;
   const scaleX=ieCanvas.width/rect.width;
   const scaleY=ieCanvas.height/rect.height;
-  const bx=parseFloat(box.style.left)*scaleX;
-  const by=parseFloat(box.style.top)*scaleY;
+  const bx=(parseFloat(box.style.left)-canvasOffsetX)*scaleX;
+  const by=(parseFloat(box.style.top)-canvasOffsetY)*scaleY;
   const bw=parseFloat(box.style.width)*scaleX;
   const bh=parseFloat(box.style.height)*scaleY;
   if(bw<5||bh<5)return;
+  // نحصر حدود القص داخل أبعاد الصورة الفعلية (تحسّباً لسحب خارج حدود الكانفس)
+  const cx=Math.max(0,Math.min(bx,ieCanvas.width));
+  const cy=Math.max(0,Math.min(by,ieCanvas.height));
+  const cw=Math.max(1,Math.min(bw,ieCanvas.width-cx));
+  const ch=Math.max(1,Math.min(bh,ieCanvas.height-cy));
   ieSaveUndo();
-  const cropped=ieCtx.getImageData(bx,by,bw,bh);
-  ieCanvas.width=bw;ieCanvas.height=bh;
+  const cropped=ieCtx.getImageData(cx,cy,cw,ch);
+  ieCanvas.width=cw;ieCanvas.height=ch;
   ieCtx.putImageData(cropped,0,0);
   box.style.display='none';
   ieCropStart=null;
@@ -3698,3 +3728,9 @@ function renderTaskAlerts(){
   if(mBadge){if(count>0){mBadge.style.display='flex';mBadge.textContent=count;}else mBadge.style.display='none';}
 }
 
+// تهيئة جزيئات شاشة الدخول بمجرد جاهزية الصفحة
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initLoginParticles);
+}else{
+  initLoginParticles();
+}
