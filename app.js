@@ -604,6 +604,8 @@ function showApp(){
   const mn=document.getElementById('mobNav');if(mn)mn.style.display=window.innerWidth<=768?'flex':'none';
   const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=window.innerWidth<=768?'block':'none';
   if(typeof refreshMobNavGlass==='function')refreshMobNavGlass();
+  if(typeof mnvInitDrag==='function')mnvInitDrag();
+  if(typeof mnvSyncBead==='function')mnvSyncBead(false);
   if(window.innerWidth<=768)currentView='cards';
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
   const nb=document.getElementById('notifBell');if(nb)nb.style.display='flex';
@@ -645,6 +647,9 @@ function showMobUserMenu(){
   const isOpen=menu.style.display==='block';
   menu.style.display=isOpen?'none':'block';
   if(!isOpen){
+    document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
+    const mu=document.getElementById('mnUser');if(mu)mu.classList.add('active');
+    if(typeof mnvSyncBead==='function')mnvSyncBead(true);
     const av=document.getElementById('mobMenuAv');
     const _displayName=currentUserName||(isAdmin()?'أدمن':'مستخدم');
     if(av)av.innerHTML=currentAvatarUrl?('<img src="'+currentAvatarUrl+'" alt="">'):(_displayName.trim()[0]||'م');
@@ -1518,7 +1523,7 @@ function goPage(p){
   ['dash','charts','reports','tools','settings','deficiency','wadea','tasks'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea',tasks:'sbTasks'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
   if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);if(p==='tasks')setTimeout(buildTasksPage,50);
 }
-function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
+function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}if(typeof mnvSyncBead==='function')mnvSyncBead(true);}
 
 // ══ SETTINGS ══
 function switchSetTab(tab){document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));document.querySelectorAll('.set-tab-content').forEach(c=>c.classList.remove('active'));const el=document.getElementById('setTab_'+tab);if(el)el.classList.add('active');}
@@ -1642,9 +1647,112 @@ function refreshMobNavGlass(){
       mapEl.setAttribute('href',url);
       nav.classList.add('lg-ready');
     }catch(e){ nav.classList.remove('lg-ready'); }
+    mnvSyncBead(false);
   },120);
 }
-function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';const show=window.innerWidth<=768&&loggedIn;mn.style.display=show?'flex':'none';const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=show?'block':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();});}
+
+// ── كرة المؤشر السائلة (Meniscus) — تنزلق بحركة سائلة بين التبويبات، وتُسحب باليد ──
+const mnvTabIds=['mnDash','mnCharts','mnTools','mnUser'];
+let mnvCurX=0, mnvTrailX=0, mnvRaf=null;
+let mnvAnimStart=null, mnvFrom=0, mnvTo=0, mnvDur=0;
+let mnvPointerId=null, mnvDownX=0, mnvDragging=false;
+
+function mnvCenterX(el){
+  const nav=document.getElementById('mobNav');
+  if(!nav||!el)return 0;
+  const r=el.getBoundingClientRect(), nr=nav.getBoundingClientRect();
+  return (r.left+r.width/2)-nr.left;
+}
+function mnvSetBeadPos(x,tx){
+  const bead=document.getElementById('mnvBead'), trail=document.getElementById('mnvBeadTrail');
+  if(bead)bead.style.left=x+'px';
+  if(trail)trail.style.left=(tx===undefined?x:tx)+'px';
+}
+function mnvLoop(){
+  if(mnvDragging){
+    mnvTrailX += (mnvCurX-mnvTrailX)*0.22;
+    mnvSetBeadPos(mnvCurX, mnvTrailX);
+    mnvRaf=requestAnimationFrame(mnvLoop);
+    return;
+  }
+  if(mnvAnimStart!==null){
+    const t=Math.min(1,(performance.now()-mnvAnimStart)/mnvDur);
+    const ease=1-Math.pow(1-t,3);
+    const easeLag=1-Math.pow(1-Math.max(0,t-0.12),3);
+    const leadX=mnvFrom+(mnvTo-mnvFrom)*ease;
+    const lagX=mnvFrom+(mnvTo-mnvFrom)*Math.max(0,Math.min(1,easeLag));
+    mnvSetBeadPos(leadX,lagX);
+    mnvCurX=leadX; mnvTrailX=lagX;
+    if(t>=1){ mnvAnimStart=null; mnvSetBeadPos(mnvTo,mnvTo); mnvCurX=mnvTo; mnvTrailX=mnvTo; return; }
+    mnvRaf=requestAnimationFrame(mnvLoop);
+  }
+}
+function mnvAnimateTo(x,dur){
+  mnvFrom=mnvCurX; mnvTo=x; mnvDur=dur||520; mnvAnimStart=performance.now();
+  cancelAnimationFrame(mnvRaf); mnvRaf=requestAnimationFrame(mnvLoop);
+}
+// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه
+function mnvSyncBead(animate){
+  const nav=document.getElementById('mobNav');
+  if(!nav||nav.style.display==='none')return;
+  const activeBtn=nav.querySelector('.mob-nav-btn.active:not(#mnAddCenter)');
+  if(!activeBtn)return;
+  const x=mnvCenterX(activeBtn);
+  if(animate===false){ mnvCurX=x; mnvTrailX=x; mnvSetBeadPos(x,x); }
+  else mnvAnimateTo(x,520);
+}
+function mnvNearestBtn(x){
+  let best=null, bd=Infinity;
+  mnvTabIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const d=Math.abs(mnvCenterX(el)-x);
+    if(d<bd){bd=d;best=el;}
+  });
+  return best;
+}
+function mnvInitDrag(){
+  const nav=document.getElementById('mobNav');
+  if(!nav||nav._mnvBound)return;
+  nav._mnvBound=true;
+  nav.addEventListener('pointerdown',(e)=>{
+    if(e.target.closest('#mnAddCenter'))return;
+    mnvPointerId=e.pointerId; mnvDownX=e.clientX; mnvDragging=false;
+  });
+  nav.addEventListener('pointermove',(e)=>{
+    if(mnvPointerId!==e.pointerId)return;
+    const dx=Math.abs(e.clientX-mnvDownX);
+    if(!mnvDragging && dx>8){
+      mnvDragging=true;
+      try{nav.setPointerCapture(e.pointerId);}catch(err){}
+      cancelAnimationFrame(mnvRaf); mnvRaf=requestAnimationFrame(mnvLoop);
+    }
+    if(mnvDragging){
+      const rect=nav.getBoundingClientRect();
+      let x=e.clientX-rect.left;
+      x=Math.max(24,Math.min(rect.width-24,x));
+      mnvCurX=x;
+      e.preventDefault();
+    }
+  });
+  function mnvEndDrag(e){
+    if(mnvPointerId!==e.pointerId)return;
+    if(mnvDragging){
+      mnvDragging=false;
+      const target=mnvNearestBtn(mnvCurX);
+      if(target){
+        document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
+        target.classList.add('active');
+        mnvAnimateTo(mnvCenterX(target),380);
+        target.click();
+      }
+    }
+    mnvPointerId=null;
+  }
+  nav.addEventListener('pointerup',mnvEndDrag);
+  nav.addEventListener('pointercancel',mnvEndDrag);
+}
+function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';const show=window.innerWidth<=768&&loggedIn;mn.style.display=show?'flex':'none';const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=show?'block':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();mnvInitDrag();mnvSyncBead(false);});}
 function syncMobFilter(type,val){if(type==='type')document.getElementById('filterType').value=val;else if(type==='lawyer')document.getElementById('filterLawyer').value=val;else if(type==='status')document.getElementById('filterStatus').value=val;render();}
 function populateMobFilters(){const mt=document.getElementById('mobFilterType');const ml=document.getElementById('mobFilterLawyer');if(!mt||!ml)return;const vt=mt.value,vl=ml.value;mt.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');ml.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');mt.value=vt;ml.value=vl;}
 

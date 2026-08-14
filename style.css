@@ -1851,7 +1851,7 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 }
 .mn-lbl { line-height: 1; letter-spacing: -.1px; }
 /* الحالة النشطة — حبّة ذهبية خلف الأيقونة + رفعة + مؤشر علوي */
-.mob-nav-btn.active { color: var(--gold); }
+.mob-nav-btn.active { color: #2b1d02; }
 .mob-nav-btn.active .mn-icon { transform: translateY(-2px) scale(1.06); }
 .mob-nav-btn.active::before {
   content: '';
@@ -1873,6 +1873,22 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   border-radius: 0 0 4px 4px;
 }
 .mob-nav-btn > * { position: relative; z-index: 1; }
+
+/* ══ كرة المؤشر السائلة (Meniscus) — تحل محل التظليل الثابت أعلاه ══ */
+.mob-nav-btn.active::before,
+.mob-nav-btn.active::after { display: none; }
+.mnv-goo-layer{
+  position:absolute; inset:0; z-index:0;
+  pointer-events:none;
+  filter:url(#mnv-goo);
+}
+.mnv-bead{
+  position:absolute; top:50%; width:44px; height:44px; border-radius:50%;
+  background:linear-gradient(135deg,var(--gold2),var(--gold));
+  transform:translate(-50%,-50%);
+  box-shadow:0 3px 10px var(--gold-g);
+}
+.mob-nav{ touch-action:pan-y; }
 .mob-nav-btn:hover:not(.active) { color: var(--text2); }
 #mnAddCenter {
   width:54px !important; height:54px !important;

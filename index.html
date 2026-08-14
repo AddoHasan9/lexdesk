@@ -1190,15 +1190,22 @@
 
 <!-- TOAST CONTAINER -->
 <div class="toast-wrap" id="toastWrap"></div>
-<!-- فلتر الزجاج السائل: يلتقط الخلفية ويحرّفها حسب خريطة انزياح مبنية من شكل الشريط نفسه -->
+<!-- فلتر الزجاج السائل: يلتقط الخلفية ويحرّفها حسب خريطة انزياح مبنية من شكل الشريط نفسها -->
 <svg width="0" height="0" style="position:absolute">
   <filter id="lg-mobnav" x="-15%" y="-40%" width="130%" height="180%" color-interpolation-filters="sRGB">
     <feImage id="lgMobNavMap" result="map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none"/>
     <feDisplacementMap in="SourceGraphic" in2="map" scale="34" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
+  <!-- فلتر Goo: يدمج كرة المؤشر النشط مع ذيلها بشكل سائل أثناء الانتقال بين التبويبات -->
+  <filter id="mnv-goo" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="mnvBlur"/>
+    <feColorMatrix in="mnvBlur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" result="mnvGoo"/>
+    <feComposite in="SourceGraphic" in2="mnvGoo" operator="atop"/>
+  </filter>
 </svg>
 <div class="mob-nav-glow" id="mobNavGlow" style="display:none"></div>
 <nav class="mob-nav" id="mobNav" style="display:none">
+  <div class="mnv-goo-layer" id="mnvGooLayer"><div class="mnv-bead trail" id="mnvBeadTrail"></div><div class="mnv-bead" id="mnvBead"></div></div>
   <button class="mob-nav-btn active" id="mnDash" onclick="mobGoPage('dash')" title="الرئيسية">
     <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5"/>
