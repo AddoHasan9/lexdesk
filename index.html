@@ -10,14 +10,11 @@
 <meta name="referrer" content="no-referrer">
 <title>المحامي منتظر الخزرجي</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100..900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- XLSX / jsPDF / pdf.js / pdf-lib تحمّل عند الحاجة فقط (loadLib بـ app.js) بدل تحميلها بكل صفحة -->
 <link rel="stylesheet" href="lexdesk-design-tokens.css">
 <link rel="stylesheet" href="style.css">
-<script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+<script defer src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
 <body>
 
@@ -245,7 +242,7 @@
   <div class="tb-sep"></div>
   <div class="tb-search">
     <span class="iconify" data-icon="solar:magnifer-linear" data-width="16" style="color:var(--text3);flex-shrink:0"></span>
-    <input id="searchInp" placeholder="ابحث عن شركة..." oninput="render()">
+    <input id="searchInp" placeholder="ابحث عن شركة..." oninput="debouncedRender()">
   </div>
   <div class="tb-filters">
     <select class="tb-sel" id="filterType" onchange="render()"><option value="">كل الأنواع</option></select>
@@ -1731,8 +1728,8 @@
   </div>
 </div>
 
-<script src="lexdesk-chart-theme.js"></script>
-<script src="app.js"></script>
+<script defer src="lexdesk-chart-theme.js"></script>
+<script defer src="app.js"></script>
 <!-- ══ نافذة الملف الشخصي ══ -->
 <div class="overlay" id="profileOverlay" style="display:none" onclick="if(event.target===this)closeProfile()">
   <div class="modal" style="max-width:420px">

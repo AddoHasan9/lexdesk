@@ -738,6 +738,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 });
 
+let _renderDebounceT=null;
+function debouncedRender(){clearTimeout(_renderDebounceT);_renderDebounceT=setTimeout(render,180);}
 function render(){
   renderWadeaAlerts();
   const pgWadea=document.getElementById('pageWadea');
@@ -1563,13 +1565,13 @@ const TOAST_ICONS={ok:'<svg viewBox="0 0 24 24" width="15" height="15" fill="non
 function toast(msg,type){const wrap=document.getElementById('toastWrap');if(!wrap)return;const t=type||'info';const div=document.createElement('div');div.className='toast toast-'+(t==='err'?'err':t==='ok'?'ok':'warn');div.innerHTML=(TOAST_ICONS[t]||TOAST_ICONS.info)+'<span>'+esc(msg)+'</span>';wrap.appendChild(div);setTimeout(()=>{div.style.opacity='0';div.style.transform='translateY(8px)';div.style.transition='all .3s';setTimeout(()=>div.remove(),300);},3200);}
 
 // ══ EXPORT ══
-function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
+async function exportExcel(){if(!cases.length){toast('لا توجد بيانات للتصدير','err');return;}await ensureXLSX();if(typeof XLSX==='undefined'){toast('مكتبة Excel لم تكتمل، أعد المحاولة','err');return;}const ws=XLSX.utils.json_to_sheet(cases.map(c=>({'الشركة':c.company,'النوع':c.type,'المحامي':c.lawyer,'الحالة':c.status,'المبلغ IQD':c.amountIQD,'المبلغ USD':c.amountUSD,'النواقص':c.deficiency,'الملاحظات':c.notes,'المرحلة':c.stage,'التاريخ':c.date})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'المعاملات');XLSX.writeFile(wb,'LexDesk_'+new Date().toLocaleDateString('en')+'.xlsx');toast('تم التصدير','ok');}
 function backupJSON(){const b={cases,settings,exportedAt:new Date().toISOString()};const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(JSON.stringify(b,null,2));a.download='LexDesk_backup_'+Date.now()+'.json';a.click();toast('تم حفظ النسخة الاحتياطية','ok');}
 function openImport(){openOverlay('importOverlay');}
 function openRestore(){openOverlay('restoreOverlay');}
 function handleDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
 function handleImportFile(inp){if(inp.files[0])processImportFile(inp.files[0]);}
-function processImportFile(f){const r=new FileReader();r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws);importRows=raw.map((r,i)=>({id:Date.now()+i,company:r['الشركة']||r['company']||'',type:r['النوع']||r['type']||settings.types[0],lawyer:r['المحامي']||r['lawyer']||settings.lawyers[0],status:r['الحالة']||r['status']||'قيد المعالجة',currency:'IQD',amountIQD:parseFloat(r['المبلغ IQD']||r['amountIQD']||0),amountUSD:parseFloat(r['المبلغ USD']||r['amountUSD']||0),deficiency:r['النواقص']||'',notes:r['الملاحظات']||'',stage:r['المرحلة']||'',date:r['التاريخ']||'',addedAt:Date.now()+i,holdReason:''}));document.getElementById('importPreview').textContent='تم قراءة '+importRows.length+' سجل';};r.readAsBinaryString(f);}
+async function processImportFile(f){await ensureXLSX();if(typeof XLSX==='undefined'){toast('مكتبة Excel لم تكتمل، أعد المحاولة','err');return;}const r=new FileReader();r.onload=e=>{const wb=XLSX.read(e.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];const raw=XLSX.utils.sheet_to_json(ws);importRows=raw.map((r,i)=>({id:Date.now()+i,company:r['الشركة']||r['company']||'',type:r['النوع']||r['type']||settings.types[0],lawyer:r['المحامي']||r['lawyer']||settings.lawyers[0],status:r['الحالة']||r['status']||'قيد المعالجة',currency:'IQD',amountIQD:parseFloat(r['المبلغ IQD']||r['amountIQD']||0),amountUSD:parseFloat(r['المبلغ USD']||r['amountUSD']||0),deficiency:r['النواقص']||'',notes:r['الملاحظات']||'',stage:r['المرحلة']||'',date:r['التاريخ']||'',addedAt:Date.now()+i,holdReason:''}));document.getElementById('importPreview').textContent='تم قراءة '+importRows.length+' سجل';};r.readAsBinaryString(f);}
 function confirmImport(){if(!importRows.length){toast('اختر ملف أولاً','err');return;}cases=[...cases,...importRows];saveData();render();closeOverlay('importOverlay');toast('تم استيراد '+importRows.length+' سجل','ok');importRows=[];}
 function handleJSONRestore(inp){if(!inp.files[0])return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.cases)cases=d.cases;if(d.settings){settings={...settings,...d.settings};saveCfg();populateAllDropdowns();}saveData();render();closeOverlay('restoreOverlay');toast('تمت الاستعادة بنجاح','ok');}catch(err){toast('خطأ في ملف JSON','err');}};r.readAsText(inp.files[0]);}
 
@@ -2553,14 +2555,15 @@ function bulkChangeStatus(status){
   saveData();render();
   toast('تم تغيير حالة '+ids.length+' معاملة إلى "'+status+'"','ok');
 }
-function bulkExport(){
+async function bulkExport(){
   if(!selectedCases.length)return;
   const sel=cases.filter(c=>selectedCases.includes(c.id));
   const rows=sel.map(c=>({
     'الشركة':c.company,'المحامي':c.lawyer,'المبلغ (IQD)':c.amountIQD||0,'المبلغ (USD)':c.amountUSD||0,
     'الحالة':c.status,'النوع':c.type,'المرحلة':c.stage||'—','ملاحظات':c.notes||'',
   }));
-  if(typeof XLSX==='undefined'){toast('مكتبة Excel غير محملة','err');return;}
+  await ensureXLSX();
+  if(typeof XLSX==='undefined'){toast('مكتبة Excel لم تكتمل، أعد المحاولة','err');return;}
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb,'المحدد',ws);
@@ -3177,8 +3180,34 @@ function fmtBytes(b){
   return (b/1048576).toFixed(2)+' MB';
 }
 
+// ══ تحميل كسول للمكتبات الثقيلة (XLSX / jsPDF / pdf.js / pdf-lib) ══
+// تُحمَّل فقط أول مرة تنفتح أداة تحتاجها، بدل تحميلها بكل صفحة
+const _libSrc={
+  xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  jspdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  pdfjs:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',
+  pdflib:'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js'
+};
+const _libPromises={};
+function loadLib(key){
+  if(_libPromises[key])return _libPromises[key];
+  _libPromises[key]=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src=_libSrc[key];
+    s.onload=()=>resolve();
+    s.onerror=()=>{delete _libPromises[key];reject(new Error('load-fail:'+key));};
+    document.head.appendChild(s);
+  });
+  return _libPromises[key];
+}
+async function ensureXLSX(){if(typeof XLSX==='undefined'){try{await loadLib('xlsx');}catch(e){}}}
+async function ensureJsPDF(){if(!window.jspdf){try{await loadLib('jspdf');}catch(e){}}}
+async function ensurePdfJsLib(){if(!window.pdfjsLib){try{await loadLib('pdfjs');}catch(e){}}}
+async function ensurePDFLib(){if(!window.PDFLib){try{await loadLib('pdflib');}catch(e){}}}
+
 // إعداد PDF.js مع حل مشكلة cross-origin worker
-function initPdfJs(){
+async function initPdfJs(){
+  await ensurePdfJsLib();
   const lib=window.pdfjsLib;
   if(!lib)return null;
   if(!lib.GlobalWorkerOptions.workerSrc){
@@ -3212,6 +3241,7 @@ function imgToJpegDataUrl(img,quality){
 async function imgToPdf(){
   const files=getToolFiles('itpInput');
   if(!files||!files.length){toast('اختر صورة أولاً','err');return;}
+  await ensureJsPDF();
   if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('itpResult','<div class="tool-progress">جاري التحويل...</div>');
   try{
@@ -3251,7 +3281,7 @@ async function imgToPdf(){
 async function pdfToImg(){
   const files=getToolFiles('ptiInput');
   if(!files||!files.length){toast('اختر ملف PDF أولاً','err');return;}
-  const lib=initPdfJs();
+  const lib=await initPdfJs();
   if(!lib){toast('مكتبة PDF.js لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('ptiResult','<div class="tool-progress">جاري قراءة PDF...</div>');
   try{
@@ -3325,8 +3355,9 @@ async function compressImg(){
 async function compressPdf(){
   const files=getToolFiles('cpInput');
   if(!files||!files.length){toast('اختر ملف PDF أولاً','err');return;}
-  const lib=initPdfJs();
+  const lib=await initPdfJs();
   if(!lib){toast('مكتبة PDF.js لم تكتمل، أعد تحميل الصفحة','err');return;}
+  await ensureJsPDF();
   if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('cpResult','<div class="tool-progress">جاري ضغط PDF...</div>');
   try{
@@ -3381,6 +3412,7 @@ async function compressPdf(){
 async function mergePdfs(){
   const files=getToolFiles('mgInput');
   if(!files||files.length<2){toast('اختر ملفين PDF على الأقل','err');return;}
+  await ensurePDFLib();
   if(!window.PDFLib){toast('مكتبة الدمج لم تكتمل، أعد تحميل الصفحة','err');return;}
   toolSetResult('mgResult','<div class="tool-progress">جاري الدمج...</div>');
   try{
@@ -3429,7 +3461,7 @@ function dataUrlToBytes(dataUrl){
 async function peLoad(file){
   if(!file)return;
   if(!/\.pdf$/i.test(file.name)){toast('اختر ملف PDF','err');return;}
-  const lib=initPdfJs();
+  const lib=await initPdfJs();
   if(!lib){toast('مكتبة العرض لم تكتمل، أعد التحميل','err');return;}
   toolSetResult('peResult','<div class="tool-progress">جاري فتح الملف...</div>');
   try{
@@ -3521,6 +3553,7 @@ function peReset(){
 
 async function peExport(){
   if(!pdfEditor||!pdfEditor.order.length){toast('لا توجد صفحات للتصدير','err');return;}
+  await ensurePDFLib();
   if(!window.PDFLib){toast('مكتبة الحفظ لم تكتمل، أعد التحميل','err');return;}
   toolSetResult('peResult','<div class="tool-progress">جاري إنشاء الملف...</div>');
   try{
