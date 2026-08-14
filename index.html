@@ -1190,6 +1190,13 @@
 
 <!-- TOAST CONTAINER -->
 <div class="toast-wrap" id="toastWrap"></div>
+<!-- فلتر الزجاج السائل: يلتقط الخلفية ويحرّفها حسب خريطة انزياح مبنية من شكل الشريط نفسه -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="lg-mobnav" x="-15%" y="-40%" width="130%" height="180%" color-interpolation-filters="sRGB">
+    <feImage id="lgMobNavMap" result="map" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none"/>
+    <feDisplacementMap in="SourceGraphic" in2="map" scale="34" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
 <nav class="mob-nav" id="mobNav" style="display:none">
   <button class="mob-nav-btn active" id="mnDash" onclick="mobGoPage('dash')" title="الرئيسية">
     <svg class="mn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

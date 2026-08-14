@@ -601,6 +601,7 @@ function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display=window.innerWidth<=768?'flex':'none';
+  if(typeof refreshMobNavGlass==='function')refreshMobNavGlass();
   if(window.innerWidth<=768)currentView='cards';
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
   const nb=document.getElementById('notifBell');if(nb)nb.style.display='flex';
@@ -1583,7 +1584,65 @@ function handleAttachSelect(inp){const file=inp.files[0];if(!file)return;if(file
 function clearAttach(){pendingAttachFile=null;document.getElementById('attachFile').value='';document.getElementById('attachPreview').style.display='none';document.getElementById('attachPreview').innerHTML='';}
 function removeAttach(){pendingAttachUrl='';document.getElementById('attachCurrent').style.display='none';document.getElementById('attachZone').style.display='block';}
 // ══ MOBILE ══
-function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';mn.style.display=(window.innerWidth<=768&&loggedIn)?'flex':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';});}
+// ── زجاج سائل حقيقي لشريط التنقل السفلي (انكسار عبر SVG feDisplacementMap) ──
+function roundRectPath(ctx,x,y,w,h,tl,tr,br,bl){
+  ctx.beginPath();
+  ctx.moveTo(x+tl,y);
+  ctx.lineTo(x+w-tr,y); ctx.arcTo(x+w,y,x+w,y+tr,tr);
+  ctx.lineTo(x+w,y+h-br); ctx.arcTo(x+w,y+h,x+w-br,y+h,br);
+  ctx.lineTo(x+bl,y+h); ctx.arcTo(x,y+h,x,y+h-bl,bl);
+  ctx.lineTo(x,y+tl); ctx.arcTo(x,y,x+tl,y,tl);
+  ctx.closePath();
+}
+function buildDisplacementMap(w,h,tl,tr,br,bl){
+  if(w<10||h<10)return null;
+  const S=3, cw=w*S, ch=h*S;
+  const mask=document.createElement('canvas'); mask.width=cw; mask.height=ch;
+  const mctx=mask.getContext('2d');
+  mctx.fillStyle='#000'; mctx.fillRect(0,0,cw,ch);
+  mctx.fillStyle='#fff';
+  roundRectPath(mctx,0,0,cw,ch,tl*S,tr*S,br*S,bl*S); mctx.fill();
+  const blurPx=Math.round(Math.min(cw,ch)*0.16);
+  mctx.filter='blur('+blurPx+'px)';
+  mctx.drawImage(mask,0,0);
+  const src=mctx.getImageData(0,0,cw,ch);
+  const out=document.createElement('canvas'); out.width=w; out.height=h;
+  const octx=out.getContext('2d');
+  const dst=octx.createImageData(w,h);
+  const step=S;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const sx=x*step, sy=y*step;
+      const l=src.data[(sy*cw+Math.max(sx-step,0))*4];
+      const r=src.data[(sy*cw+Math.min(sx+step,cw-1))*4];
+      const t=src.data[(Math.max(sy-step,0)*cw+sx)*4];
+      const b=src.data[(Math.min(sy+step,ch-1)*cw+sx)*4];
+      const o=(y*w+x)*4;
+      dst.data[o]=128+(r-l)*0.9; dst.data[o+1]=128+(b-t)*0.9; dst.data[o+2]=128; dst.data[o+3]=255;
+    }
+  }
+  octx.putImageData(dst,0,0);
+  return out.toDataURL();
+}
+let _lgNavTimer=null;
+function refreshMobNavGlass(){
+  clearTimeout(_lgNavTimer);
+  _lgNavTimer=setTimeout(()=>{
+    const nav=document.getElementById('mobNav');
+    const mapEl=document.getElementById('lgMobNavMap');
+    if(!nav||!mapEl||nav.style.display==='none')return;
+    const rect=nav.getBoundingClientRect();
+    const w=Math.round(rect.width), h=Math.round(rect.height);
+    try{
+      const url=buildDisplacementMap(w,h,22,22,0,0);
+      if(!url){nav.classList.remove('lg-ready');return;}
+      mapEl.setAttributeNS('http://www.w3.org/1999/xlink','href',url);
+      mapEl.setAttribute('href',url);
+      nav.classList.add('lg-ready');
+    }catch(e){ nav.classList.remove('lg-ready'); }
+  },120);
+}
+function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';mn.style.display=(window.innerWidth<=768&&loggedIn)?'flex':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();});}
 function syncMobFilter(type,val){if(type==='type')document.getElementById('filterType').value=val;else if(type==='lawyer')document.getElementById('filterLawyer').value=val;else if(type==='status')document.getElementById('filterStatus').value=val;render();}
 function populateMobFilters(){const mt=document.getElementById('mobFilterType');const ml=document.getElementById('mobFilterLawyer');if(!mt||!ml)return;const vt=mt.value,vl=ml.value;mt.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');ml.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');mt.value=vt;ml.value=vl;}
 

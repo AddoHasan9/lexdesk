@@ -1784,14 +1784,23 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   background: var(--bg2);
   background: color-mix(in srgb, var(--bg2) 80%, transparent);
   border-top: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
-  box-shadow: 0 -6px 24px rgba(0,0,0,.12);
+  box-shadow: 0 -6px 24px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14);
   z-index: 70;
   align-items: center;
   justify-content: space-around;
   padding: 0 6px;
 }
+/* زجاج سائل حقيقي (انكسار SVG) — يُفعَّل فقط بعد نجاح توليد خريطة الانزياح، بدعم من المتصفح */
+@supports (backdrop-filter: url(#a)) or (-webkit-backdrop-filter: url(#a)) {
+  .mob-nav.lg-ready {
+    backdrop-filter: url(#lg-mobnav) blur(3px) saturate(1.4);
+    -webkit-backdrop-filter: url(#lg-mobnav) blur(3px) saturate(1.4);
+  }
+}
+[data-theme="light"] .mob-nav { box-shadow: 0 -6px 24px rgba(10,28,64,.08), inset 0 1px 0 rgba(255,255,255,.6); }
 .mob-nav-btn {
   display: flex;
   flex-direction: column;
