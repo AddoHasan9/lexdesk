@@ -504,6 +504,7 @@ function logout(){
   document.getElementById('loginScreen').style.display='grid';
   document.getElementById('appWrap').style.display='none';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
+  const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display='none';
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
   closeProfile();
   switchLoginMode('login');
@@ -601,6 +602,7 @@ function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display=window.innerWidth<=768?'flex':'none';
+  const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=window.innerWidth<=768?'block':'none';
   if(typeof refreshMobNavGlass==='function')refreshMobNavGlass();
   if(window.innerWidth<=768)currentView='cards';
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
@@ -1642,7 +1644,7 @@ function refreshMobNavGlass(){
     }catch(e){ nav.classList.remove('lg-ready'); }
   },120);
 }
-function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';mn.style.display=(window.innerWidth<=768&&loggedIn)?'flex':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();});}
+function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';const show=window.innerWidth<=768&&loggedIn;mn.style.display=show?'flex':'none';const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=show?'block':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();});}
 function syncMobFilter(type,val){if(type==='type')document.getElementById('filterType').value=val;else if(type==='lawyer')document.getElementById('filterLawyer').value=val;else if(type==='status')document.getElementById('filterStatus').value=val;render();}
 function populateMobFilters(){const mt=document.getElementById('mobFilterType');const ml=document.getElementById('mobFilterLawyer');if(!mt||!ml)return;const vt=mt.value,vl=ml.value;mt.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');ml.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');mt.value=vt;ml.value=vl;}
 
