@@ -1651,12 +1651,33 @@ function refreshMobNavGlass(){
   },120);
 }
 
-// ── كرة المؤشر السائلة (Meniscus) — تنزلق بحركة سائلة بين التبويبات، وتُسحب باليد ──
+// ── كرة المؤشر السائلة (Meniscus) — نظام نابض فيزيائي حقيقي (spring) بدل tween بمدة ثابتة ──
+// الكرة الأمامية تلاحق "الهدف" (مركز التبويب النشط، أو إصبع المستخدم أثناء السحب)، والذيل يلاحق الكرة الأمامية
+// بنابض أرخى، فيتمدد بينهما شكل سائل عبر فلتر goo — والمقدار يعتمد فعليًا على سرعة الحركة، لا على مؤقّت ثابت.
 const mnvTabIds=['mnDash','mnCharts','mnTools','mnUser'];
-let mnvCurX=0, mnvTrailX=0, mnvRaf=null;
-let mnvAnimStart=null, mnvFrom=0, mnvTo=0, mnvDur=0;
-let mnvPointerId=null, mnvDownX=0, mnvDragging=false;
+let mnvLeadX=0, mnvLeadV=0, mnvTrailX=0, mnvTrailV=0, mnvTargetX=0;
+let mnvRaf=null, mnvLastT=null;
+let mnvPointerId=null, mnvDownX=0, mnvDragging=false, mnvHist=[];
 
+function mnvReducedMotion(){
+  try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}
+}
+function mnvSpringParams(response,dampingRatio,mass){
+  mass=mass||1;
+  const wn=2*Math.PI/response;
+  return {k:mass*wn*wn, c:4*Math.PI*dampingRatio*mass/response};
+}
+const MNV_LEAD=mnvSpringParams(0.38,0.86);   // الكرة الأمامية: استقرار سريع وسلس بدون ارتداد مزعج
+const MNV_TRAIL=mnvSpringParams(0.46,0.72);  // الذيل: أرخى قليلًا فيتمدد خلف الأمامية عند الحركة السريعة
+function mnvSpringStep(x,v,target,sp,dt){
+  const a=-sp.k*(x-target)-sp.c*v;
+  v+=a*dt; x+=v*dt;
+  return [x,v];
+}
+function mnvProject(v,decel){
+  decel=decel===undefined?0.99:decel;
+  return (v/1000)*decel/(1-decel);
+}
 function mnvCenterX(el){
   const nav=document.getElementById('mobNav');
   if(!nav||!el)return 0;
@@ -1665,41 +1686,48 @@ function mnvCenterX(el){
 }
 function mnvSetBeadPos(x,tx){
   const bead=document.getElementById('mnvBead'), trail=document.getElementById('mnvBeadTrail');
-  if(bead)bead.style.left=x+'px';
-  if(trail)trail.style.left=(tx===undefined?x:tx)+'px';
+  if(bead)bead.style.transform='translate3d('+x+'px,-50%,0)';
+  if(trail)trail.style.transform='translate3d('+(tx===undefined?x:tx)+'px,-50%,0)';
 }
-function mnvLoop(){
-  if(mnvDragging){
-    mnvTrailX += (mnvCurX-mnvTrailX)*0.22;
-    mnvSetBeadPos(mnvCurX, mnvTrailX);
-    mnvRaf=requestAnimationFrame(mnvLoop);
+function mnvEnsureLoop(){
+  if(mnvRaf!==null)return;
+  mnvLastT=null;
+  mnvRaf=requestAnimationFrame(mnvLoop);
+}
+function mnvLoop(now){
+  const dt=mnvLastT===null?0.016:Math.min(0.032,(now-mnvLastT)/1000);
+  mnvLastT=now;
+  if(!mnvDragging){
+    const r=mnvSpringStep(mnvLeadX,mnvLeadV,mnvTargetX,MNV_LEAD,dt);
+    mnvLeadX=r[0]; mnvLeadV=r[1];
+  }
+  const rt=mnvSpringStep(mnvTrailX,mnvTrailV,mnvLeadX,MNV_TRAIL,dt);
+  mnvTrailX=rt[0]; mnvTrailV=rt[1];
+  mnvSetBeadPos(mnvLeadX,mnvTrailX);
+  const settled=!mnvDragging&&Math.abs(mnvLeadX-mnvTargetX)<0.05&&Math.abs(mnvLeadV)<0.5&&Math.abs(mnvTrailX-mnvLeadX)<0.05&&Math.abs(mnvTrailV)<0.5;
+  if(settled){
+    mnvLeadX=mnvTargetX; mnvLeadV=0; mnvTrailX=mnvTargetX; mnvTrailV=0;
+    mnvSetBeadPos(mnvLeadX,mnvTrailX);
+    mnvRaf=null;
     return;
   }
-  if(mnvAnimStart!==null){
-    const t=Math.min(1,(performance.now()-mnvAnimStart)/mnvDur);
-    const ease=1-Math.pow(1-t,3);
-    const easeLag=1-Math.pow(1-Math.max(0,t-0.12),3);
-    const leadX=mnvFrom+(mnvTo-mnvFrom)*ease;
-    const lagX=mnvFrom+(mnvTo-mnvFrom)*Math.max(0,Math.min(1,easeLag));
-    mnvSetBeadPos(leadX,lagX);
-    mnvCurX=leadX; mnvTrailX=lagX;
-    if(t>=1){ mnvAnimStart=null; mnvSetBeadPos(mnvTo,mnvTo); mnvCurX=mnvTo; mnvTrailX=mnvTo; return; }
-    mnvRaf=requestAnimationFrame(mnvLoop);
-  }
+  mnvRaf=requestAnimationFrame(mnvLoop);
 }
-function mnvAnimateTo(x,dur){
-  mnvFrom=mnvCurX; mnvTo=x; mnvDur=dur||520; mnvAnimStart=performance.now();
-  cancelAnimationFrame(mnvRaf); mnvRaf=requestAnimationFrame(mnvLoop);
-}
-// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه
+// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه، دون المساس بمنطق mobGoPage نفسه
 function mnvSyncBead(animate){
   const nav=document.getElementById('mobNav');
   if(!nav||nav.style.display==='none')return;
   const activeBtn=nav.querySelector('.mob-nav-btn.active:not(#mnAddCenter)');
   if(!activeBtn)return;
   const x=mnvCenterX(activeBtn);
-  if(animate===false){ mnvCurX=x; mnvTrailX=x; mnvSetBeadPos(x,x); }
-  else mnvAnimateTo(x,520);
+  mnvTargetX=x;
+  if(animate===false||mnvReducedMotion()){
+    cancelAnimationFrame(mnvRaf); mnvRaf=null;
+    mnvLeadX=x; mnvLeadV=0; mnvTrailX=x; mnvTrailV=0;
+    mnvSetBeadPos(x,x);
+  }else{
+    mnvEnsureLoop();
+  }
 }
 function mnvNearestBtn(x){
   let best=null, bd=Infinity;
@@ -1715,9 +1743,11 @@ function mnvInitDrag(){
   const nav=document.getElementById('mobNav');
   if(!nav||nav._mnvBound)return;
   nav._mnvBound=true;
+  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكرة نفسها)، عدا زر الإضافة الدائري بالمنتصف
   nav.addEventListener('pointerdown',(e)=>{
     if(e.target.closest('#mnAddCenter'))return;
     mnvPointerId=e.pointerId; mnvDownX=e.clientX; mnvDragging=false;
+    mnvHist=[{x:e.clientX,t:performance.now()}];
   });
   nav.addEventListener('pointermove',(e)=>{
     if(mnvPointerId!==e.pointerId)return;
@@ -1725,13 +1755,18 @@ function mnvInitDrag(){
     if(!mnvDragging && dx>8){
       mnvDragging=true;
       try{nav.setPointerCapture(e.pointerId);}catch(err){}
-      cancelAnimationFrame(mnvRaf); mnvRaf=requestAnimationFrame(mnvLoop);
+      mnvEnsureLoop();
     }
     if(mnvDragging){
       const rect=nav.getBoundingClientRect();
       let x=e.clientX-rect.left;
       x=Math.max(24,Math.min(rect.width-24,x));
-      mnvCurX=x;
+      const now=performance.now();
+      const prev=mnvHist[mnvHist.length-1];
+      if(prev){ const dt=(now-prev.t)/1000; if(dt>0)mnvLeadV=(x-mnvLeadX)/dt; }
+      mnvLeadX=x; // تتبّع مباشر 1:1 مع الإصبع أثناء السحب الفعلي
+      mnvHist.push({x,t:now});
+      while(mnvHist.length>6)mnvHist.shift();
       e.preventDefault();
     }
   });
@@ -1739,15 +1774,31 @@ function mnvInitDrag(){
     if(mnvPointerId!==e.pointerId)return;
     if(mnvDragging){
       mnvDragging=false;
-      const target=mnvNearestBtn(mnvCurX);
+      // سرعة الإفلات (من آخر ~100ms) تُورَّث للنابض القادم بدل ما تنقطع فجأة، وتُستخدم لتوقّع أقرب تبويب فعليًا
+      let v=0;
+      if(mnvHist.length>=2){
+        const last=mnvHist[mnvHist.length-1];
+        let first=mnvHist[0];
+        for(let i=mnvHist.length-2;i>=0;i--){ if(last.t-mnvHist[i].t<=100)first=mnvHist[i]; else break; }
+        const dt=(last.t-first.t)/1000;
+        if(dt>0)v=(last.x-first.x)/dt;
+      }
+      mnvLeadV=v;
+      const projected=mnvLeadX+(mnvReducedMotion()?0:mnvProject(v));
+      const target=mnvNearestBtn(projected);
       if(target){
         document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
         target.classList.add('active');
-        mnvAnimateTo(mnvCenterX(target),380);
+        mnvTargetX=mnvCenterX(target);
+        if(mnvReducedMotion()){
+          cancelAnimationFrame(mnvRaf); mnvRaf=null;
+          mnvLeadX=mnvTargetX; mnvLeadV=0; mnvTrailX=mnvTargetX; mnvTrailV=0;
+          mnvSetBeadPos(mnvTargetX,mnvTargetX);
+        }else mnvEnsureLoop();
         target.click();
       }
     }
-    mnvPointerId=null;
+    mnvPointerId=null; mnvHist=[];
   }
   nav.addEventListener('pointerup',mnvEndDrag);
   nav.addEventListener('pointercancel',mnvEndDrag);
