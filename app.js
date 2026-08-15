@@ -504,7 +504,6 @@ function logout(){
   document.getElementById('loginScreen').style.display='grid';
   document.getElementById('appWrap').style.display='none';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display='none';
-  const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display='none';
   const fw=document.getElementById('fabWrap');if(fw)fw.style.display='none';
   closeProfile();
   switchLoginMode('login');
@@ -602,10 +601,6 @@ function showApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('appWrap').style.display='flex';
   const mn=document.getElementById('mobNav');if(mn)mn.style.display=window.innerWidth<=768?'flex':'none';
-  const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=window.innerWidth<=768?'block':'none';
-  if(typeof refreshMobNavGlass==='function')refreshMobNavGlass();
-  if(typeof mnvInitDrag==='function')mnvInitDrag();
-  if(typeof mnvSyncBead==='function')mnvSyncBead(false);
   if(window.innerWidth<=768)currentView='cards';
   const up=document.getElementById('userPill');if(up)up.style.display='flex';
   const nb=document.getElementById('notifBell');if(nb)nb.style.display='flex';
@@ -647,9 +642,8 @@ function showMobUserMenu(){
   const isOpen=menu.style.display==='block';
   menu.style.display=isOpen?'none':'block';
   if(!isOpen){
-    document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
+    document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
     const mu=document.getElementById('mnUser');if(mu)mu.classList.add('active');
-    if(typeof mnvSyncBead==='function')mnvSyncBead(true);
     const av=document.getElementById('mobMenuAv');
     const _displayName=currentUserName||(isAdmin()?'أدمن':'مستخدم');
     if(av)av.innerHTML=currentAvatarUrl?('<img src="'+currentAvatarUrl+'" alt="">'):(_displayName.trim()[0]||'م');
@@ -1523,7 +1517,7 @@ function goPage(p){
   ['dash','charts','reports','tools','settings','deficiency','wadea','tasks'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea',tasks:'sbTasks'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
   if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);if(p==='tasks')setTimeout(buildTasksPage,50);
 }
-function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}if(typeof mnvSyncBead==='function')mnvSyncBead(true);}
+function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
 // ══ SETTINGS ══
 function switchSetTab(tab){document.querySelectorAll('.set-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));document.querySelectorAll('.set-tab-content').forEach(c=>c.classList.remove('active'));const el=document.getElementById('setTab_'+tab);if(el)el.classList.add('active');}
@@ -1591,235 +1585,7 @@ function handleAttachSelect(inp){const file=inp.files[0];if(!file)return;if(file
 function clearAttach(){pendingAttachFile=null;document.getElementById('attachFile').value='';document.getElementById('attachPreview').style.display='none';document.getElementById('attachPreview').innerHTML='';}
 function removeAttach(){pendingAttachUrl='';document.getElementById('attachCurrent').style.display='none';document.getElementById('attachZone').style.display='block';}
 // ══ MOBILE ══
-// ── زجاج سائل حقيقي لشريط التنقل السفلي (انكسار عبر SVG feDisplacementMap) ──
-function roundRectPath(ctx,x,y,w,h,tl,tr,br,bl){
-  ctx.beginPath();
-  ctx.moveTo(x+tl,y);
-  ctx.lineTo(x+w-tr,y); ctx.arcTo(x+w,y,x+w,y+tr,tr);
-  ctx.lineTo(x+w,y+h-br); ctx.arcTo(x+w,y+h,x+w-br,y+h,br);
-  ctx.lineTo(x+bl,y+h); ctx.arcTo(x,y+h,x,y+h-bl,bl);
-  ctx.lineTo(x,y+tl); ctx.arcTo(x,y,x+tl,y,tl);
-  ctx.closePath();
-}
-function buildDisplacementMap(w,h,tl,tr,br,bl){
-  if(w<10||h<10)return null;
-  const S=3, cw=w*S, ch=h*S;
-  const mask=document.createElement('canvas'); mask.width=cw; mask.height=ch;
-  const mctx=mask.getContext('2d');
-  mctx.fillStyle='#000'; mctx.fillRect(0,0,cw,ch);
-  mctx.fillStyle='#fff';
-  roundRectPath(mctx,0,0,cw,ch,tl*S,tr*S,br*S,bl*S); mctx.fill();
-  const blurPx=Math.round(Math.min(cw,ch)*0.16);
-  mctx.filter='blur('+blurPx+'px)';
-  mctx.drawImage(mask,0,0);
-  const src=mctx.getImageData(0,0,cw,ch);
-  const out=document.createElement('canvas'); out.width=w; out.height=h;
-  const octx=out.getContext('2d');
-  const dst=octx.createImageData(w,h);
-  const step=S;
-  for(let y=0;y<h;y++){
-    for(let x=0;x<w;x++){
-      const sx=x*step, sy=y*step;
-      const l=src.data[(sy*cw+Math.max(sx-step,0))*4];
-      const r=src.data[(sy*cw+Math.min(sx+step,cw-1))*4];
-      const t=src.data[(Math.max(sy-step,0)*cw+sx)*4];
-      const b=src.data[(Math.min(sy+step,ch-1)*cw+sx)*4];
-      const o=(y*w+x)*4;
-      dst.data[o]=128+(r-l)*0.9; dst.data[o+1]=128+(b-t)*0.9; dst.data[o+2]=128; dst.data[o+3]=255;
-    }
-  }
-  octx.putImageData(dst,0,0);
-  return out.toDataURL();
-}
-let _lgNavTimer=null;
-function refreshMobNavGlass(){
-  clearTimeout(_lgNavTimer);
-  _lgNavTimer=setTimeout(()=>{
-    const nav=document.getElementById('mobNav');
-    const surface=document.getElementById('mnvSurface');
-    const mapEl=document.getElementById('lgMobNavMap');
-    if(!nav||!surface||!mapEl||nav.style.display==='none')return;
-    const rect=nav.getBoundingClientRect();
-    const w=Math.round(rect.width), h=Math.round(rect.height);
-    try{
-      const url=buildDisplacementMap(w,h,22,22,0,0);
-      if(!url){surface.classList.remove('lg-ready');return;}
-      mapEl.setAttributeNS('http://www.w3.org/1999/xlink','href',url);
-      mapEl.setAttribute('href',url);
-      surface.classList.add('lg-ready');
-    }catch(e){ surface.classList.remove('lg-ready'); }
-    mnvSyncBead(false);
-  },120);
-}
-
-// ══ كرة المؤشر (Meniscus Bead) — تطفو فوق حافة الشريط وتخترق سطحه، بنفس هوية زر الإضافة الذهبي ══
-// المركز يلاحق الهدف بنابض فيزيائي دقيق (لا tween بمدة ثابتة)، والكرة نفسها تتشوه (تنبسط/تتمدد أفقيًا)
-// بمقدار يتناسب مباشرة مع السرعة اللحظية للسحب. سطح الشريط (mnvSurface) يُقنَّع بفتحة سائلة ناعمة حول
-// موضع الكرة كل إطار، فتبدو الكرة كأنها تخترق/تذوب داخل الشريط بدل ما تطفو فوقه بشكل منفصل.
-const mnvTabIds=['mnDash','mnCharts','mnTools','mnUser'];
-const MNV_BEAD_R=23;                         // نصف قطر الكرة — يطابق تقريبًا حجم زر الإضافة لنفس لغة الشكل
-const MNV_BEAD_Y=17;                         // بُعد مركز الكرة رأسيًا عن أعلى الشريط — يطابق CSS (.mnv-bead top)، ويحاذي مركز الأيقونة الطبيعي
-const MNV_MAX_SQUISH=0.32;                   // أقصى تشوه (تمدد أفقي/انبساط رأسي) عند السحب السريع
-const MNV_SQUISH_K=0.00018;                  // تحويل سرعة الحركة (px/s) إلى مقدار التشوه
-let mnvCX=0, mnvCV=0, mnvTargetX=0;          // مركز الكرة الحالي وسرعته وهدفه
-let mnvSquish=0;                             // مقدار التشوه الحالي (0 = كرة كاملة الاستدارة)
-let mnvRaf=null, mnvLastT=null;
-let mnvPointerId=null, mnvDownX=0, mnvDragging=false, mnvHist=[];
-
-function mnvReducedMotion(){
-  try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}
-}
-function mnvSpringParams(response,dampingRatio,mass){
-  mass=mass||1;
-  const wn=2*Math.PI/response;
-  return {k:mass*wn*wn, c:4*Math.PI*dampingRatio*mass/response};
-}
-const MNV_CENTER=mnvSpringParams(0.34,0.92); // شبه حرج التخميد — يستقر بدقة على مركز التبويب بلا ارتداد ملحوظ
-function mnvSpringStep(x,v,target,sp,dt){
-  const a=-sp.k*(x-target)-sp.c*v;
-  v+=a*dt; x+=v*dt;
-  return [x,v];
-}
-function mnvProject(v,decel){
-  decel=decel===undefined?0.99:decel;
-  return (v/1000)*decel/(1-decel);
-}
-function mnvBtnCenterX(el){
-  const nav=document.getElementById('mobNav');
-  if(!nav||!el)return 0;
-  const r=el.getBoundingClientRect(), nr=nav.getBoundingClientRect();
-  return (r.left+r.width/2)-nr.left;
-}
-function mnvRender(cx,squish){
-  const bead=document.getElementById('mnvBead');
-  if(bead){
-    const sx=1+squish, sy=1-squish*0.5;
-    bead.style.transform='translate3d('+(cx-MNV_BEAD_R)+'px,-50%,0) scaleX('+sx+') scaleY('+sy+')';
-  }
-  const surface=document.getElementById('mnvSurface');
-  if(surface){
-    const inner=MNV_BEAD_R-4, outer=MNV_BEAD_R+9;
-    surface.style.maskImage='radial-gradient(circle at '+cx+'px '+MNV_BEAD_Y+'px, transparent 0px, transparent '+inner+'px, black '+outer+'px, black 100%)';
-    surface.style.webkitMaskImage=surface.style.maskImage;
-  }
-}
-function mnvEnsureLoop(){
-  if(mnvRaf!==null)return;
-  mnvLastT=null;
-  mnvRaf=requestAnimationFrame(mnvLoop);
-}
-function mnvLoop(now){
-  const dt=mnvLastT===null?0.016:Math.min(0.032,(now-mnvLastT)/1000);
-  mnvLastT=now;
-  if(!mnvDragging){
-    const r=mnvSpringStep(mnvCX,mnvCV,mnvTargetX,MNV_CENTER,dt);
-    mnvCX=r[0]; mnvCV=r[1];
-  }
-  // التشوه يتبع السرعة اللحظية مباشرة: يكبر بسرعة (attack) ويرتخي بهدوء (release) — مطّاطية حقيقية بلا ارتداد
-  const targetSquish=Math.min(MNV_MAX_SQUISH,Math.abs(mnvCV)*MNV_SQUISH_K);
-  const tau=targetSquish>mnvSquish?0.07:0.16;
-  mnvSquish+=(targetSquish-mnvSquish)*(1-Math.exp(-dt/tau));
-  mnvRender(mnvCX,mnvSquish);
-  const settled=!mnvDragging&&Math.abs(mnvCX-mnvTargetX)<0.05&&Math.abs(mnvCV)<0.5&&mnvSquish<0.003;
-  if(settled){
-    mnvCX=mnvTargetX; mnvCV=0; mnvSquish=0;
-    mnvRender(mnvCX,0);
-    mnvRaf=null;
-    return;
-  }
-  mnvRaf=requestAnimationFrame(mnvLoop);
-}
-// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه، دون المساس بمنطق mobGoPage نفسه
-function mnvSyncBead(animate){
-  const nav=document.getElementById('mobNav');
-  if(!nav||nav.style.display==='none')return;
-  const activeBtn=nav.querySelector('.mob-nav-btn.active:not(#mnAddCenter)');
-  if(!activeBtn)return;
-  const x=mnvBtnCenterX(activeBtn);
-  mnvTargetX=x;
-  if(animate===false||mnvReducedMotion()){
-    cancelAnimationFrame(mnvRaf); mnvRaf=null;
-    mnvCX=x; mnvCV=0; mnvSquish=0;
-    mnvRender(x,0);
-  }else{
-    mnvEnsureLoop();
-  }
-}
-function mnvNearestBtn(x){
-  let best=null, bd=Infinity;
-  mnvTabIds.forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    const d=Math.abs(mnvBtnCenterX(el)-x);
-    if(d<bd){bd=d;best=el;}
-  });
-  return best;
-}
-function mnvInitDrag(){
-  const nav=document.getElementById('mobNav');
-  if(!nav||nav._mnvBound)return;
-  nav._mnvBound=true;
-  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكرة نفسها)، عدا زر الإضافة الدائري بالمنتصف
-  nav.addEventListener('pointerdown',(e)=>{
-    if(e.target.closest('#mnAddCenter'))return;
-    mnvPointerId=e.pointerId; mnvDownX=e.clientX; mnvDragging=false;
-    mnvHist=[{x:e.clientX,t:performance.now()}];
-  });
-  nav.addEventListener('pointermove',(e)=>{
-    if(mnvPointerId!==e.pointerId)return;
-    const dx=Math.abs(e.clientX-mnvDownX);
-    if(!mnvDragging && dx>8){
-      mnvDragging=true;
-      try{nav.setPointerCapture(e.pointerId);}catch(err){}
-      mnvEnsureLoop();
-    }
-    if(mnvDragging){
-      const rect=nav.getBoundingClientRect();
-      let x=e.clientX-rect.left;
-      x=Math.max(24,Math.min(rect.width-24,x));
-      const now=performance.now();
-      const prev=mnvHist[mnvHist.length-1];
-      if(prev){ const dt=(now-prev.t)/1000; if(dt>0)mnvCV=(x-mnvCX)/dt; }
-      mnvCX=x; // تتبّع مباشر 1:1 مع الإصبع أثناء السحب الفعلي
-      mnvHist.push({x,t:now});
-      while(mnvHist.length>6)mnvHist.shift();
-      e.preventDefault();
-    }
-  });
-  function mnvEndDrag(e){
-    if(mnvPointerId!==e.pointerId)return;
-    if(mnvDragging){
-      mnvDragging=false;
-      // سرعة الإفلات (من آخر ~100ms) تُورَّث للنابض القادم بدل ما تنقطع فجأة، وتُستخدم لتوقّع أقرب تبويب فعليًا
-      let v=0;
-      if(mnvHist.length>=2){
-        const last=mnvHist[mnvHist.length-1];
-        let first=mnvHist[0];
-        for(let i=mnvHist.length-2;i>=0;i--){ if(last.t-mnvHist[i].t<=100)first=mnvHist[i]; else break; }
-        const dt=(last.t-first.t)/1000;
-        if(dt>0)v=(last.x-first.x)/dt;
-      }
-      mnvCV=v;
-      const projected=mnvCX+(mnvReducedMotion()?0:mnvProject(v));
-      const target=mnvNearestBtn(projected);
-      if(target){
-        document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
-        target.classList.add('active');
-        mnvTargetX=mnvBtnCenterX(target);
-        if(mnvReducedMotion()){
-          cancelAnimationFrame(mnvRaf); mnvRaf=null;
-          mnvCX=mnvTargetX; mnvCV=0; mnvSquish=0;
-          mnvRender(mnvCX,0);
-        }else mnvEnsureLoop();
-        target.click();
-      }
-    }
-    mnvPointerId=null; mnvHist=[];
-  }
-  nav.addEventListener('pointerup',mnvEndDrag);
-  nav.addEventListener('pointercancel',mnvEndDrag);
-}
-function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';const show=window.innerWidth<=768&&loggedIn;mn.style.display=show?'flex':'none';const mg=document.getElementById('mobNavGlow');if(mg)mg.style.display=show?'block':'none';document.body.style.paddingBottom=window.innerWidth<=768?'68px':'0';refreshMobNavGlass();mnvInitDrag();mnvSyncBead(false);});}
+function initMobile(){window.addEventListener('resize',()=>{const mn=document.getElementById('mobNav');if(!mn)return;const loggedIn=document.getElementById('appWrap')&&document.getElementById('appWrap').style.display!=='none';mn.style.display=(window.innerWidth<=768&&loggedIn)?'flex':'none';document.body.style.paddingBottom=window.innerWidth<=768?'92px':'0';});}
 function syncMobFilter(type,val){if(type==='type')document.getElementById('filterType').value=val;else if(type==='lawyer')document.getElementById('filterLawyer').value=val;else if(type==='status')document.getElementById('filterStatus').value=val;render();}
 function populateMobFilters(){const mt=document.getElementById('mobFilterType');const ml=document.getElementById('mobFilterLawyer');if(!mt||!ml)return;const vt=mt.value,vl=ml.value;mt.innerHTML='<option value="">كل الأنواع</option>'+settings.types.map(t=>'<option>'+t+'</option>').join('');ml.innerHTML='<option value="">كل المحامين</option>'+settings.lawyers.map(l=>'<option>'+l+'</option>').join('');mt.value=vt;ml.value=vl;}
 
