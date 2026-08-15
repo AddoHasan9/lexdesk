@@ -1651,13 +1651,19 @@ function refreshMobNavGlass(){
   },120);
 }
 
-// ── كرة المؤشر السائلة (Meniscus) — نظام نابض فيزيائي حقيقي (spring) بدل tween بمدة ثابتة ──
-// الكرة الأمامية تلاحق "الهدف" (مركز التبويب النشط، أو إصبع المستخدم أثناء السحب)، والذيل يلاحق الكرة الأمامية
-// بنابض أرخى، فيتمدد بينهما شكل سائل عبر فلتر goo — والمقدار يعتمد فعليًا على سرعة الحركة، لا على مؤقّت ثابت.
+// ══ كبسولة المؤشر السائلة (Liquid Pill) — زجاج شفاف حقيقي الانكسار خلف التبويب النشط ══
+// المركز يلاحق الهدف بنابض فيزيائي دقيق (لا tween بمدة ثابتة)، والعرض يزيد مؤقتًا بمقدار يتناسب مباشرة
+// مع السرعة اللحظية للحركة ثم يرتخي لعرضه الطبيعي — فالتمدد حقيقي ومرتبط فعليًا بسرعة السحب، لا حيلة بصرية.
+// خريطة الانكسار (backdrop-filter:url(#mnv-pill-warp)) تُبنى من شكل الكبسولة الفعلي بنفس أسلوب lg-mobnav.
 const mnvTabIds=['mnDash','mnCharts','mnTools','mnUser'];
-let mnvLeadX=0, mnvLeadV=0, mnvTrailX=0, mnvTrailV=0, mnvTargetX=0;
+const MNV_REST_H=38, MNV_PAD=7;              // ارتفاع الكبسولة الثابت، وهامشها الداخلي عن حواف الزر
+const MNV_MAX_STRETCH=42;                    // أقصى زيادة بالعرض عند السحب السريع (px)
+const MNV_STRETCH_K=0.024;                   // تحويل سرعة الحركة (px/s) إلى مقدار التمدد
+let mnvCX=0, mnvCV=0, mnvTargetX=0;          // مركز الكبسولة الحالي وسرعته وهدفه
+let mnvRestW=64, mnvStretch=0;               // العرض الطبيعي (بلا تمدد) والتمدد الإضافي الحالي
 let mnvRaf=null, mnvLastT=null;
 let mnvPointerId=null, mnvDownX=0, mnvDragging=false, mnvHist=[];
+let mnvMapTimer=null, mnvMapW=0, mnvMapH=0;
 
 function mnvReducedMotion(){
   try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}
@@ -1667,8 +1673,7 @@ function mnvSpringParams(response,dampingRatio,mass){
   const wn=2*Math.PI/response;
   return {k:mass*wn*wn, c:4*Math.PI*dampingRatio*mass/response};
 }
-const MNV_LEAD=mnvSpringParams(0.38,0.86);   // الكرة الأمامية: استقرار سريع وسلس بدون ارتداد مزعج
-const MNV_TRAIL=mnvSpringParams(0.46,0.72);  // الذيل: أرخى قليلًا فيتمدد خلف الأمامية عند الحركة السريعة
+const MNV_CENTER=mnvSpringParams(0.34,0.92); // شبه حرج التخميد — يستقر بدقة على مركز التبويب بلا ارتداد ملحوظ
 function mnvSpringStep(x,v,target,sp,dt){
   const a=-sp.k*(x-target)-sp.c*v;
   v+=a*dt; x+=v*dt;
@@ -1678,16 +1683,39 @@ function mnvProject(v,decel){
   decel=decel===undefined?0.99:decel;
   return (v/1000)*decel/(1-decel);
 }
-function mnvCenterX(el){
+function mnvBtnCenterX(el){
   const nav=document.getElementById('mobNav');
   if(!nav||!el)return 0;
   const r=el.getBoundingClientRect(), nr=nav.getBoundingClientRect();
   return (r.left+r.width/2)-nr.left;
 }
-function mnvSetBeadPos(x,tx){
-  const bead=document.getElementById('mnvBead'), trail=document.getElementById('mnvBeadTrail');
-  if(bead)bead.style.transform='translate3d('+x+'px,-50%,0)';
-  if(trail)trail.style.transform='translate3d('+(tx===undefined?x:tx)+'px,-50%,0)';
+function mnvBtnWidth(el){
+  if(!el)return 64;
+  return Math.max(36,el.getBoundingClientRect().width-MNV_PAD*2);
+}
+function mnvSetPillBox(cx,w){
+  const pill=document.getElementById('mnvPill');
+  if(!pill)return;
+  pill.style.width=w+'px';
+  pill.style.transform='translate3d('+(cx-w/2)+'px,-50%,0)';
+}
+// خريطة انكسار الكبسولة الحالية — تُبنى فقط بعد استقرار الحجم (مو كل إطار)، بنفس تقنية refreshMobNavGlass
+function mnvRefreshPillMap(w,h){
+  w=Math.round(w); h=Math.round(h);
+  if(w<10||h<10||(w===mnvMapW&&h===mnvMapH))return;
+  clearTimeout(mnvMapTimer);
+  mnvMapTimer=setTimeout(()=>{
+    const pill=document.getElementById('mnvPill'), mapEl=document.getElementById('mnvPillMap');
+    if(!pill||!mapEl)return;
+    try{
+      const url=buildDisplacementMap(w,h,h/2,h/2,h/2,h/2);
+      if(!url){pill.classList.remove('warp-ready');return;}
+      mapEl.setAttributeNS('http://www.w3.org/1999/xlink','href',url);
+      mapEl.setAttribute('href',url);
+      pill.classList.add('warp-ready');
+      mnvMapW=w; mnvMapH=h;
+    }catch(e){ pill.classList.remove('warp-ready'); }
+  },90);
 }
 function mnvEnsureLoop(){
   if(mnvRaf!==null)return;
@@ -1698,33 +1726,39 @@ function mnvLoop(now){
   const dt=mnvLastT===null?0.016:Math.min(0.032,(now-mnvLastT)/1000);
   mnvLastT=now;
   if(!mnvDragging){
-    const r=mnvSpringStep(mnvLeadX,mnvLeadV,mnvTargetX,MNV_LEAD,dt);
-    mnvLeadX=r[0]; mnvLeadV=r[1];
+    const r=mnvSpringStep(mnvCX,mnvCV,mnvTargetX,MNV_CENTER,dt);
+    mnvCX=r[0]; mnvCV=r[1];
   }
-  const rt=mnvSpringStep(mnvTrailX,mnvTrailV,mnvLeadX,MNV_TRAIL,dt);
-  mnvTrailX=rt[0]; mnvTrailV=rt[1];
-  mnvSetBeadPos(mnvLeadX,mnvTrailX);
-  const settled=!mnvDragging&&Math.abs(mnvLeadX-mnvTargetX)<0.05&&Math.abs(mnvLeadV)<0.5&&Math.abs(mnvTrailX-mnvLeadX)<0.05&&Math.abs(mnvTrailV)<0.5;
+  // التمدد يتبع السرعة اللحظية مباشرة: يكبر بسرعة (attack) ويرتخي بهدوء (release) — مطّاطية حقيقية بلا ارتداد
+  const targetStretch=Math.min(MNV_MAX_STRETCH,Math.abs(mnvCV)*MNV_STRETCH_K);
+  const tau=targetStretch>mnvStretch?0.07:0.16;
+  mnvStretch+=(targetStretch-mnvStretch)*(1-Math.exp(-dt/tau));
+  const w=mnvRestW+mnvStretch;
+  mnvSetPillBox(mnvCX,w);
+  mnvRefreshPillMap(w,MNV_REST_H);
+  const settled=!mnvDragging&&Math.abs(mnvCX-mnvTargetX)<0.05&&Math.abs(mnvCV)<0.5&&mnvStretch<0.3;
   if(settled){
-    mnvLeadX=mnvTargetX; mnvLeadV=0; mnvTrailX=mnvTargetX; mnvTrailV=0;
-    mnvSetBeadPos(mnvLeadX,mnvTrailX);
+    mnvCX=mnvTargetX; mnvCV=0; mnvStretch=0;
+    mnvSetPillBox(mnvCX,mnvRestW);
+    mnvRefreshPillMap(mnvRestW,MNV_REST_H);
     mnvRaf=null;
     return;
   }
   mnvRaf=requestAnimationFrame(mnvLoop);
 }
-// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه، دون المساس بمنطق mobGoPage نفسه
+// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكبسولة إليه، دون المساس بمنطق mobGoPage نفسه
 function mnvSyncBead(animate){
   const nav=document.getElementById('mobNav');
   if(!nav||nav.style.display==='none')return;
   const activeBtn=nav.querySelector('.mob-nav-btn.active:not(#mnAddCenter)');
   if(!activeBtn)return;
-  const x=mnvCenterX(activeBtn);
-  mnvTargetX=x;
+  const x=mnvBtnCenterX(activeBtn);
+  mnvTargetX=x; mnvRestW=mnvBtnWidth(activeBtn);
   if(animate===false||mnvReducedMotion()){
     cancelAnimationFrame(mnvRaf); mnvRaf=null;
-    mnvLeadX=x; mnvLeadV=0; mnvTrailX=x; mnvTrailV=0;
-    mnvSetBeadPos(x,x);
+    mnvCX=x; mnvCV=0; mnvStretch=0;
+    mnvSetPillBox(x,mnvRestW);
+    mnvRefreshPillMap(mnvRestW,MNV_REST_H);
   }else{
     mnvEnsureLoop();
   }
@@ -1734,7 +1768,7 @@ function mnvNearestBtn(x){
   mnvTabIds.forEach(id=>{
     const el=document.getElementById(id);
     if(!el)return;
-    const d=Math.abs(mnvCenterX(el)-x);
+    const d=Math.abs(mnvBtnCenterX(el)-x);
     if(d<bd){bd=d;best=el;}
   });
   return best;
@@ -1743,7 +1777,7 @@ function mnvInitDrag(){
   const nav=document.getElementById('mobNav');
   if(!nav||nav._mnvBound)return;
   nav._mnvBound=true;
-  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكرة نفسها)، عدا زر الإضافة الدائري بالمنتصف
+  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكبسولة نفسها)، عدا زر الإضافة الدائري بالمنتصف
   nav.addEventListener('pointerdown',(e)=>{
     if(e.target.closest('#mnAddCenter'))return;
     mnvPointerId=e.pointerId; mnvDownX=e.clientX; mnvDragging=false;
@@ -1763,8 +1797,8 @@ function mnvInitDrag(){
       x=Math.max(24,Math.min(rect.width-24,x));
       const now=performance.now();
       const prev=mnvHist[mnvHist.length-1];
-      if(prev){ const dt=(now-prev.t)/1000; if(dt>0)mnvLeadV=(x-mnvLeadX)/dt; }
-      mnvLeadX=x; // تتبّع مباشر 1:1 مع الإصبع أثناء السحب الفعلي
+      if(prev){ const dt=(now-prev.t)/1000; if(dt>0)mnvCV=(x-mnvCX)/dt; }
+      mnvCX=x; // تتبّع مباشر 1:1 مع الإصبع أثناء السحب الفعلي
       mnvHist.push({x,t:now});
       while(mnvHist.length>6)mnvHist.shift();
       e.preventDefault();
@@ -1783,17 +1817,18 @@ function mnvInitDrag(){
         const dt=(last.t-first.t)/1000;
         if(dt>0)v=(last.x-first.x)/dt;
       }
-      mnvLeadV=v;
-      const projected=mnvLeadX+(mnvReducedMotion()?0:mnvProject(v));
+      mnvCV=v;
+      const projected=mnvCX+(mnvReducedMotion()?0:mnvProject(v));
       const target=mnvNearestBtn(projected);
       if(target){
         document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
         target.classList.add('active');
-        mnvTargetX=mnvCenterX(target);
+        mnvTargetX=mnvBtnCenterX(target); mnvRestW=mnvBtnWidth(target);
         if(mnvReducedMotion()){
           cancelAnimationFrame(mnvRaf); mnvRaf=null;
-          mnvLeadX=mnvTargetX; mnvLeadV=0; mnvTrailX=mnvTargetX; mnvTrailV=0;
-          mnvSetBeadPos(mnvTargetX,mnvTargetX);
+          mnvCX=mnvTargetX; mnvCV=0; mnvStretch=0;
+          mnvSetPillBox(mnvCX,mnvRestW);
+          mnvRefreshPillMap(mnvRestW,MNV_REST_H);
         }else mnvEnsureLoop();
         target.click();
       }
