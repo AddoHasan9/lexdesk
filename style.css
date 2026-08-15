@@ -1802,6 +1802,16 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 64px;
+  z-index: 70;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 6px;
+  touch-action: pan-y;
+}
+/* الطبقة الزجاجية للشريط — منفصلة عن الكرة والأزرار عمدًا، عشان قناع "الفتحة" السائلة حولها ما يخفي غيرها */
+.mnv-surface {
+  position: absolute; inset: 0; z-index: 0;
+  pointer-events: none;
   background: var(--bg2);
   background: color-mix(in srgb, var(--bg2) 80%, transparent);
   border-top: 1px solid var(--border);
@@ -1809,19 +1819,15 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
   box-shadow: 0 -6px 24px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14);
-  z-index: 70;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 6px;
 }
 /* زجاج سائل حقيقي (انكسار SVG) — يُفعَّل فقط بعد نجاح توليد خريطة الانزياح، بدعم من المتصفح */
 @supports (backdrop-filter: url(#a)) or (-webkit-backdrop-filter: url(#a)) {
-  .mob-nav.lg-ready {
+  .mnv-surface.lg-ready {
     backdrop-filter: url(#lg-mobnav) blur(3px) saturate(1.4);
     -webkit-backdrop-filter: url(#lg-mobnav) blur(3px) saturate(1.4);
   }
 }
-[data-theme="light"] .mob-nav { box-shadow: 0 -6px 24px rgba(10,28,64,.08), inset 0 1px 0 rgba(255,255,255,.6); }
+[data-theme="light"] .mnv-surface { box-shadow: 0 -6px 24px rgba(10,28,64,.08), inset 0 1px 0 rgba(255,255,255,.6); }
 .mob-nav-btn {
   display: flex;
   flex-direction: column;
@@ -1847,70 +1853,29 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .mn-icon {
   width: 23px; height: 23px;
   stroke: currentColor; fill: none; stroke-width: 2;
-  transition: transform .28s var(--ease-bounce, var(--ease));
+  transition: transform .28s var(--ease-bounce, var(--ease)), color .2s var(--ease);
 }
-.mn-lbl { line-height: 1; letter-spacing: -.1px; }
-/* الحالة النشطة — حبّة ذهبية خلف الأيقونة + رفعة + مؤشر علوي */
-.mob-nav-btn.active { color: #2b1d02; }
-.mob-nav-btn.active .mn-icon { transform: translateY(-2px) scale(1.06); }
-.mob-nav-btn.active::before {
-  content: '';
-  position: absolute;
-  top: 5px; left: 50%;
-  width: 34px; height: 30px;
-  transform: translateX(-50%);
-  background: var(--gold-g);
-  border-radius: 12px;
-  z-index: 0;
-}
-.mob-nav-btn.active::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 50%;
-  width: 24px; height: 3px;
-  transform: translateX(-50%);
-  background: linear-gradient(90deg, var(--gold), var(--gold2));
-  border-radius: 0 0 4px 4px;
-}
+.mn-lbl { line-height: 1; letter-spacing: -.1px; transition: color .2s var(--ease); }
+/* الحالة النشطة — الأيقونة تركب فوق الكرة الذهبية المرتفعة (غامقة للتباين، بنفس منطق زر الإضافة)، والتسمية بلون الذهب */
+.mob-nav-btn.active { color: var(--gold); }
+.mob-nav-btn.active .mn-icon { color: #2b1d02; transform: translateY(-4px) scale(1.1); }
 .mob-nav-btn > * { position: relative; z-index: 1; }
 
-/* ══ كبسولة المؤشر السائلة (Liquid Pill) — زجاج شفاف حقيقي الانكسار خلف التبويب النشط، لا تعبئة صلبة ══ */
-.mob-nav-btn.active::before,
-.mob-nav-btn.active::after { display: none; }
-/* العرض والموضع يُحدَّثان بـ transform+width (لا left) — contain يعزل أي إعادة تخطيط داخل الكبسولة نفسها فقط */
-.mnv-pill{
-  position:absolute; top:50%; left:0; height:38px; width:64px;
-  border-radius:999px;
+/* ══ كرة المؤشر (Meniscus Bead) — تطفو فوق حافة الشريط وتغرق بنصفها بداخله، كأنها تخترق سطحًا سائلًا ══ */
+.mnv-bead{
+  position:absolute; top:17px; left:0; width:46px; height:46px; border-radius:50%;
   transform:translate3d(0,-50%,0);
-  will-change:transform,width;
-  contain:layout style;
+  will-change:transform;
   z-index:0;
   pointer-events:none;
-  background:linear-gradient(160deg, rgba(251,191,36,.24), rgba(245,166,35,.10));
-  backdrop-filter:blur(2px) saturate(1.3);
-  -webkit-backdrop-filter:blur(2px) saturate(1.3);
-  border-top:1px solid rgba(255,255,255,.4);
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255,255,255,.85), rgba(255,255,255,0) 45%),
+    linear-gradient(135deg,var(--gold2),var(--gold));
   box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.5),
-    inset 0 -8px 12px rgba(120,68,0,.16),
-    0 2px 10px var(--gold-g);
+    inset 0 1px 1px rgba(255,255,255,.55),
+    inset 0 -7px 9px rgba(120,68,0,.25),
+    0 4px 16px var(--gold-g);
 }
-/* الانكسار الحقيقي (يحني ما وراء الكبسولة حسب شكلها الفعلي) — يُفعَّل فقط بعد بناء خريطة الانزياح بنجاح */
-@supports (backdrop-filter: url(#a)) or (-webkit-backdrop-filter: url(#a)) {
-  .mnv-pill.warp-ready{
-    backdrop-filter:url(#mnv-pill-warp) blur(2px) saturate(1.3);
-    -webkit-backdrop-filter:url(#mnv-pill-warp) blur(2px) saturate(1.3);
-  }
-}
-[data-theme="light"] .mnv-pill{
-  background:linear-gradient(160deg, rgba(245,166,35,.22), rgba(240,165,0,.08));
-  border-top-color:rgba(255,255,255,.75);
-  box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.8),
-    inset 0 -8px 12px rgba(120,68,0,.10),
-    0 2px 10px rgba(240,165,0,.15);
-}
-.mob-nav{ touch-action:pan-y; }
 .mob-nav-btn:hover:not(.active) { color: var(--text2); }
 #mnAddCenter {
   width:54px !important; height:54px !important;

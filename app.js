@@ -1636,34 +1636,35 @@ function refreshMobNavGlass(){
   clearTimeout(_lgNavTimer);
   _lgNavTimer=setTimeout(()=>{
     const nav=document.getElementById('mobNav');
+    const surface=document.getElementById('mnvSurface');
     const mapEl=document.getElementById('lgMobNavMap');
-    if(!nav||!mapEl||nav.style.display==='none')return;
+    if(!nav||!surface||!mapEl||nav.style.display==='none')return;
     const rect=nav.getBoundingClientRect();
     const w=Math.round(rect.width), h=Math.round(rect.height);
     try{
       const url=buildDisplacementMap(w,h,22,22,0,0);
-      if(!url){nav.classList.remove('lg-ready');return;}
+      if(!url){surface.classList.remove('lg-ready');return;}
       mapEl.setAttributeNS('http://www.w3.org/1999/xlink','href',url);
       mapEl.setAttribute('href',url);
-      nav.classList.add('lg-ready');
-    }catch(e){ nav.classList.remove('lg-ready'); }
+      surface.classList.add('lg-ready');
+    }catch(e){ surface.classList.remove('lg-ready'); }
     mnvSyncBead(false);
   },120);
 }
 
-// ══ كبسولة المؤشر السائلة (Liquid Pill) — زجاج شفاف حقيقي الانكسار خلف التبويب النشط ══
-// المركز يلاحق الهدف بنابض فيزيائي دقيق (لا tween بمدة ثابتة)، والعرض يزيد مؤقتًا بمقدار يتناسب مباشرة
-// مع السرعة اللحظية للحركة ثم يرتخي لعرضه الطبيعي — فالتمدد حقيقي ومرتبط فعليًا بسرعة السحب، لا حيلة بصرية.
-// خريطة الانكسار (backdrop-filter:url(#mnv-pill-warp)) تُبنى من شكل الكبسولة الفعلي بنفس أسلوب lg-mobnav.
+// ══ كرة المؤشر (Meniscus Bead) — تطفو فوق حافة الشريط وتخترق سطحه، بنفس هوية زر الإضافة الذهبي ══
+// المركز يلاحق الهدف بنابض فيزيائي دقيق (لا tween بمدة ثابتة)، والكرة نفسها تتشوه (تنبسط/تتمدد أفقيًا)
+// بمقدار يتناسب مباشرة مع السرعة اللحظية للسحب. سطح الشريط (mnvSurface) يُقنَّع بفتحة سائلة ناعمة حول
+// موضع الكرة كل إطار، فتبدو الكرة كأنها تخترق/تذوب داخل الشريط بدل ما تطفو فوقه بشكل منفصل.
 const mnvTabIds=['mnDash','mnCharts','mnTools','mnUser'];
-const MNV_REST_H=38, MNV_PAD=7;              // ارتفاع الكبسولة الثابت، وهامشها الداخلي عن حواف الزر
-const MNV_MAX_STRETCH=42;                    // أقصى زيادة بالعرض عند السحب السريع (px)
-const MNV_STRETCH_K=0.024;                   // تحويل سرعة الحركة (px/s) إلى مقدار التمدد
-let mnvCX=0, mnvCV=0, mnvTargetX=0;          // مركز الكبسولة الحالي وسرعته وهدفه
-let mnvRestW=64, mnvStretch=0;               // العرض الطبيعي (بلا تمدد) والتمدد الإضافي الحالي
+const MNV_BEAD_R=23;                         // نصف قطر الكرة — يطابق تقريبًا حجم زر الإضافة لنفس لغة الشكل
+const MNV_BEAD_Y=17;                         // بُعد مركز الكرة رأسيًا عن أعلى الشريط — يطابق CSS (.mnv-bead top)، ويحاذي مركز الأيقونة الطبيعي
+const MNV_MAX_SQUISH=0.32;                   // أقصى تشوه (تمدد أفقي/انبساط رأسي) عند السحب السريع
+const MNV_SQUISH_K=0.00018;                  // تحويل سرعة الحركة (px/s) إلى مقدار التشوه
+let mnvCX=0, mnvCV=0, mnvTargetX=0;          // مركز الكرة الحالي وسرعته وهدفه
+let mnvSquish=0;                             // مقدار التشوه الحالي (0 = كرة كاملة الاستدارة)
 let mnvRaf=null, mnvLastT=null;
 let mnvPointerId=null, mnvDownX=0, mnvDragging=false, mnvHist=[];
-let mnvMapTimer=null, mnvMapW=0, mnvMapH=0;
 
 function mnvReducedMotion(){
   try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}
@@ -1689,33 +1690,18 @@ function mnvBtnCenterX(el){
   const r=el.getBoundingClientRect(), nr=nav.getBoundingClientRect();
   return (r.left+r.width/2)-nr.left;
 }
-function mnvBtnWidth(el){
-  if(!el)return 64;
-  return Math.max(36,el.getBoundingClientRect().width-MNV_PAD*2);
-}
-function mnvSetPillBox(cx,w){
-  const pill=document.getElementById('mnvPill');
-  if(!pill)return;
-  pill.style.width=w+'px';
-  pill.style.transform='translate3d('+(cx-w/2)+'px,-50%,0)';
-}
-// خريطة انكسار الكبسولة الحالية — تُبنى فقط بعد استقرار الحجم (مو كل إطار)، بنفس تقنية refreshMobNavGlass
-function mnvRefreshPillMap(w,h){
-  w=Math.round(w); h=Math.round(h);
-  if(w<10||h<10||(w===mnvMapW&&h===mnvMapH))return;
-  clearTimeout(mnvMapTimer);
-  mnvMapTimer=setTimeout(()=>{
-    const pill=document.getElementById('mnvPill'), mapEl=document.getElementById('mnvPillMap');
-    if(!pill||!mapEl)return;
-    try{
-      const url=buildDisplacementMap(w,h,h/2,h/2,h/2,h/2);
-      if(!url){pill.classList.remove('warp-ready');return;}
-      mapEl.setAttributeNS('http://www.w3.org/1999/xlink','href',url);
-      mapEl.setAttribute('href',url);
-      pill.classList.add('warp-ready');
-      mnvMapW=w; mnvMapH=h;
-    }catch(e){ pill.classList.remove('warp-ready'); }
-  },90);
+function mnvRender(cx,squish){
+  const bead=document.getElementById('mnvBead');
+  if(bead){
+    const sx=1+squish, sy=1-squish*0.5;
+    bead.style.transform='translate3d('+(cx-MNV_BEAD_R)+'px,-50%,0) scaleX('+sx+') scaleY('+sy+')';
+  }
+  const surface=document.getElementById('mnvSurface');
+  if(surface){
+    const inner=MNV_BEAD_R-4, outer=MNV_BEAD_R+9;
+    surface.style.maskImage='radial-gradient(circle at '+cx+'px '+MNV_BEAD_Y+'px, transparent 0px, transparent '+inner+'px, black '+outer+'px, black 100%)';
+    surface.style.webkitMaskImage=surface.style.maskImage;
+  }
 }
 function mnvEnsureLoop(){
   if(mnvRaf!==null)return;
@@ -1729,36 +1715,32 @@ function mnvLoop(now){
     const r=mnvSpringStep(mnvCX,mnvCV,mnvTargetX,MNV_CENTER,dt);
     mnvCX=r[0]; mnvCV=r[1];
   }
-  // التمدد يتبع السرعة اللحظية مباشرة: يكبر بسرعة (attack) ويرتخي بهدوء (release) — مطّاطية حقيقية بلا ارتداد
-  const targetStretch=Math.min(MNV_MAX_STRETCH,Math.abs(mnvCV)*MNV_STRETCH_K);
-  const tau=targetStretch>mnvStretch?0.07:0.16;
-  mnvStretch+=(targetStretch-mnvStretch)*(1-Math.exp(-dt/tau));
-  const w=mnvRestW+mnvStretch;
-  mnvSetPillBox(mnvCX,w);
-  mnvRefreshPillMap(w,MNV_REST_H);
-  const settled=!mnvDragging&&Math.abs(mnvCX-mnvTargetX)<0.05&&Math.abs(mnvCV)<0.5&&mnvStretch<0.3;
+  // التشوه يتبع السرعة اللحظية مباشرة: يكبر بسرعة (attack) ويرتخي بهدوء (release) — مطّاطية حقيقية بلا ارتداد
+  const targetSquish=Math.min(MNV_MAX_SQUISH,Math.abs(mnvCV)*MNV_SQUISH_K);
+  const tau=targetSquish>mnvSquish?0.07:0.16;
+  mnvSquish+=(targetSquish-mnvSquish)*(1-Math.exp(-dt/tau));
+  mnvRender(mnvCX,mnvSquish);
+  const settled=!mnvDragging&&Math.abs(mnvCX-mnvTargetX)<0.05&&Math.abs(mnvCV)<0.5&&mnvSquish<0.003;
   if(settled){
-    mnvCX=mnvTargetX; mnvCV=0; mnvStretch=0;
-    mnvSetPillBox(mnvCX,mnvRestW);
-    mnvRefreshPillMap(mnvRestW,MNV_REST_H);
+    mnvCX=mnvTargetX; mnvCV=0; mnvSquish=0;
+    mnvRender(mnvCX,0);
     mnvRaf=null;
     return;
   }
   mnvRaf=requestAnimationFrame(mnvLoop);
 }
-// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكبسولة إليه، دون المساس بمنطق mobGoPage نفسه
+// يُستدعى من mobGoPage بعد ما يحدد الزر النشط — يحرّك الكرة إليه، دون المساس بمنطق mobGoPage نفسه
 function mnvSyncBead(animate){
   const nav=document.getElementById('mobNav');
   if(!nav||nav.style.display==='none')return;
   const activeBtn=nav.querySelector('.mob-nav-btn.active:not(#mnAddCenter)');
   if(!activeBtn)return;
   const x=mnvBtnCenterX(activeBtn);
-  mnvTargetX=x; mnvRestW=mnvBtnWidth(activeBtn);
+  mnvTargetX=x;
   if(animate===false||mnvReducedMotion()){
     cancelAnimationFrame(mnvRaf); mnvRaf=null;
-    mnvCX=x; mnvCV=0; mnvStretch=0;
-    mnvSetPillBox(x,mnvRestW);
-    mnvRefreshPillMap(mnvRestW,MNV_REST_H);
+    mnvCX=x; mnvCV=0; mnvSquish=0;
+    mnvRender(x,0);
   }else{
     mnvEnsureLoop();
   }
@@ -1777,7 +1759,7 @@ function mnvInitDrag(){
   const nav=document.getElementById('mobNav');
   if(!nav||nav._mnvBound)return;
   nav._mnvBound=true;
-  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكبسولة نفسها)، عدا زر الإضافة الدائري بالمنتصف
+  // السحب يبدأ من أي نقطة على الشريط (وليس فقط من الكرة نفسها)، عدا زر الإضافة الدائري بالمنتصف
   nav.addEventListener('pointerdown',(e)=>{
     if(e.target.closest('#mnAddCenter'))return;
     mnvPointerId=e.pointerId; mnvDownX=e.clientX; mnvDragging=false;
@@ -1823,12 +1805,11 @@ function mnvInitDrag(){
       if(target){
         document.querySelectorAll('.mob-nav-btn').forEach(b=>{if(b.id!=='mnAddCenter')b.classList.remove('active');});
         target.classList.add('active');
-        mnvTargetX=mnvBtnCenterX(target); mnvRestW=mnvBtnWidth(target);
+        mnvTargetX=mnvBtnCenterX(target);
         if(mnvReducedMotion()){
           cancelAnimationFrame(mnvRaf); mnvRaf=null;
-          mnvCX=mnvTargetX; mnvCV=0; mnvStretch=0;
-          mnvSetPillBox(mnvCX,mnvRestW);
-          mnvRefreshPillMap(mnvRestW,MNV_REST_H);
+          mnvCX=mnvTargetX; mnvCV=0; mnvSquish=0;
+          mnvRender(mnvCX,0);
         }else mnvEnsureLoop();
         target.click();
       }
