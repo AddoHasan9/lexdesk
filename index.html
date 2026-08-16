@@ -823,6 +823,38 @@
       <div class="tool-result" id="peResult"></div>
     </div>
 
+    <!-- ⑨ ترتيب المستمسكات -->
+    <div class="tool-card">
+      <div class="tool-card-hd">
+        <div class="tool-icon" style="background:var(--gold-g);color:var(--gold)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="9" rx="1"/><rect x="14" y="4" width="7" height="9" rx="1"/><rect x="3" y="17" width="7" height="4" rx="1"/><rect x="14" y="17" width="7" height="4" rx="1"/></svg>
+        </div>
+        <div>
+          <div class="tool-title">ترتيب المستمسكات</div>
+          <div class="tool-sub">ارفع صور مستمسكات مفرّقة (هوية، بطاقة سكن...) ورتّبها تلقائيًا بصفحة A4 واحدة بخلفية بيضاء</div>
+        </div>
+      </div>
+      <div class="tool-dropzone" id="daZone"
+        onclick="document.getElementById('daInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');docArrangeAddFiles(event.dataTransfer.files)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="dz-text">اسحب صور المستمسكات هنا أو <span>اضغط للاختيار</span></div>
+        <div class="dz-hint">PNG · JPG — يمكن اختيار عدة صور دفعة وحدة</div>
+        <input type="file" id="daInput" accept="image/*" multiple style="display:none" onchange="docArrangeAddFiles(this.files);this.value=''">
+      </div>
+      <div class="da-hint" id="daHint" style="display:none">اسحب زوايا كل مستمسك حتى تلتصق بحوافه الحقيقية، عدّل الاسم إذا حبيت، وبعدين اضغط "رتّب"</div>
+      <div id="daList" class="da-list"></div>
+      <div id="daActions" style="display:none">
+        <button class="tool-btn" onclick="docArrangeCompose()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          رتّب بصفحة A4
+        </button>
+      </div>
+      <div class="tool-result" id="daResult"></div>
+    </div>
+
   </div>
 </div>
 

@@ -3618,6 +3618,246 @@ async function peExport(){
   }
 }
 
+// ═══════════════════ ترتيب المستمسكات (Document Arranger) ═══════════════════
+let docArrangeItems=[];
+let docArrangePage=null;
+
+function docArrangeAddFiles(files){
+  if(!files||!files.length)return;
+  const imgFiles=[...files].filter(f=>f.type.startsWith('image/'));
+  const startIdx=docArrangeItems.length;
+  const slots=imgFiles.map((file,i)=>{
+    const id='da'+Date.now()+Math.random().toString(36).slice(2,7);
+    const slot={id,img:null,corners:null,label:'مستمسك '+(startIdx+i+1),ready:false};
+    docArrangeItems.push(slot);
+    return {slot,file};
+  });
+  slots.forEach(({slot,file})=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const inset=0.05;
+        const w=img.naturalWidth, h=img.naturalHeight;
+        slot.img=img;
+        slot.corners=[
+          {x:w*inset,     y:h*inset},
+          {x:w*(1-inset), y:h*inset},
+          {x:w*(1-inset), y:h*(1-inset)},
+          {x:w*inset,     y:h*(1-inset)},
+        ];
+        slot.ready=true;
+        docArrangeRenderList();
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function docArrangeRenderList(){
+  const wrap=document.getElementById('daList');
+  const hint=document.getElementById('daHint');
+  const actions=document.getElementById('daActions');
+  if(!wrap)return;
+  const has=docArrangeItems.length>0;
+  if(hint)hint.style.display=has?'block':'none';
+  if(actions)actions.style.display=has?'block':'none';
+  wrap.innerHTML=docArrangeItems.map(it=>
+    it.ready
+    ? ('<div class="da-item">'
+      +'<div class="da-cropper" id="cropper_'+it.id+'"></div>'
+      +'<input class="da-label-inp" value="'+esc(it.label)+'" oninput="docArrangeSetLabel(\''+it.id+'\',this.value)">'
+      +'<button class="da-remove" onclick="docArrangeRemove(\''+it.id+'\')">✕ حذف</button>'
+      +'</div>')
+    : ('<div class="da-item" id="cropper_'+it.id+'_wait"><div class="tool-progress">جاري تحميل '+esc(it.label)+'...</div></div>')
+  ).join('');
+  docArrangeItems.forEach(it=>{if(it.ready)docArrangeMountCropper(it);});
+}
+
+function docArrangeMountCropper(it){
+  const holder=document.getElementById('cropper_'+it.id);
+  if(!holder)return;
+  const maxW=Math.min(holder.parentElement.clientWidth-24||420, 460);
+  const scale=maxW/it.img.naturalWidth;
+  const dispW=Math.round(maxW), dispH=Math.round(it.img.naturalHeight*scale);
+  holder.style.cssText='position:relative;width:'+dispW+'px;height:'+dispH+'px;max-width:100%';
+  holder.innerHTML='';
+  const imgEl=document.createElement('img');
+  imgEl.src=it.img.src;
+  imgEl.style.cssText='width:100%;height:100%;display:block;border-radius:8px;pointer-events:none;user-select:none';
+  holder.appendChild(imgEl);
+
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('width',dispW);svg.setAttribute('height',dispH);
+  svg.style.cssText='position:absolute;inset:0;pointer-events:none';
+  const poly=document.createElementNS(svgNS,'polygon');
+  poly.setAttribute('fill','rgba(245,166,35,.16)');
+  poly.setAttribute('stroke','#F5A623');poly.setAttribute('stroke-width','2');
+  svg.appendChild(poly);holder.appendChild(svg);
+
+  function updatePoly(){
+    poly.setAttribute('points', it.corners.map(c=>(c.x*scale)+','+(c.y*scale)).join(' '));
+  }
+
+  it.corners.forEach(c=>{
+    const hd=document.createElement('div');
+    hd.className='da-handle';
+    hd.style.cssText='position:absolute;width:22px;height:22px;border-radius:50%;background:#F5A623;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:2';
+    function place(){hd.style.left=(c.x*scale)+'px';hd.style.top=(c.y*scale)+'px';}
+    place();
+    hd.addEventListener('pointerdown',e=>{
+      e.preventDefault();
+      hd.setPointerCapture(e.pointerId);
+      function onMove(ev){
+        const rect=holder.getBoundingClientRect();
+        let nx=(ev.clientX-rect.left)/scale, ny=(ev.clientY-rect.top)/scale;
+        nx=Math.max(0,Math.min(it.img.naturalWidth,nx));
+        ny=Math.max(0,Math.min(it.img.naturalHeight,ny));
+        c.x=nx;c.y=ny;place();updatePoly();
+      }
+      function onUp(){hd.removeEventListener('pointermove',onMove);hd.removeEventListener('pointerup',onUp);}
+      hd.addEventListener('pointermove',onMove);
+      hd.addEventListener('pointerup',onUp);
+    });
+    holder.appendChild(hd);
+  });
+  updatePoly();
+}
+
+function docArrangeSetLabel(id,val){const it=docArrangeItems.find(x=>x.id===id);if(it)it.label=val;}
+function docArrangeRemove(id){docArrangeItems=docArrangeItems.filter(x=>x.id!==id);docArrangeRenderList();}
+
+// ── حل نظام معادلات خطي 8×8 (لحساب مصفوفة التحويل الإسقاطي) ──
+function _solve8(A,b){
+  const n=8;
+  for(let i=0;i<n;i++){
+    let mx=i;
+    for(let k=i+1;k<n;k++)if(Math.abs(A[k][i])>Math.abs(A[mx][i]))mx=k;
+    [A[i],A[mx]]=[A[mx],A[i]];[b[i],b[mx]]=[b[mx],b[i]];
+    for(let k=i+1;k<n;k++){
+      const f=A[k][i]/A[i][i];
+      for(let j=i;j<n;j++)A[k][j]-=f*A[i][j];
+      b[k]-=f*b[i];
+    }
+  }
+  const x=new Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){
+    let s=b[i];
+    for(let j=i+1;j<n;j++)s-=A[i][j]*x[j];
+    x[i]=s/A[i][i];
+  }
+  return x;
+}
+function _computeHomography(src,dst){
+  const A=[],b=[];
+  for(let i=0;i<4;i++){
+    const sx=src[i].x,sy=src[i].y,dx=dst[i].x,dy=dst[i].y;
+    A.push([sx,sy,1,0,0,0,-sx*dx,-sy*dx]);b.push(dx);
+    A.push([0,0,0,sx,sy,1,-sx*dy,-sy*dy]);b.push(dy);
+  }
+  const h=_solve8(A,b);
+  return [h[0],h[1],h[2],h[3],h[4],h[5],h[6],h[7],1];
+}
+function _applyH(H,x,y){
+  const w=H[6]*x+H[7]*y+H[8];
+  return [(H[0]*x+H[1]*y+H[2])/w,(H[3]*x+H[4]*y+H[5])/w];
+}
+function docArrangeWarp(srcCanvas,corners,outW,outH){
+  const sctx=srcCanvas.getContext('2d');
+  const sw=srcCanvas.width,sh=srcCanvas.height;
+  const srcData=sctx.getImageData(0,0,sw,sh).data;
+  const dstRect=[{x:0,y:0},{x:outW,y:0},{x:outW,y:outH},{x:0,y:outH}];
+  const H=_computeHomography(dstRect,corners); // من مستطيل الوجهة إلى رباعي المصدر
+  const outCanvas=document.createElement('canvas');
+  outCanvas.width=outW;outCanvas.height=outH;
+  const octx=outCanvas.getContext('2d');
+  const outImg=octx.createImageData(outW,outH);
+  const od=outImg.data;
+  for(let y=0;y<outH;y++){
+    for(let x=0;x<outW;x++){
+      const [sx,sy]=_applyH(H,x,y);
+      const o=(y*outW+x)*4;
+      if(sx<0||sy<0||sx>=sw-1||sy>=sh-1){od[o+3]=0;continue;}
+      const x0=Math.floor(sx),y0=Math.floor(sy);
+      const fx=sx-x0,fy=sy-y0;
+      for(let c=0;c<3;c++){
+        const p00=srcData[(y0*sw+x0)*4+c],p10=srcData[(y0*sw+x0+1)*4+c];
+        const p01=srcData[((y0+1)*sw+x0)*4+c],p11=srcData[((y0+1)*sw+x0+1)*4+c];
+        od[o+c]=p00*(1-fx)*(1-fy)+p10*fx*(1-fy)+p01*(1-fx)*fy+p11*fx*fy;
+      }
+      od[o+3]=255;
+    }
+  }
+  octx.putImageData(outImg,0,0);
+  return outCanvas;
+}
+
+async function docArrangeCompose(){
+  if(!docArrangeItems.length){toast('أضف مستمسكًا واحدًا على الأقل','err');return;}
+  if(docArrangeItems.some(it=>!it.ready)){toast('استنى لحد ما تخلص كل الصور تحميل','err');return;}
+  toolSetResult('daResult','<div class="tool-progress">جاري ترتيب المستمسكات...</div>');
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    const cardW=1012,cardH=638;
+    const warped=docArrangeItems.map(it=>{
+      const sc=document.createElement('canvas');
+      sc.width=it.img.naturalWidth;sc.height=it.img.naturalHeight;
+      sc.getContext('2d').drawImage(it.img,0,0);
+      return {canvas:docArrangeWarp(sc,it.corners,cardW,cardH),label:it.label};
+    });
+    const PW=1654,PH=2339;
+    const page=document.createElement('canvas');page.width=PW;page.height=PH;
+    const pctx=page.getContext('2d');
+    pctx.fillStyle='#fff';pctx.fillRect(0,0,PW,PH);
+    pctx.direction='rtl';pctx.textAlign='center';
+    pctx.fillStyle='#111';
+    pctx.font='700 34px "Noto Kufi Arabic",sans-serif';
+    pctx.fillText('مستمسكات '+(currentUserName||''),PW/2,58);
+    pctx.strokeStyle='#d8b46a';pctx.lineWidth=3;
+    pctx.beginPath();pctx.moveTo(70,86);pctx.lineTo(PW-70,86);pctx.stroke();
+
+    const margin=65,gapX=46,gapY=90,top=140;
+    const colW=(PW-2*margin-gapX)/2;
+    const colH=colW/(cardW/cardH);
+    warped.forEach((w,i)=>{
+      const col=i%2,row=Math.floor(i/2);
+      const x=margin+col*(colW+gapX);
+      const y=top+row*(colH+gapY);
+      pctx.fillStyle='#d7d7d7';pctx.fillRect(x-3,y-3,colW+6,colH+6);
+      pctx.drawImage(w.canvas,x,y,colW,colH);
+      pctx.fillStyle='#555';pctx.font='700 22px "Noto Kufi Arabic",sans-serif';
+      pctx.fillText(w.label,x+colW/2,y+colH+30);
+    });
+
+    docArrangePage=page;
+    toolSetResult('daResult',
+      '<img src="'+page.toDataURL('image/png')+'" style="max-width:100%;border-radius:10px;border:1px solid var(--border)">'
+      +'<div style="display:flex;gap:8px;margin-top:12px">'
+      +'<button class="tool-btn" onclick="docArrangeDownloadPNG()">⬇ تنزيل PNG</button>'
+      +'<button class="tool-btn" onclick="docArrangeDownloadPDF()">⬇ تنزيل PDF</button>'
+      +'</div>');
+    toast('✓ تم ترتيب المستمسكات','ok');
+  }catch(e){
+    toolSetResult('daResult','<div class="tool-err">خطأ: '+e.message+'</div>');
+  }
+}
+function docArrangeDownloadPNG(){
+  if(!docArrangePage)return;
+  const a=document.createElement('a');
+  a.download='مستمسكات.png';a.href=docArrangePage.toDataURL('image/png');a.click();
+}
+async function docArrangeDownloadPDF(){
+  if(!docArrangePage)return;
+  await ensureJsPDF();
+  if(!window.jspdf){toast('مكتبة jsPDF لم تكتمل، أعد المحاولة','err');return;}
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF({unit:'px',format:[docArrangePage.width,docArrangePage.height]});
+  pdf.addImage(docArrangePage.toDataURL('image/jpeg',0.92),'JPEG',0,0,docArrangePage.width,docArrangePage.height);
+  pdf.save('مستمسكات.pdf');
+}
+
 // ═══════════════════ قسم المهام (Tasks) ═══════════════════
 const SK_TASKS='lexdesk_tasks_v1';
 let tasks=[];
