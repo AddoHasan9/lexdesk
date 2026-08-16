@@ -978,11 +978,12 @@ function dismissWadeaAlert(id,key,ev){
   localStorage.setItem('lexdesk_wadea_dismissed',JSON.stringify(d));
   renderWadeaAlerts();
 }
+function wadeaTier(diff){ if(diff<=7) return 'red'; if(diff<=15) return 'yellow'; return 'white'; }
 function renderWadeaAlerts(){
   const box=document.getElementById('wadeaAlerts');
   const today=new Date();today.setHours(0,0,0,0);
   const dismissed=getWadeaDismissed();
-  const items=[];let lateCount=0;
+  const items=[];let urgentCount=0;
   cases.forEach(c=>{
     if(c.type!==WADEA_TYPE||c.wadeaDone)return;
     // بعد الإرسال، خطر الغرامة يوقف — بس الشركة توّها تحتاج متابعة (رفع الباركود، آخر خطوة)
@@ -995,44 +996,55 @@ function renderWadeaAlerts(){
     if(!c.wadeaDeadline)return;
     const deadline=new Date(c.wadeaDeadline);
     const diff=Math.round((deadline-today)/(1000*60*60*24));
-    if(diff<0)lateCount++;
-    if(diff<=7){ // متأخرة أو باقي أسبوع فأقل
-      const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
-      const key='d'+diff;
-      if(dismissed[c.id]===key)return;
-      items.push({c,diff,fine,key});
-    }
+    const tier=wadeaTier(diff);
+    if(tier==='red')urgentCount++;
+    const key='d'+diff;
+    if(dismissed[c.id]===key)return;
+    const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
+    items.push({c,diff,fine,key,tier});
   });
-  // بادج الشريط الجانبي + قائمة الموبايل
+  // بادج الشريط الجانبي + قائمة الموبايل — يعكس الحالات العاجلة (٧ أيام فأقل)
   const badge=document.getElementById('sbWadeaBadge');
   const mBadge=document.getElementById('mnWadeaBadge');
   if(badge){
-    if(lateCount>0){badge.style.display='flex';badge.textContent=lateCount;}
+    if(urgentCount>0){badge.style.display='flex';badge.textContent=urgentCount;}
     else badge.style.display='none';
   }
   if(mBadge){
-    if(lateCount>0){mBadge.style.display='flex';mBadge.textContent=lateCount;}
+    if(urgentCount>0){mBadge.style.display='flex';mBadge.textContent=urgentCount;}
     else mBadge.style.display='none';
   }
   if(!box)return;
   if(!items.length){box.style.display='none';box.innerHTML='';return;}
-  items.sort((a,b)=>(a.diff===null?999:a.diff)-(b.diff===null?999:b.diff));
-  box.style.display='flex';box.className='wadea-alert-wrap';
+  const tierRank={red:0,yellow:1,white:2};
+  items.sort((a,b)=>{
+    const ra=a.pendingBarcode?1.5:tierRank[a.tier];
+    const rb=b.pendingBarcode?1.5:tierRank[b.tier];
+    if(ra!==rb)return ra-rb;
+    return (a.diff===null?999:a.diff)-(b.diff===null?999:b.diff);
+  });
+  box.style.display='flex';box.className='wadea-alert-wrap wa2-wrap';
   box.innerHTML=items.map(it=>{
     if(it.pendingBarcode){
-      return '<div class="wadea-alert soon" onclick="openDetail('+it.c.id+')">'
-        +'<div class="ic">📎</div>'
-        +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">بانتظار رفع الباركود لإكمال الإطلاق النهائي</div></div>'
-        +'<button class="wadea-alert-x" title="إخفاء" onclick="dismissWadeaAlert('+it.c.id+',\''+it.key+'\',event)">✕</button>'
+      return '<div class="wa2-card wa2-tier-blue" onclick="openDetail('+it.c.id+')">'
+        +'<button class="wa2-x" title="إخفاء" onclick="dismissWadeaAlert('+it.c.id+',\''+it.key+'\',event)">✕</button>'
+        +'<div class="wa2-top"><div class="wa2-name">'+esc(it.c.company)+'</div></div>'
+        +'<div class="wa2-msg"><span class="wa2-ic">📎</span>بانتظار رفع الباركود لإكمال الإطلاق النهائي</div>'
         +'</div>';
     }
-    const late=it.diff<0;
-    const msg=late?('متأخرة '+Math.abs(it.diff)+' يوم — الغرامة: '+it.fine.toLocaleString()+' د.ع'):('باقي '+it.diff+' يوم على انتهاء المهلة');
-    return '<div class="wadea-alert '+(late?'late':'soon')+'" onclick="openDetail('+it.c.id+')">'
-      +'<div class="ic">'+(late?'⚠':'⏰')+'</div>'
-      +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">'+msg+'</div></div>'
-      +(late?'<div class="fine">'+it.fine.toLocaleString()+' د.ع</div>':'')
-      +'<button class="wadea-alert-x" title="إخفاء" onclick="dismissWadeaAlert('+it.c.id+',\''+it.key+'\',event)">✕</button>'
+    const c=it.c, late=it.diff<0;
+    const dayLabel=late?('متأخرة '+Math.abs(it.diff)+' يوم'):(it.diff+' يوم متبقي');
+    const steps=[
+      {done:!!c.wadeaStep1,lbl:'أُرسلت'},
+      {done:!!c.wadeaStep2,lbl:'كتاب المشاور'},
+      {done:!!c.wadeaStep3,lbl:'كتاب المحاسب'},
+    ];
+    const dotsHtml=steps.map(s=>'<span class="wa2-dot'+(s.done?' done':'')+'" title="'+s.lbl+'">'+(s.done?'✓':'')+'</span>').join('');
+    return '<div class="wa2-card wa2-tier-'+it.tier+'" onclick="openDetail('+c.id+')">'
+      +'<button class="wa2-x" title="إخفاء" onclick="dismissWadeaAlert('+c.id+',\''+it.key+'\',event)">✕</button>'
+      +'<div class="wa2-top"><div class="wa2-name">'+esc(c.company)+'</div><div class="wa2-days">'+dayLabel+'</div></div>'
+      +'<div class="wa2-progress">'+dotsHtml+'<span class="wa2-steps-lbl">'+steps.filter(s=>s.done).length+'/3 مكتملة</span></div>'
+      +(late?'<div class="wa2-fine">الغرامة الحالية: '+it.fine.toLocaleString()+' د.ع</div>':'')
       +'</div>';
   }).join('');
 }

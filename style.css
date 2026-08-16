@@ -3631,6 +3631,33 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .wadea-alert-x{ position:absolute; top:8px; inset-inline-end:8px; width:24px; height:24px; border-radius:50%; border:none;
   background:rgba(0,0,0,.06); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--t); }
 .wadea-alert-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
+
+/* ═══ نظام التنبيه المتدرّج بالألوان (٣ درجات إلحاح + تذكير الباركود) ═══ */
+.wa2-wrap{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+.wa2-card{ position:relative; padding:14px 16px; padding-inline-end:46px; border-radius:16px; cursor:pointer;
+  background:var(--bg2); border:1px solid var(--border2); border-right:4px solid var(--border2);
+  transition:transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }
+.wa2-card:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.1); }
+.wa2-tier-yellow{ background:var(--gold-g); border-color:rgba(245,166,35,.28); border-right-color:var(--gold); }
+.wa2-tier-red{ background:var(--red-g); border-color:rgba(255,85,114,.3); border-right-color:var(--red); }
+.wa2-tier-blue{ background:var(--blue-g); border-color:rgba(96,165,250,.3); border-right-color:var(--blue); }
+.wa2-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.wa2-name{ font-size:13.5px; font-weight:700; color:var(--text); }
+.wa2-days{ font-family:var(--num); font-size:12.5px; font-weight:700; color:var(--text2); flex:0 0 auto; }
+.wa2-tier-yellow .wa2-days{ color:var(--gold); }
+.wa2-tier-red .wa2-days{ color:var(--red); }
+.wa2-progress{ display:flex; align-items:center; gap:6px; margin-top:9px; }
+.wa2-dot{ width:17px; height:17px; border-radius:50%; border:1.5px solid var(--border2); display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:transparent; flex:0 0 auto; }
+.wa2-dot.done{ background:var(--green); border-color:var(--green); color:#fff; }
+.wa2-steps-lbl{ font-size:11px; color:var(--text3); font-weight:600; margin-inline-start:4px; }
+.wa2-msg{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); margin-top:6px; }
+.wa2-ic{ font-size:14px; }
+.wa2-fine{ font-family:var(--num); font-size:12px; font-weight:700; color:var(--red); margin-top:8px;
+  background:rgba(255,85,114,.1); display:inline-block; padding:3px 10px; border-radius:8px; }
+.wa2-x{ position:absolute; top:10px; inset-inline-end:10px; width:24px; height:24px; border-radius:50%; border:none;
+  background:rgba(0,0,0,.06); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--t); }
+.wa2-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
 .wadea-page-list{ display:flex; flex-direction:column; gap:10px; }
 .wadea-page-card{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--glass); cursor:pointer; transition:var(--t); }
 .wadea-page-card:hover{ transform:translateY(-1px); border-color:var(--gold); }
