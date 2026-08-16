@@ -3975,20 +3975,27 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
    ======================================================================== */
 
 :root {
-  --ll-bg: #F5F7FB;
-  --ll-bg-2: #EEF2F7;
+  --ll-bg: #F7F9FB;
+  --ll-bg-2: #F2F4F6;
   --ll-white: #FFFFFF;
+  --ll-surface: #ECEEF0;
+  --ll-surface-high: #E6E8EA;
   --ll-navy: #131B2E;
   --ll-navy-2: #0F172A;
   --ll-gold: #D6A63A;
-  --ll-gold-soft: #F8E3A1;
+  --ll-gold-soft: #F8DF71;
+  --ll-gold-highlight: #FBE273;
+  --ll-gold-text: #6E5E00;
   --ll-text: #191C1E;
-  --ll-muted: #687080;
-  --ll-border: rgba(19,27,46,.10);
+  --ll-muted: #45464D;
+  --ll-border: rgba(198,198,205,.55);
   --ll-border-light: rgba(255,255,255,.72);
+  --ll-border-subtle: rgba(255,255,255,.40);
+  --ll-error: #BA1A1A;
   --ll-glass: rgba(255,255,255,.74);
   --ll-glass-strong: rgba(255,255,255,.88);
-  --ll-shadow: 0 16px 45px rgba(15,23,42,.07);
+  --ll-glass-exact: rgba(255,255,255,.70);
+  --ll-shadow: 0 20px 40px rgba(15,23,42,.06);
   --ll-shadow-soft: 0 8px 24px rgba(15,23,42,.055);
   --ll-radius: 22px;
   --ll-radius-sm: 12px;
@@ -4002,11 +4009,11 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
   --surface2: #F0F3F8 !important;
   --surface3: #E7EBF2 !important;
   --text: var(--ll-text) !important;
-  --text2: #5F6877 !important;
+  --text2: #45464D !important;
   --text3: #8992A0 !important;
   --gold: var(--ll-gold) !important;
   --gold2: #E7BD63 !important;
-  --gold3: #F8E3A1 !important;
+  --gold3: #F8DF71 !important;
   --gold-g: rgba(214,166,58,.11) !important;
   --gold-dark: rgba(214,166,58,.08) !important;
   --gold-glow: 0 8px 24px rgba(214,166,58,.16) !important;
@@ -4027,13 +4034,13 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
   background:
     radial-gradient(42% 36% at 92% 0%, rgba(214,166,58,.075), transparent 68%),
     radial-gradient(38% 34% at 0% 35%, rgba(74,112,176,.055), transparent 70%),
-    #F5F7FB !important;
+    #F7F9FB !important;
 }
 [data-theme="light"] #appWrap {
   background:
     radial-gradient(48% 40% at 92% 0%, rgba(214,166,58,.055), transparent 68%),
     radial-gradient(40% 36% at 0% 45%, rgba(75,111,174,.045), transparent 72%),
-    #F5F7FB !important;
+    #F7F9FB !important;
 }
 [data-theme="light"] .glass-ambient { opacity: .42; }
 [data-theme="light"] .glass-ambient .ga { filter: blur(120px); }
@@ -4077,7 +4084,7 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
   min-height: 44px !important;
   padding: 10px 13px !important;
   border-radius: 13px !important;
-  color: #687080 !important;
+  color: #45464D !important;
   font-size: 12.5px !important;
   font-weight: 600 !important;
 }
