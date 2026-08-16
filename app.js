@@ -516,6 +516,7 @@ function openProfile(){
   document.getElementById('profileEmail').value=currentUser||'';
   const prev=document.getElementById('profileAvPreview');
   prev.innerHTML=currentAvatarUrl?('<img src="'+currentAvatarUrl+'" alt="">'):((currentUserName||'م').trim()[0]||'م');
+  const rmBtn=document.getElementById('profileAvRemoveBtn');if(rmBtn)rmBtn.style.display=currentAvatarUrl?'flex':'none';
   document.getElementById('profileAvStatus').textContent='';
   const ov=document.getElementById('profileOverlay');
   ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
@@ -537,8 +538,16 @@ async function uploadProfileAvatar(inp){
     const url=SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+fileName;
     currentAvatarUrl=url;
     document.getElementById('profileAvPreview').innerHTML='<img src="'+url+'" alt="">';
+    const rmBtn=document.getElementById('profileAvRemoveBtn');if(rmBtn)rmBtn.style.display='flex';
     statusEl.textContent='✓ تم رفع الصورة — اضغط حفظ لتثبيتها';
   }catch(e){statusEl.textContent='';toast('خطأ بالاتصال','err');}
+}
+function removeProfileAvatar(){
+  currentAvatarUrl='';
+  document.getElementById('profileAvPreview').innerHTML=(currentUserName||'م').trim()[0]||'م';
+  const rmBtn=document.getElementById('profileAvRemoveBtn');if(rmBtn)rmBtn.style.display='none';
+  document.getElementById('profileAvInput').value='';
+  document.getElementById('profileAvStatus').textContent='✓ أُزيلت الصورة — اضغط حفظ لتثبيت التغيير';
 }
 async function saveProfile(){
   const fullName=document.getElementById('profileFullName').value.trim();
@@ -1085,7 +1094,7 @@ function wadeaCardHtml(it){
   if(barcodeDone){
     step4Html+='<a class="wf4-file-link" href="'+safeUrl(c.wadeaBarcodeUrl)+'" target="_blank" rel="noopener">📎 '+esc(c.wadeaBarcodeName||'الملف المرفوع')+'</a>';
   }else{
-    step4Html+='<div class="wf4-upload"><div class="wf4-upload-lbl">اختر صورة الباركود/QR الخاصة بالشركة للرفع:</div><input type="file" accept="image/*" id="wf4File_'+c.id+'" onchange="wadeaUploadBarcode('+c.id+',this)"></div>';
+    step4Html+='<div class="wf4-upload"><div class="wf4-upload-lbl">اختر صورة أو PDF الباركود/QR الخاصة بالشركة للرفع:</div><input type="file" accept="image/*,application/pdf" id="wf4File_'+c.id+'" onchange="wadeaUploadBarcode('+c.id+',this)"></div>';
   }
   step4Html+='</div>';
 
