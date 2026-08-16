@@ -984,8 +984,15 @@ function renderWadeaAlerts(){
   const dismissed=getWadeaDismissed();
   const items=[];let lateCount=0;
   cases.forEach(c=>{
-    if(c.type!==WADEA_TYPE||!c.wadeaDeadline||c.wadeaDone)return;
-    if(c.wadeaSubmittedDate)return; // أُرسلت فعلياً — ما عادت تحتاج تنبيه
+    if(c.type!==WADEA_TYPE||c.wadeaDone)return;
+    // بعد الإرسال، خطر الغرامة يوقف — بس الشركة توّها تحتاج متابعة (رفع الباركود، آخر خطوة)
+    if(c.wadeaSubmittedDate){
+      const key='barcode-pending';
+      if(dismissed[c.id]===key)return;
+      items.push({c,diff:null,fine:0,key,pendingBarcode:true});
+      return;
+    }
+    if(!c.wadeaDeadline)return;
     const deadline=new Date(c.wadeaDeadline);
     const diff=Math.round((deadline-today)/(1000*60*60*24));
     if(diff<0)lateCount++;
@@ -1009,9 +1016,16 @@ function renderWadeaAlerts(){
   }
   if(!box)return;
   if(!items.length){box.style.display='none';box.innerHTML='';return;}
-  items.sort((a,b)=>a.diff-b.diff);
+  items.sort((a,b)=>(a.diff===null?999:a.diff)-(b.diff===null?999:b.diff));
   box.style.display='flex';box.className='wadea-alert-wrap';
   box.innerHTML=items.map(it=>{
+    if(it.pendingBarcode){
+      return '<div class="wadea-alert soon" onclick="openDetail('+it.c.id+')">'
+        +'<div class="ic">📎</div>'
+        +'<div class="tx"><div class="tn">'+esc(it.c.company)+'</div><div class="ts">بانتظار رفع الباركود لإكمال الإطلاق النهائي</div></div>'
+        +'<button class="wadea-alert-x" title="إخفاء" onclick="dismissWadeaAlert('+it.c.id+',\''+it.key+'\',event)">✕</button>'
+        +'</div>';
+    }
     const late=it.diff<0;
     const msg=late?('متأخرة '+Math.abs(it.diff)+' يوم — الغرامة: '+it.fine.toLocaleString()+' د.ع'):('باقي '+it.diff+' يوم على انتهاء المهلة');
     return '<div class="wadea-alert '+(late?'late':'soon')+'" onclick="openDetail('+it.c.id+')">'
