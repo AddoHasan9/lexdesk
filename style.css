@@ -4808,15 +4808,15 @@ html,body{font-family:'IBM Plex Sans Arabic','Noto Sans Arabic',sans-serif !impo
    ======================================================================== */
 
 :root{
-  --ll4-navy:#101A2F;
-  --ll4-navy-2:#17233D;
+  --ll4-navy:#131B2E;
+  --ll4-navy-2:#0F172A;
   --ll4-gold:#C9A227;
-  --ll4-gold-2:#E3C86A;
-  --ll4-bg:#F4F6FA;
+  --ll4-gold-2:#F8DF71;
+  --ll4-bg:#F7F9FB;
   --ll4-surface:rgba(255,255,255,.78);
   --ll4-surface-solid:#FFFFFF;
-  --ll4-text:#172033;
-  --ll4-muted:#727C8D;
+  --ll4-text:#191C1E;
+  --ll4-muted:#45464D;
   --ll4-border:rgba(16,26,47,.09);
   --ll4-shadow:0 18px 50px rgba(16,26,47,.075);
   --ll4-shadow-sm:0 8px 24px rgba(16,26,47,.055);
@@ -4831,7 +4831,7 @@ body{background:var(--ll4-bg) !important;color:var(--ll4-text) !important;}
   background:
     radial-gradient(900px 500px at 85% -10%,rgba(201,162,39,.085),transparent 65%),
     radial-gradient(760px 520px at -10% 75%,rgba(63,104,170,.075),transparent 68%),
-    #F4F6FA !important;
+    #F7F9FB !important;
 }
 #appWrap::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
