@@ -134,7 +134,19 @@ svg { flex-shrink:0; }
 /* Applied via classes where needed */
 
 /* ══════════ APP SHELL ══════════ */
-.app { display:flex; min-height:100vh; min-height:100dvh; background:var(--bg); }
+.app { display:flex; min-height:100vh; min-height:100dvh; background:transparent; }
+
+/* ══════════ GLASS AMBIENT — فقاعات الإضاءة خلف الواجهة الزجاجية ══════════ */
+.glass-ambient{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+.glass-ambient .ga{ position:absolute; border-radius:50%; filter:blur(100px); }
+.ga1{ width:640px; height:640px; top:-220px; right:-160px; background:radial-gradient(circle, rgba(10,28,64,.35), transparent 70%); }
+.ga2{ width:560px; height:560px; top:280px; left:-180px; background:radial-gradient(circle, rgba(232,178,61,.30), transparent 70%); }
+.ga3{ width:520px; height:520px; bottom:-200px; right:220px; background:radial-gradient(circle, rgba(10,28,64,.22), transparent 70%); }
+.ga4{ width:380px; height:380px; bottom:60px; left:280px; background:radial-gradient(circle, rgba(232,178,61,.20), transparent 70%); }
+[data-theme="light"] .ga1{ background:radial-gradient(circle, rgba(10,28,64,.16), transparent 70%); }
+[data-theme="light"] .ga2{ background:radial-gradient(circle, rgba(232,178,61,.40), transparent 70%); }
+[data-theme="light"] .ga3{ background:radial-gradient(circle, rgba(10,28,64,.10), transparent 70%); }
+[data-theme="light"] .ga4{ background:radial-gradient(circle, rgba(232,178,61,.28), transparent 70%); }
 
 /* ══════════════════════════════════════
    SIDEBAR
@@ -467,11 +479,31 @@ svg { flex-shrink:0; }
 .case-card,
 .stat-card,
 .rep-sum-card {
-  background: var(--bg2);
-  border: 0.5px solid var(--border2);
+  background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,.14);
+  border-bottom-color: rgba(255,255,255,.06);
+  border-inline-start-color: rgba(255,255,255,.06);
   border-radius: var(--r);
-  box-shadow: var(--sh);
+  box-shadow: 0 8px 30px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.07);
   transition: all .25s var(--ease);
+}
+[data-theme="light"] .hero-kpi,
+[data-theme="light"] .stat-mini,
+[data-theme="light"] .cases-panel,
+[data-theme="light"] .rp-card,
+[data-theme="light"] .chart-card,
+[data-theme="light"] .report-card,
+[data-theme="light"] .set-card,
+[data-theme="light"] .case-card,
+[data-theme="light"] .stat-card,
+[data-theme="light"] .rep-sum-card {
+  background: linear-gradient(160deg, rgba(255,255,255,.62), rgba(255,255,255,.32));
+  border-color: rgba(255,255,255,.55);
+  border-bottom-color: rgba(255,255,255,.25);
+  border-inline-start-color: rgba(255,255,255,.25);
+  box-shadow: 0 8px 30px rgba(10,20,50,.07), inset 0 1px 0 rgba(255,255,255,.55);
 }
 
 /* ══════════════════════════════════════
@@ -522,10 +554,12 @@ svg { flex-shrink:0; }
   position: relative;
   overflow: hidden;
   border-right: 3px solid var(--gold) !important;
-  background: linear-gradient(180deg, var(--glass) 0%, rgba(245,166,35,.04) 100%) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(245,166,35,.07) 100%) !important;
+  backdrop-filter: blur(22px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.4) !important;
 }
 [data-theme="light"] .hero-kpi {
-  background: linear-gradient(180deg, #fff 0%, #FFF8E5 100%) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.68) 0%, rgba(255,222,140,.38) 100%) !important;
   border-right-color: #F0A500 !important;
 }
 .hero-kpi-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:4px; }
@@ -853,10 +887,6 @@ tr.case-row:last-child td { border-bottom:none; }
 .rp-card {
   border-bottom: 1px solid var(--border);
   padding: 14px;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  backdrop-filter: none;
 }
 .rp-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .rp-title { font-family:var(--font-d); font-size:13px; font-weight:700; color:var(--text); }
@@ -1066,7 +1096,8 @@ tr.case-row:last-child td { border-bottom:none; }
 .set-tab-content { display:none; flex-direction:column; gap:14px; padding:16px 20px 20px; overflow-y:auto; }
 .set-tab-content.active { display:flex; }
 .settings-grid { display:grid; gap:12px; }
-.set-card { overflow:hidden; background:var(--bg2) !important; border:0.5px solid var(--border) !important; border-radius:10px !important; }
+.set-card { overflow:hidden; background:linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.03)) !important; backdrop-filter:blur(22px) saturate(1.4) !important; -webkit-backdrop-filter:blur(22px) saturate(1.4) !important; border:1px solid rgba(255,255,255,.14) !important; border-radius:10px !important; }
+[data-theme="light"] .set-card { background:linear-gradient(160deg, rgba(255,255,255,.62), rgba(255,255,255,.32)) !important; border-color:rgba(255,255,255,.55) !important; }
 .set-card.full { grid-column:1/-1; }
 .set-card-header { display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:0.5px solid var(--border); }
 .set-ico { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
@@ -3240,11 +3271,15 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* بطاقة الإجمالي: نبقّي اللمسة الذهبية بدون الحد الجانبي الثقيل */
 [data-theme="light"] .hero-kpi{
   border-right:none !important;
-  background:linear-gradient(180deg, rgba(255,255,255,.82) 0%, rgba(255,246,225,.72) 100%) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(255,236,190,.42) 100%) !important;
+  backdrop-filter:blur(22px) saturate(1.4) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.4) !important;
 }
 :root:not([data-theme="light"]) .hero-kpi{
   border-right:none !important;
-  background:linear-gradient(180deg, rgba(255,255,255,.07) 0%, rgba(245,166,35,.06) 100%) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(245,166,35,.08) 100%) !important;
+  backdrop-filter:blur(22px) saturate(1.4) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.4) !important;
 }
 
 /* ④ هندسة الحبوب — عناصر آمنة فقط (بدون لمس التخطيط) */
@@ -3473,14 +3508,18 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* بطاقة المبلغ: زجاج محايد مثل باقي البطاقات (بدل التدرّج الأصفر والحد الذهبي السميك) */
 #appWrap .hero-kpi{ border-right:none !important; border-top:none !important; }
 [data-theme="light"] #appWrap .hero-kpi{
-  background:rgba(255,255,255,.68) !important;
-  border-inline:1px solid rgba(255,255,255,.72) !important;
-  border-bottom:1px solid rgba(255,255,255,.72) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(255,236,190,.42) 100%) !important;
+  backdrop-filter:blur(22px) saturate(1.4) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.4) !important;
+  border-inline:1px solid rgba(255,255,255,.55) !important;
+  border-bottom:1px solid rgba(255,255,255,.3) !important;
 }
 :root:not([data-theme="light"]) #appWrap .hero-kpi{
-  background:rgba(255,255,255,.055) !important;
-  border-inline:1px solid rgba(255,255,255,.09) !important;
-  border-bottom:1px solid rgba(255,255,255,.09) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.10) 0%, rgba(245,166,35,.08) 100%) !important;
+  backdrop-filter:blur(22px) saturate(1.4) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.4) !important;
+  border-inline:1px solid rgba(255,255,255,.14) !important;
+  border-bottom:1px solid rgba(255,255,255,.06) !important;
 }
 /* شريط أداء المحامين: ذهبي أهدأ + مسار أنعم */
 #appWrap :is(.rp-prog-fill,.lawyer-bar){ opacity:.82; }
