@@ -7,29 +7,29 @@
    ============================================================================ */
 
 /* ---- الخطوط (Tajawal/Cairo للواجهة، Noto Naskh اختياري للنصوص القانونية) ---- */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* ===== درجات الهوية ===== */
-  --navy-900: #0A1C40;   /* الأساسي (Brand) */
-  --navy-800: #10264F;
-  --navy-700: #1B3A6B;
-  --navy-600: #274C86;
-  --gold-500: #F5A623;   /* اللون المميّز / زر الإجراء */
-  --gold-600: #D98E12;   /* حالة hover */
-  --gold-100: #FEF3DC;   /* تظليل خفيف */
+  --navy-900: #131B2E;   /* الأساسي (Brand) */
+  --navy-800: #182642;
+  --navy-700: #24395F;
+  --navy-600: #314D78;
+  --gold-500: #D6A63A;   /* اللون المميّز / زر الإجراء */
+  --gold-600: #B98A22;   /* حالة hover */
+  --gold-100: #FBF3D9;   /* تظليل خفيف */
 
   /* ===== توكنات دلالية — الوضع الفاتح ===== */
-  --color-bg:          #F5F7FB;   /* خلفية الصفحة */
-  --color-bg-subtle:   #EEF2F9;   /* خلفية ثانوية / أقسام */
+  --color-bg:          #F7F9FB;   /* خلفية الصفحة */
+  --color-bg-subtle:   #F2F4F6;   /* خلفية ثانوية / أقسام */
   --color-surface:     #FFFFFF;   /* سطح صلب — الجداول والبطاقات الكثيفة */
   --color-primary:     var(--navy-900);
   --color-on-primary:  #FFFFFF;
   --color-accent:      var(--gold-500);
   --color-on-accent:   #0A1C40;   /* نص داكن فوق الذهبي (تباين آمن) */
-  --color-fg:          #0F1B33;   /* نص أساسي */
-  --color-fg-muted:    #5A6B85;   /* نص ثانوي */
-  --color-border:      #DCE3EE;
+  --color-fg:          #191C1E;   /* نص أساسي */
+  --color-fg-muted:    #45464D;   /* نص ثانوي */
+  --color-border:      #C6C6CD;
   --color-ring:        var(--gold-500);  /* حلقة التركيز — بارزة */
 
   /* حالات */
@@ -43,14 +43,14 @@
 
   /* ===== الزجاج الناعم — الوضع الفاتح ===== */
   /* عتامة مرفوعة (~0.65) حتى يظل النص مقروءاً في تطبيق بيانات */
-  --glass-bg:     rgba(255, 255, 255, 0.65);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-blur:   14px;
-  --glass-shadow: 0 8px 30px rgba(10, 28, 64, 0.10);
+  --glass-bg:     rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.52);
+  --glass-blur:   18px;
+  --glass-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 
   /* ===== الخطوط ===== */
-  --font-ui:      'Noto Kufi Arabic', system-ui, sans-serif;   /* الواجهة */
-  --font-heading: 'Noto Kufi Arabic', system-ui, sans-serif;   /* العناوين */
+  --font-ui:      'IBM Plex Sans Arabic', system-ui, sans-serif;   /* الواجهة */
+  --font-heading: 'IBM Plex Sans Arabic', system-ui, sans-serif;   /* العناوين */
   --font-legal:   'Noto Naskh Arabic', 'Tajawal', serif;       /* نص القضايا */
 
   /* ===== سلّم المسافات (كثيف / داشبورد 8/10) ===== */
@@ -65,13 +65,13 @@
   /* ===== الزوايا ===== */
   --radius-sm:   8px;
   --radius-md:   12px;
-  --radius-lg:   16px;
+  --radius-lg:   24px;
   --radius-full: 999px;
 
   /* ===== الظلال ===== */
   --shadow-sm: 0 1px 2px rgba(10, 28, 64, 0.06);
   --shadow-md: 0 4px 14px rgba(10, 28, 64, 0.08);
-  --shadow-lg: 0 12px 34px rgba(10, 28, 64, 0.12);
+  --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.06);
 
   /* ===== الحركة ===== */
   --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
