@@ -1742,6 +1742,13 @@ function openDetail(id){
   document.getElementById('detDefRow').style.display=c.deficiency?'block':'none';document.getElementById('detDef').textContent=c.deficiency||'—';
   document.getElementById('detNotesRow').style.display=c.notes?'block':'none';document.getElementById('detNotes').textContent=c.notes||'—';
   const attachRow=document.getElementById('detAttachRow');if(c.attachUrl){attachRow.style.display='block';document.getElementById('detAttach').innerHTML='<a href="'+safeUrl(c.attachUrl)+'" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">'+esc(c.attachName||'فتح المرفق')+' ↗</a>';}else attachRow.style.display='none';
+  const wadeaBcRow=document.getElementById('detWadeaBarcodeRow');
+  if(wadeaBcRow){
+    if(c.type===WADEA_TYPE&&c.wadeaBarcodeUrl){
+      wadeaBcRow.style.display='block';
+      document.getElementById('detWadeaBarcode').innerHTML='<a href="'+safeUrl(c.wadeaBarcodeUrl)+'" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">'+esc(c.wadeaBarcodeName||'فتح الملف')+' ↗</a>';
+    } else wadeaBcRow.style.display='none';
+  }
   const wadeaDetailRow=document.getElementById('detWadeaRow');
   if(wadeaDetailRow){if(c.type===WADEA_TYPE){wadeaDetailRow.style.display='block';const checked=(c.wadeaChecks||'').split('،').map(s=>s.trim()).filter(Boolean);document.getElementById('detWadeaList').innerHTML=WADEA_ITEMS.map(item=>{const done=checked.includes(item);return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid '+(done?'var(--green)':'var(--border)')+';background:'+(done?'var(--green-g)':'var(--surface)')+';margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:'+(done?'var(--green)':'var(--text2)')+'">'+item+'</span></div>';}).join('');}else wadeaDetailRow.style.display='none';}
   renderDetailComments(c);renderDetailTimeline(c);document.getElementById('commentInp').value='';
