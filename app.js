@@ -1,4 +1,18 @@
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+function renderFileCard(url,name,hint){
+  if(!url)return'—';
+  const safeName=name||'الملف المرفق';
+  const ext=(safeName.split('.').pop()||'').toLowerCase();
+  const isImg=['jpg','jpeg','png','gif','webp','bmp'].includes(ext);
+  const thumb=isImg
+    ? '<img class="det-file-thumb" src="'+safeUrl(url)+'" alt="" loading="lazy">'
+    : '<div class="det-file-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>';
+  return '<a href="'+safeUrl(url)+'" target="_blank" rel="noopener" class="det-file-card">'
+    +thumb
+    +'<div class="det-file-info"><div class="det-file-name">'+esc(safeName)+'</div><div class="det-file-hint">'+(hint||(isImg?'صورة — اضغط للمعاينة الكاملة':'اضغط لفتح الملف'))+'</div></div>'
+    +'<div class="det-file-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg></div>'
+    +'</a>';
+}
 function safeUrl(u){u=String(u==null?'':u);return /^https?:\/\//i.test(u)?u:'#';}
 'use strict';
 // ══ SUPABASE CONFIG ══
@@ -1741,12 +1755,12 @@ function openDetail(id){
   }
   document.getElementById('detDefRow').style.display=c.deficiency?'block':'none';document.getElementById('detDef').textContent=c.deficiency||'—';
   document.getElementById('detNotesRow').style.display=c.notes?'block':'none';document.getElementById('detNotes').textContent=c.notes||'—';
-  const attachRow=document.getElementById('detAttachRow');if(c.attachUrl){attachRow.style.display='block';document.getElementById('detAttach').innerHTML='<a href="'+safeUrl(c.attachUrl)+'" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">'+esc(c.attachName||'فتح المرفق')+' ↗</a>';}else attachRow.style.display='none';
+  const attachRow=document.getElementById('detAttachRow');if(c.attachUrl){attachRow.style.display='block';document.getElementById('detAttach').innerHTML=renderFileCard(c.attachUrl,c.attachName);}else attachRow.style.display='none';
   const wadeaBcRow=document.getElementById('detWadeaBarcodeRow');
   if(wadeaBcRow){
     if(c.type===WADEA_TYPE&&c.wadeaBarcodeUrl){
       wadeaBcRow.style.display='block';
-      document.getElementById('detWadeaBarcode').innerHTML='<a href="'+safeUrl(c.wadeaBarcodeUrl)+'" target="_blank" style="color:var(--blue2);font-weight:700;text-decoration:none">'+esc(c.wadeaBarcodeName||'فتح الملف')+' ↗</a>';
+      document.getElementById('detWadeaBarcode').innerHTML=renderFileCard(c.wadeaBarcodeUrl,c.wadeaBarcodeName,'باركود الشركة — اضغط للمعاينة');
     } else wadeaBcRow.style.display='none';
   }
   const wadeaDetailRow=document.getElementById('detWadeaRow');

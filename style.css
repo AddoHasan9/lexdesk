@@ -3720,6 +3720,35 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .wf4-file-link{ display:flex; align-items:center; gap:6px; margin-top:9px; padding:8px 11px; border-radius:9px; background:var(--green-g); color:var(--green); font-size:12px; font-weight:700; text-decoration:none; }
 .wf4-success{ display:flex; align-items:flex-start; gap:10px; padding:13px 14px; border-radius:13px; background:var(--green-g); border:1px solid rgba(34,211,160,.3); color:var(--green); }
 .wf4-success b{ font-size:12.5px; display:block; }
+
+/* ═══ بطاقة ملف بمعاينة مصغّرة — لعرض المرفقات (باركود/QR وغيرها) بشكل لائق ═══ */
+.det-file-card{
+  display:flex; align-items:center; gap:12px;
+  padding:10px; border-radius:14px;
+  background:var(--glass); border:1px solid var(--border);
+  text-decoration:none; transition:var(--t);
+}
+.det-file-card:hover{ border-color:var(--gold); background:var(--gold-g); transform:translateY(-1px); }
+.det-file-thumb{
+  width:52px; height:52px; border-radius:10px; flex-shrink:0;
+  object-fit:cover; background:var(--bg3); border:1px solid var(--border2);
+}
+.det-file-icon{
+  width:52px; height:52px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--gold-g); color:var(--gold);
+}
+.det-file-icon svg{ width:24px; height:24px; }
+.det-file-info{ flex:1; min-width:0; }
+.det-file-name{ font-size:13px; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.det-file-hint{ font-size:11px; color:var(--text3); margin-top:2px; display:flex; align-items:center; gap:4px; }
+.det-file-open{
+  flex-shrink:0; width:32px; height:32px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg3); color:var(--text2);
+}
+.det-file-card:hover .det-file-open{ background:var(--gold); color:#2b1d02; }
+.det-file-open svg{ width:15px; height:15px; }
 .wf4-success-sub{ font-size:11px; color:var(--text2); font-weight:400; margin-top:4px; line-height:1.6; }
 .wf4-foot{ display:flex; align-items:center; gap:7px; padding:11px 16px; border-top:1px solid var(--border); font-size:12px; font-weight:700; color:var(--text2); }
 .wf4-foot.soon{ color:var(--orange); background:var(--orange-g); }
