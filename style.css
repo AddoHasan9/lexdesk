@@ -3691,6 +3691,60 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 
 /* ═══ نظام التنبيه المتدرّج بالألوان (٣ درجات إلحاح + تذكير الباركود) ═══ */
 .wa2-wrap{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+
+/* ═══ مهام تتجدد كل بداية شهر ═══ */
+.mt-dash-card{
+  border-radius:var(--r); padding:16px 18px; margin-bottom:14px;
+  background:var(--glass); border:1px solid var(--border);
+}
+.mt-dash-hd{ display:flex; align-items:center; gap:8px; color:var(--gold); font-weight:800; font-size:13.5px; margin-bottom:12px; }
+.mt-dash-count{ margin-inline-start:auto; background:var(--gold); color:#2b1d02; font-size:11px; font-weight:800; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 6px; }
+.mt-dash-list{ display:flex; flex-direction:column; gap:8px; }
+.mt-dash-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:11px; background:var(--bg3); }
+.mt-dash-text{ flex:1; font-size:12.5px; font-weight:700; color:var(--text); }
+
+.mt-complete-btn{
+  flex-shrink:0; padding:7px 14px; border-radius:9px; border:none; cursor:pointer;
+  background:var(--green-g); color:var(--green); font-weight:800; font-size:11.5px;
+  transition:var(--t);
+}
+.mt-complete-btn:hover{ background:var(--green); color:#fff; }
+.mt-complete-btn-sm{ padding:6px 12px; font-size:11px; }
+
+.mt-panel{ margin:0 20px 18px; border-radius:var(--r); background:var(--surface); border:1px solid var(--border); overflow:hidden; }
+.mt-panel-hd{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+.mt-panel-title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:13.5px; color:var(--text); }
+.mt-panel-title svg{ color:var(--gold); }
+.mt-add-btn{
+  margin-inline-start:auto; display:flex; align-items:center; gap:6px;
+  padding:8px 13px; border-radius:9px; border:1px solid var(--border2);
+  background:var(--bg3); color:var(--text2); font-weight:700; font-size:12px; cursor:pointer;
+  transition:var(--t);
+}
+.mt-add-btn:hover{ border-color:var(--gold); color:var(--gold); background:var(--gold-g); }
+.mt-empty{ padding:24px 16px; text-align:center; color:var(--text3); font-size:12.5px; }
+
+.mt-row{ display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid var(--border); transition:var(--t); }
+.mt-row:last-child{ border-bottom:none; }
+.mt-row:hover{ background:var(--bg3); }
+.mt-row-main{ flex:1; min-width:0; }
+.mt-row-text{ font-size:13px; font-weight:700; color:var(--text); }
+.mt-row-notes{ font-size:11px; color:var(--text3); margin-top:2px; }
+.mt-row-actions{ display:flex; align-items:center; gap:7px; flex-shrink:0; }
+.mt-badge-done{ font-size:11px; font-weight:800; color:var(--green); background:var(--green-g); padding:6px 12px; border-radius:9px; white-space:nowrap; }
+.mt-icon-btn{
+  width:28px; height:28px; border-radius:8px; border:none; cursor:pointer;
+  background:var(--bg3); color:var(--text3); display:flex; align-items:center; justify-content:center;
+  transition:var(--t);
+}
+.mt-icon-btn:hover{ background:var(--border2); color:var(--text); }
+.mt-icon-btn-danger:hover{ background:var(--red-g); color:var(--red); }
+
+/* الصف المنجز — مشطوب ومظلّل بالأخضر */
+.mt-row-done{ background:var(--green-g); }
+.mt-row-done .mt-row-text{ text-decoration:line-through; color:var(--text3); }
+.mt-row-done .mt-row-notes{ text-decoration:line-through; }
+.mt-row-done:hover{ background:var(--green-g); filter:brightness(1.05); }
 .wa2-card{ position:relative; padding:14px 16px; padding-inline-end:46px; border-radius:16px; cursor:pointer;
   background:var(--bg2); border:1px solid var(--border2); border-right:4px solid var(--border2);
   transition:transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }

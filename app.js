@@ -650,6 +650,7 @@ function showApp(){
   loadNotifs().then(()=>{renderNotifBadge();renderNotifList();});
   loadReminders().then(()=>{renderRemBadge();renderRemList();checkDueReminders();});
   loadTasks().then(()=>{renderTaskAlerts();buildTasksPage();});
+  loadMonthlyTasks().then(()=>{buildMonthlyTasksList();renderDashboardMonthlyTasks();});
   try{stStampDataUrl=localStorage.getItem(SK_STAMP);}catch(e){}
   stUpdateStampStatus();
   toast('أهلاً بك','ok');
@@ -1561,7 +1562,7 @@ function setView(v){
 function goPage(p){
   if((p==='reports'||p==='settings')&&!isAdmin()){toast('هذه الصفحة للأدمن فقط','err');return;}
   ['dash','charts','reports','tools','settings','deficiency','wadea','tasks'].forEach(x=>{const pg=document.getElementById('page'+x.charAt(0).toUpperCase()+x.slice(1));if(pg){pg.classList.toggle('active',x===p);pg.style.display=(x===p)?'flex':'none';}const sbMap={dash:'sbDash',charts:'sbCharts',reports:'sbReports',tools:'sbTools',settings:'sbSettings',deficiency:'sbDeficiency',wadea:'sbWadea',tasks:'sbTasks'};const sb=document.getElementById(sbMap[x]);if(sb)sb.classList.toggle('active',x===p);});
-  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);if(p==='tasks')setTimeout(buildTasksPage,50);
+  if(p==='settings')loadSettingsPage();if(p==='charts')setTimeout(buildCharts,100);if(p==='reports')setTimeout(buildReports,50);if(p==='deficiency')setTimeout(buildDeficiencyPage,50);if(p==='wadea')setTimeout(buildWadeaPage,50);if(p==='tasks')setTimeout(()=>{buildTasksPage();buildMonthlyTasksList();},50);
 }
 function mobGoPage(p){goPage(p);document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));const map={dash:'mnDash',charts:'mnCharts',settings:'mnUser',tools:'mnTools'};if(map[p]){const el=document.getElementById(map[p]);if(el)el.classList.add('active');}}
 
@@ -4026,6 +4027,118 @@ function jumpTaskStage(id,col){
   const t=tasks.find(x=>x.id===id);if(!t||t.col===col)return;
   moveTask(id,col);
 }
+// ══════════════════ المهام الشهرية المتكررة (تتجدد أول كل شهر) ══════════════════
+const SK_MTASKS='lexdesk_monthly_tasks_v1';
+let monthlyTasks=[];
+let editingMonthlyTaskId=null;
+
+async function loadMonthlyTasks(){
+  const cloud=await sbLoadMeta('monthlyTasks');
+  if(cloud&&Array.isArray(cloud))monthlyTasks=cloud;
+  else{try{monthlyTasks=JSON.parse(localStorage.getItem(SK_MTASKS)||'[]');}catch(e){monthlyTasks=[];}}
+}
+function saveMonthlyTasks(){
+  try{localStorage.setItem(SK_MTASKS,JSON.stringify(monthlyTasks));}catch(e){}
+  sbSaveMeta('monthlyTasks',monthlyTasks);
+}
+function currentMonthKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function isMonthlyTaskDoneThisMonth(t){
+  return t.completedMonth===currentMonthKey();
+}
+
+function openMonthlyTaskForm(id){
+  editingMonthlyTaskId=id;
+  const t=id?monthlyTasks.find(x=>x.id===id):{};
+  document.getElementById('monthlyTaskFormTitle').textContent=id?'تعديل المهمة الشهرية':'مهمة شهرية جديدة';
+  document.getElementById('mtText').value=t.text||'';
+  document.getElementById('mtNotes').value=t.notes||'';
+  const ov=document.getElementById('monthlyTaskOverlay');
+  ov.style.display='flex';setTimeout(()=>ov.classList.add('open'),10);
+}
+function closeMonthlyTaskForm(){
+  const ov=document.getElementById('monthlyTaskOverlay');
+  ov.classList.remove('open');setTimeout(()=>{ov.style.display='none';},200);
+  editingMonthlyTaskId=null;
+}
+function saveMonthlyTask(){
+  const text=document.getElementById('mtText').value.trim();
+  if(!text){toast('اكتب نص المهمة','err');return;}
+  const notes=document.getElementById('mtNotes').value.trim();
+  if(editingMonthlyTaskId){
+    const t=monthlyTasks.find(x=>x.id===editingMonthlyTaskId);
+    if(t){t.text=text;t.notes=notes;}
+    toast('تم تحديث المهمة','ok');
+  }else{
+    monthlyTasks.push({id:Date.now(),text,notes,completedMonth:null,createdAt:new Date().toISOString()});
+    toast('تمت إضافة المهمة الشهرية','ok');
+  }
+  saveMonthlyTasks();closeMonthlyTaskForm();buildMonthlyTasksList();renderDashboardMonthlyTasks();
+}
+function deleteMonthlyTask(id,ev){
+  if(ev)ev.stopPropagation();
+  if(!confirm('حذف هذي المهمة الشهرية نهائيًا؟'))return;
+  monthlyTasks=monthlyTasks.filter(t=>t.id!==id);
+  saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
+}
+function completeMonthlyTask(id,ev){
+  if(ev)ev.stopPropagation();
+  const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
+  t.completedMonth=currentMonthKey();
+  saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
+  toast('✓ أُنجزت لهذا الشهر','ok');
+}
+function reopenMonthlyTask(id,ev){
+  if(ev)ev.stopPropagation();
+  const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
+  t.completedMonth=null;
+  saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
+}
+
+function buildMonthlyTasksList(){
+  const body=document.getElementById('monthlyTasksListBody');
+  if(!body)return;
+  if(!monthlyTasks.length){
+    body.innerHTML='<div class="mt-empty">ماكو مهام شهرية بعد — اضغط "إضافة مهمة شهرية" حتى تضيف وحدة تتذكرها كل شهر</div>';
+    return;
+  }
+  const sorted=[...monthlyTasks].sort((a,b)=>isMonthlyTaskDoneThisMonth(a)-isMonthlyTaskDoneThisMonth(b));
+  body.innerHTML=sorted.map(t=>{
+    const done=isMonthlyTaskDoneThisMonth(t);
+    return '<div class="mt-row'+(done?' mt-row-done':'')+'">'
+      +'<div class="mt-row-main">'
+      +'<div class="mt-row-text">'+esc(t.text)+'</div>'
+      +(t.notes?'<div class="mt-row-notes">'+esc(t.notes)+'</div>':'')
+      +'</div>'
+      +'<div class="mt-row-actions">'
+      +(done
+        ? '<span class="mt-badge-done">✓ منجزة لهذا الشهر</span><button class="mt-icon-btn" title="إرجاع" onclick="reopenMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>'
+        : '<button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>')
+      +'<button class="mt-icon-btn" title="تعديل" onclick="openMonthlyTaskForm('+t.id+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>'
+      +'<button class="mt-icon-btn mt-icon-btn-danger" title="حذف" onclick="deleteMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function renderDashboardMonthlyTasks(){
+  const box=document.getElementById('monthlyTasksCard');
+  if(!box)return;
+  const pending=monthlyTasks.filter(t=>!isMonthlyTaskDoneThisMonth(t));
+  if(!pending.length){box.style.display='none';box.innerHTML='';return;}
+  box.style.display='block';
+  box.innerHTML='<div class="mt-dash-card">'
+    +'<div class="mt-dash-hd">'
+    +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.7"/><path d="M21 3v6h-6"/></svg>'
+    +'<span>مهام هذا الشهر</span>'
+    +'<span class="mt-dash-count">'+pending.length+'</span>'
+    +'</div>'
+    +'<div class="mt-dash-list">'
+    +pending.map(t=>'<div class="mt-dash-row"><div class="mt-dash-text">'+esc(t.text)+'</div><button class="mt-complete-btn mt-complete-btn-sm" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button></div>').join('')
+    +'</div></div>';
+}
+
 function buildTasksPage(){
   const body=document.getElementById('tasksBody');if(!body)return;
   const items=tasks.slice().sort((a,b)=>{

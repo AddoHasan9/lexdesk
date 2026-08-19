@@ -314,6 +314,7 @@
   <div class="dash-main">
     <!-- الصف العلوي: الإجمالي + الدونات -->
     <div id="wadeaAlerts" style="display:none"></div>
+    <div id="monthlyTasksCard" style="display:none"></div>
     <div class="dash-top-row">
       <div class="hero-kpi">
         <div class="hero-kpi-top">
@@ -909,7 +910,40 @@
     <div><div class="page-title"><span class="iconify" data-icon="solar:clipboard-check-bold-duotone" data-width="20" style="color:var(--gold)"></span> المهام</div><div class="page-sub">مهامك خلال الأسبوع والأيام الجاية</div></div>
     <button class="btn-save" onclick="openTaskForm(null)" style="display:flex;align-items:center;gap:6px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg> إضافة مهمة جديدة</button>
   </div>
+
+  <div class="mt-panel">
+    <div class="mt-panel-hd">
+      <div class="mt-panel-title">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.7"/><path d="M21 3v6h-6"/></svg>
+        مهام تتجدد كل بداية شهر
+      </div>
+      <button class="mt-add-btn" onclick="openMonthlyTaskForm(null)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        إضافة مهمة شهرية
+      </button>
+    </div>
+    <div id="monthlyTasksListBody"></div>
+  </div>
+
   <div id="tasksBody" style="padding:0 20px 20px"></div>
+</div>
+
+<!-- MONTHLY TASK FORM MODAL -->
+<div class="overlay" id="monthlyTaskOverlay" style="display:none" onclick="if(event.target===this)closeMonthlyTaskForm()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-hd">
+      <div class="modal-title" id="monthlyTaskFormTitle">مهمة شهرية جديدة</div>
+      <button class="modal-close" onclick="closeMonthlyTaskForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fm-group-inner"><label class="fm-lbl">نص المهمة *</label><input id="mtText" class="fm-inp" placeholder="مثال: دفع إيجار المكتب"></div>
+      <div class="fm-group-inner" style="margin-top:12px"><label class="fm-lbl">ملاحظات (اختياري)</label><textarea id="mtNotes" class="fm-inp" rows="2" placeholder="أي تفاصيل إضافية"></textarea></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-cancel" onclick="closeMonthlyTaskForm()">إلغاء</button>
+      <button class="btn-save" onclick="saveMonthlyTask()">حفظ</button>
+    </div>
+  </div>
 </div>
 
 <!-- TASK FORM MODAL -->
