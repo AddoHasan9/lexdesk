@@ -4048,6 +4048,14 @@ function currentMonthKey(){
 function isMonthlyTaskDoneThisMonth(t){
   return t.completedMonth===currentMonthKey();
 }
+function isMonthlyTaskInProgressThisMonth(t){
+  return t.inProgressMonth===currentMonthKey() && !isMonthlyTaskDoneThisMonth(t);
+}
+function monthlyTaskStatus(t){
+  if(isMonthlyTaskDoneThisMonth(t))return'done';
+  if(isMonthlyTaskInProgressThisMonth(t))return'progress';
+  return'pending';
+}
 
 function openMonthlyTaskForm(id){
   editingMonthlyTaskId=id;
@@ -4083,6 +4091,12 @@ function deleteMonthlyTask(id,ev){
   monthlyTasks=monthlyTasks.filter(t=>t.id!==id);
   saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
 }
+function startMonthlyTask(id,ev){
+  if(ev)ev.stopPropagation();
+  const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
+  t.inProgressMonth=currentMonthKey();
+  saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
+}
 function completeMonthlyTask(id,ev){
   if(ev)ev.stopPropagation();
   const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
@@ -4094,6 +4108,7 @@ function reopenMonthlyTask(id,ev){
   if(ev)ev.stopPropagation();
   const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
   t.completedMonth=null;
+  t.inProgressMonth=null;
   saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
 }
 
@@ -4104,18 +4119,25 @@ function buildMonthlyTasksList(){
     body.innerHTML='<div class="mt-empty">ماكو مهام شهرية بعد — اضغط "إضافة مهمة شهرية" حتى تضيف وحدة تتذكرها كل شهر</div>';
     return;
   }
-  const sorted=[...monthlyTasks].sort((a,b)=>isMonthlyTaskDoneThisMonth(a)-isMonthlyTaskDoneThisMonth(b));
+  const rank={pending:0,progress:1,done:2};
+  const sorted=[...monthlyTasks].sort((a,b)=>rank[monthlyTaskStatus(a)]-rank[monthlyTaskStatus(b)]);
   body.innerHTML=sorted.map(t=>{
-    const done=isMonthlyTaskDoneThisMonth(t);
-    return '<div class="mt-row'+(done?' mt-row-done':'')+'">'
+    const status=monthlyTaskStatus(t);
+    let actionsHtml;
+    if(status==='done'){
+      actionsHtml='<span class="mt-badge-done">✓ منجزة لهذا الشهر</span><button class="mt-icon-btn" title="إرجاع" onclick="reopenMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>';
+    } else if(status==='progress'){
+      actionsHtml='<span class="mt-badge-progress">🔵 قيد التنفيذ</span><button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>';
+    } else {
+      actionsHtml='<button class="mt-progress-btn" onclick="startMonthlyTask('+t.id+',event)">قيد التنفيذ</button><button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>';
+    }
+    return '<div class="mt-row'+(status==='done'?' mt-row-done':'')+(status==='progress'?' mt-row-progress':'')+'">'
       +'<div class="mt-row-main">'
       +'<div class="mt-row-text">'+esc(t.text)+'</div>'
       +(t.notes?'<div class="mt-row-notes">'+esc(t.notes)+'</div>':'')
       +'</div>'
       +'<div class="mt-row-actions">'
-      +(done
-        ? '<span class="mt-badge-done">✓ منجزة لهذا الشهر</span><button class="mt-icon-btn" title="إرجاع" onclick="reopenMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>'
-        : '<button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>')
+      +actionsHtml
       +'<button class="mt-icon-btn" title="تعديل" onclick="openMonthlyTaskForm('+t.id+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>'
       +'<button class="mt-icon-btn mt-icon-btn-danger" title="حذف" onclick="deleteMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>'
       +'</div></div>';
@@ -4135,7 +4157,9 @@ function renderDashboardMonthlyTasks(){
     +'<span class="mt-dash-count">'+pending.length+'</span>'
     +'</div>'
     +'<div class="mt-dash-list">'
-    +pending.map(t=>'<div class="mt-dash-row"><div class="mt-dash-text">'+esc(t.text)+'</div><button class="mt-complete-btn mt-complete-btn-sm" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button></div>').join('')
+    +pending.map(t=>'<div class="mt-dash-row">'
+      +'<div class="mt-dash-text">'+esc(t.text)+(isMonthlyTaskInProgressThisMonth(t)?' <span class="mt-dash-progress-tag">قيد التنفيذ</span>':'')+'</div>'
+      +'<button class="mt-complete-btn mt-complete-btn-sm" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button></div>').join('')
     +'</div></div>';
 }
 

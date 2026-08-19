@@ -1646,7 +1646,7 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .lx-theme-switch{ display:none; align-items:center; cursor:pointer; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
 .lx-theme-switch input{ position:absolute; opacity:0; width:0; height:0; }
 .lx-ts-track{
-  position:relative; display:inline-block;
+  position:relative; display:inline-block; overflow:hidden;
   width:56px; height:31px; border-radius:40px;
   background-color:#83d8ff;
   transition:background-color 200ms cubic-bezier(.445,.05,.55,.95);
@@ -1687,7 +1687,7 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--4{ transition:all 300ms 200ms cubic-bezier(.445,.05,.55,.95); }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--5{ transition:all 300ms 300ms cubic-bezier(.445,.05,.55,.95); }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--6{ transition:all 300ms 400ms cubic-bezier(.445,.05,.55,.95); }
-@media(max-width:768px){ .lx-ts-track{ width:46px; height:26px; } .lx-ts-handle{ width:22px; height:22px; } .lx-theme-switch input:checked ~ .lx-ts-track .lx-ts-handle{ transform:translate3d(20px,0,0) rotate(0); } }
+@media(max-width:768px){ .lx-ts-track{ width:40px; height:22px; } .lx-ts-handle{ width:18px; height:18px; top:2px; } .lx-theme-switch input:checked ~ .lx-ts-track .lx-ts-handle{ transform:translate3d(16px,0,0) rotate(0); } }
 .notif-btn { width:34px; height:34px; border-radius:10px; border:1px solid var(--glass-border); background:var(--glass); color:var(--text2); display:flex; align-items:center; justify-content:center; cursor:pointer; backdrop-filter:blur(6px); transition:all var(--t); }
 .notif-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; }
 .notif-btn:hover { border-color:var(--gold); color:var(--gold); box-shadow:var(--gold-glow); }
@@ -3745,6 +3745,17 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .mt-row-done .mt-row-text{ text-decoration:line-through; color:var(--text3); }
 .mt-row-done .mt-row-notes{ text-decoration:line-through; }
 .mt-row-done:hover{ background:var(--green-g); filter:brightness(1.05); }
+
+.mt-row-progress{ background:var(--blue-g); }
+.mt-row-progress:hover{ background:var(--blue-g); filter:brightness(1.05); }
+.mt-badge-progress{ font-size:11px; font-weight:800; color:var(--blue2); background:rgba(96,165,250,.16); padding:6px 12px; border-radius:9px; white-space:nowrap; }
+.mt-progress-btn{
+  flex-shrink:0; padding:7px 14px; border-radius:9px; border:1px solid var(--border2); cursor:pointer;
+  background:var(--bg3); color:var(--text2); font-weight:700; font-size:11.5px;
+  transition:var(--t);
+}
+.mt-progress-btn:hover{ border-color:var(--blue2); color:var(--blue2); background:rgba(96,165,250,.1); }
+.mt-dash-progress-tag{ font-size:10px; font-weight:800; color:var(--blue2); background:rgba(96,165,250,.16); padding:2px 8px; border-radius:7px; margin-inline-start:6px; }
 .wa2-card{ position:relative; padding:14px 16px; padding-inline-end:46px; border-radius:16px; cursor:pointer;
   background:var(--bg2); border:1px solid var(--border2); border-right:4px solid var(--border2);
   transition:transform .2s var(--ease-out), box-shadow .2s var(--ease-out); }
