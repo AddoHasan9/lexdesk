@@ -4127,7 +4127,7 @@ function buildMonthlyTasksList(){
     if(status==='done'){
       actionsHtml='<span class="mt-badge-done">✓ منجزة لهذا الشهر</span><button class="mt-icon-btn" title="إرجاع" onclick="reopenMonthlyTask('+t.id+',event)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button>';
     } else if(status==='progress'){
-      actionsHtml='<span class="mt-badge-progress">🔵 قيد التنفيذ</span><button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>';
+      actionsHtml='<span class="mt-badge-progress"><span class="mt-spin"></span> قيد التنفيذ</span><button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>';
     } else {
       actionsHtml='<button class="mt-progress-btn" onclick="startMonthlyTask('+t.id+',event)">قيد التنفيذ</button><button class="mt-complete-btn" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button>';
     }
@@ -4158,7 +4158,7 @@ function renderDashboardMonthlyTasks(){
     +'</div>'
     +'<div class="mt-dash-list">'
     +pending.map(t=>'<div class="mt-dash-row">'
-      +'<div class="mt-dash-text">'+esc(t.text)+(isMonthlyTaskInProgressThisMonth(t)?' <span class="mt-dash-progress-tag">قيد التنفيذ</span>':'')+'</div>'
+      +'<div class="mt-dash-text">'+esc(t.text)+(isMonthlyTaskInProgressThisMonth(t)?' <span class="mt-dash-progress-tag"><span class="mt-spin"></span> قيد التنفيذ</span>':'')+'</div>'
       +'<button class="mt-complete-btn mt-complete-btn-sm" onclick="completeMonthlyTask('+t.id+',event)">✓ مكتمل</button></div>').join('')
     +'</div></div>';
 }
