@@ -649,6 +649,7 @@ function showApp(){
   loadReminders().then(()=>{renderRemBadge();renderRemList();checkDueReminders();});
   loadTasks().then(()=>{renderTaskAlerts();buildTasksPage();});
   loadMonthlyTasks().then(()=>{buildMonthlyTasksList();renderDashboardMonthlyTasks();});
+  initPushSilently();
   try{stStampDataUrl=localStorage.getItem(SK_STAMP);}catch(e){}
   stUpdateStampStatus();
   toast('أهلاً بك','ok');
@@ -722,6 +723,97 @@ function markRead(id){const n=notifications.find(x=>x.id===id);if(n)n.read=true;
 function clearNotifs(){notifications=[];saveNotifs();renderNotifBadge();renderNotifList();toggleNotifPanel();}
 function toggleNotifPanel(){const p=document.getElementById('notifPanel');p.classList.toggle('open');if(p.classList.contains('open'))setTimeout(()=>{notifications.forEach(n=>n.read=true);saveNotifs();renderNotifBadge();renderNotifList();},1500);}
 async function requestNotifPermission(){if(!('Notification'in window)){toast('متصفحك لا يدعم الإشعارات','err');return false;}if(Notification.permission==='granted')return true;if(Notification.permission==='denied'){toast('الإشعارات محظورة — فعّلها من إعدادات المتصفح','err');return false;}const r=await Notification.requestPermission();return r==='granted';}
+
+// ══ إشعارات Push حقيقية (تذكيرات تصل حتى لو التطبيق مسكّر) ══
+const VAPID_PUBLIC_KEY='BGvCUXf2NhxeEAaWE79Sw1d-Y9sJGIZW8aYti1u4M4nKCzst5aBTtOiGyrcQRVLqFiSsOaenta-cwMIRDRVJWBM';
+const SK_PUSH_ENABLED='lexdesk_push_enabled';
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function registerServiceWorker(){
+  if(!('serviceWorker'in navigator))return null;
+  try{ return await navigator.serviceWorker.register('/sw.js'); }
+  catch(e){ return null; }
+}
+async function isPushSubscribed(){
+  if(!('serviceWorker'in navigator))return false;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(!reg)return false;
+    const sub=await reg.pushManager.getSubscription();
+    return !!sub;
+  }catch(e){ return false; }
+}
+async function enablePushNotifications(silent){
+  if(!('serviceWorker'in navigator)||!('PushManager'in window)){
+    if(!silent)toast('المتصفح لا يدعم الإشعارات الفورية','err');
+    return false;
+  }
+  const ok=await requestNotifPermission();
+  if(!ok)return false;
+  const reg=await registerServiceWorker();
+  if(!reg){ if(!silent)toast('تعذّر تسجيل خدمة الإشعارات','err'); return false; }
+  try{
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const j=sub.toJSON();
+    await fetch(SB_URL+'/rest/v1/push_subscriptions',{
+      method:'POST',
+      headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({
+        endpoint:j.endpoint, p256dh:j.keys.p256dh, auth_key:j.keys.auth,
+        user_email:currentUser||null, last_seen_at:new Date().toISOString()
+      })
+    });
+    localStorage.setItem(SK_PUSH_ENABLED,'1');
+    if(!silent)toast('✓ تم تفعيل التنبيهات الفورية','ok');
+    updatePushToggleUI(true);
+    return true;
+  }catch(e){
+    if(!silent)toast('تعذّر تفعيل الإشعارات','err');
+    return false;
+  }
+}
+function updatePushToggleUI(on){
+  const el=document.getElementById('pushToggleStatus');
+  if(el)el.textContent=on?'✓ مُفعّلة على هذا الجهاز':'غير مُفعّلة على هذا الجهاز';
+  const btn=document.getElementById('pushToggleBtn');
+  if(btn)btn.textContent=on?'إعادة تفعيل / تحديث':'🔔 تفعيل التنبيهات الفورية';
+}
+// إعادة الاشتراك تلقائيًا بصمت إذا كانت مفعّلة قبل بهذا الجهاز (بعد كل تحميل)
+async function initPushSilently(){
+  if(localStorage.getItem(SK_PUSH_ENABLED)==='1'){
+    const already=await isPushSubscribed();
+    updatePushToggleUI(already);
+    if(!already)await enablePushNotifications(true);
+  }
+}
+
+// ══ مزامنة التذكيرات المستحقة مع reminders_index (حتى يوصلها push حقيقي) ══
+async function syncReminderToIndex(id,text,dueDate,cat){
+  try{
+    await fetch(SB_URL+'/rest/v1/reminders_index',{
+      method:'POST',
+      headers:{...SB_H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({id,text,due_date:dueDate,cat,done:false})
+    });
+  }catch(e){}
+}
+async function removeReminderFromIndex(id){
+  try{
+    await fetch(SB_URL+'/rest/v1/reminders_index?id=eq.'+id,{method:'DELETE',headers:SB_H});
+  }catch(e){}
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
 async function toggleNotifSetting(){
   const on=settings.notifEnabled!==false;
   if(!on){const g=await requestNotifPermission();if(!g){updateNotifUI(false);return;}settings.notifEnabled=true;toast('الإشعارات مفعّلة','ok');setTimeout(()=>sendPushNotif('LexDesk — الإشعارات شغالة'),500);}
@@ -1009,6 +1101,8 @@ function renderWadeaAlerts(){
     const tier=wadeaTier(diff);
     if(tier==='red')urgentCount++;
     const key='d'+diff;
+    // مزامنة مع فهرس التذكيرات — عاجل يوصل push فورًا، غيرها يوصل بس لما يستحق فعليًا
+    syncReminderToIndex(100000000000000+c.id,'وديعة: '+c.company+' — '+(diff<0?'متأخرة '+Math.abs(diff)+' يوم':'باقي '+diff+' يوم'),c.wadeaDeadline,tier==='red'?'عاجل':'عام');
     if(dismissed[c.id]===key)return;
     const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
     items.push({c,diff,fine,key,tier});
@@ -1194,6 +1288,7 @@ async function wadeaUploadBarcode(id,inp){
   c.wadeaBarcodeName=file.name;
   c.wadeaDone=true;
   c.wadeaCompletedAt=new Date().toISOString();
+  removeReminderFromIndex(100000000000000+c.id);
   addLog(c,'edit','إطلاق الوديعة: '+WADEA_STEP_NAMES[3]+' — اكتمل الإطلاق بالكامل ✓',currentUser||'الأدمن');
   saveData();
   buildWadeaPage();
@@ -4084,6 +4179,7 @@ function deleteMonthlyTask(id,ev){
   if(ev)ev.stopPropagation();
   if(!confirm('حذف هذي المهمة الشهرية نهائيًا؟'))return;
   monthlyTasks=monthlyTasks.filter(t=>t.id!==id);
+  removeReminderFromIndex(200000000000000+id);
   saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
 }
 function startMonthlyTask(id,ev){
@@ -4096,6 +4192,7 @@ function completeMonthlyTask(id,ev){
   if(ev)ev.stopPropagation();
   const t=monthlyTasks.find(x=>x.id===id);if(!t)return;
   t.completedMonth=currentMonthKey();
+  removeReminderFromIndex(200000000000000+id);
   saveMonthlyTasks();buildMonthlyTasksList();renderDashboardMonthlyTasks();
   toast('✓ أُنجزت لهذا الشهر','ok');
 }
@@ -4139,11 +4236,27 @@ function buildMonthlyTasksList(){
   }).join('');
 }
 
+async function resetMonthlyTaskPushIfNewMonth(pendingTasks){
+  const flagKey='lexdesk_mt_reset_month';
+  const mk=currentMonthKey();
+  if(localStorage.getItem(flagKey)===mk)return; // انصفّرت هالشهر أصلاً
+  localStorage.setItem(flagKey,mk);
+  for(const t of pendingTasks){
+    try{
+      await fetch(SB_URL+'/rest/v1/reminders_index?id=eq.'+(200000000000000+t.id),{
+        method:'PATCH',headers:{...SB_H,'Prefer':'return=minimal'},
+        body:JSON.stringify({pushed_at:null})
+      });
+    }catch(e){}
+  }
+}
 function renderDashboardMonthlyTasks(){
   const box=document.getElementById('monthlyTasksCard');
   if(!box)return;
   const pending=monthlyTasks.filter(t=>!isMonthlyTaskDoneThisMonth(t));
   if(!pending.length){box.style.display='none';box.innerHTML='';return;}
+  resetMonthlyTaskPushIfNewMonth(pending);
+  pending.forEach(t=>syncReminderToIndex(200000000000000+t.id,'مهمة شهرية: '+t.text,todayISO(),'عام'));
   box.style.display='block';
   box.innerHTML='<div class="mt-dash-card">'
     +'<div class="mt-dash-hd">'
