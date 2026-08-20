@@ -1041,6 +1041,24 @@ tr.case-row:last-child td { border-bottom:none; }
 .set-title { font-family:var(--font-d); font-size:14px; font-weight:500; color:var(--text); }
 .set-sub { font-size:11px; color:var(--text3); margin-top:2px; }
 .set-card-body { padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+
+/* ═══ مفاتيح تفضيلات فئات التنبيهات ═══ */
+.notifpref-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; cursor:pointer; }
+.notifpref-lbl{ font-size:12.5px; font-weight:600; color:var(--text); }
+.notifpref-switch{
+  position:relative; width:38px; height:22px; border-radius:20px;
+  background:var(--bg3); border:1px solid var(--border2); flex-shrink:0;
+  transition:background .2s var(--ease), border-color .2s var(--ease);
+}
+.notifpref-switch.on{ background:var(--gold); border-color:var(--gold); }
+.notifpref-knob{
+  position:absolute; top:1px; inset-inline-start:1px;
+  width:18px; height:18px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+  transition:transform .2s var(--ease);
+}
+.notifpref-switch.on .notifpref-knob{ transform:translateX(16px); }
+[dir="rtl"] .notifpref-switch.on .notifpref-knob{ transform:translateX(-16px); }
 .set-field-group { display:flex; flex-direction:column; gap:5px; }
 .sf-lbl { font-size:11px; font-weight:500; color:var(--text2); letter-spacing:.04em; }
 .sf-inp {

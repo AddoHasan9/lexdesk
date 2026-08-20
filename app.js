@@ -814,6 +814,47 @@ async function removeReminderFromIndex(id){
   }catch(e){}
 }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+// ══ تفضيلات فئات التنبيهات (تحكّم بشنو يوصلك push) ══
+const NOTIF_CATS=[
+  {key:'wadea', label:'إشعارات مواعيد الودائع', idOffset:100000000000000, storageKey:'lexdesk_notifpref_wadea'},
+  {key:'monthly', label:'إشعارات المهام الشهرية', idOffset:200000000000000, storageKey:'lexdesk_notifpref_monthly'},
+];
+function isNotifCatEnabled(key){
+  const cfg=NOTIF_CATS.find(c=>c.key===key);
+  if(!cfg)return true;
+  const v=localStorage.getItem(cfg.storageKey);
+  return v===null?true:v==='1'; // مفعّلة افتراضيًا
+}
+async function toggleNotifCat(key,enabled){
+  const cfg=NOTIF_CATS.find(c=>c.key===key);
+  if(!cfg)return;
+  localStorage.setItem(cfg.storageKey,enabled?'1':'0');
+  if(!enabled){
+    // نشيل كل التذكيرات المعلّقة من هالفئة حتى ما توصل push بعدها
+    try{
+      await fetch(SB_URL+'/rest/v1/reminders_index?id=gte.'+cfg.idOffset+'&id=lt.'+(cfg.idOffset+100000000000000),{method:'DELETE',headers:SB_H});
+    }catch(e){}
+    toast('✓ تم إيقاف '+cfg.label,'ok');
+  }else{
+    toast('✓ تم تفعيل '+cfg.label,'ok');
+    // إعادة مزامنة فورية بالحالة الحالية
+    if(key==='wadea'&&typeof renderWadeaAlerts==='function')renderWadeaAlerts();
+    if(key==='monthly'&&typeof renderDashboardMonthlyTasks==='function')renderDashboardMonthlyTasks();
+  }
+  renderNotifPrefsUI();
+}
+function renderNotifPrefsUI(){
+  const box=document.getElementById('notifCatPrefs');
+  if(!box)return;
+  box.innerHTML=NOTIF_CATS.map(c=>{
+    const on=isNotifCatEnabled(c.key);
+    return '<label class="notifpref-row">'
+      +'<span class="notifpref-lbl">'+c.label+'</span>'
+      +'<span class="notifpref-switch'+(on?' on':'')+'" onclick="toggleNotifCat(\''+c.key+'\','+(!on)+')"><span class="notifpref-knob"></span></span>'
+      +'</label>';
+  }).join('');
+}
 async function toggleNotifSetting(){
   const on=settings.notifEnabled!==false;
   if(!on){const g=await requestNotifPermission();if(!g){updateNotifUI(false);return;}settings.notifEnabled=true;toast('الإشعارات مفعّلة','ok');setTimeout(()=>sendPushNotif('LexDesk — الإشعارات شغالة'),500);}
@@ -1102,7 +1143,7 @@ function renderWadeaAlerts(){
     if(tier==='red')urgentCount++;
     const key='d'+diff;
     // مزامنة مع فهرس التذكيرات — عاجل يوصل push فورًا، غيرها يوصل بس لما يستحق فعليًا
-    syncReminderToIndex(100000000000000+c.id,'وديعة: '+c.company+' — '+(diff<0?'متأخرة '+Math.abs(diff)+' يوم':'باقي '+diff+' يوم'),c.wadeaDeadline,tier==='red'?'عاجل':'عام');
+    if(isNotifCatEnabled('wadea'))syncReminderToIndex(100000000000000+c.id,'وديعة: '+c.company+' — '+(diff<0?'متأخرة '+Math.abs(diff)+' يوم':'باقي '+diff+' يوم'),c.wadeaDeadline,tier==='red'?'عاجل':'عام');
     if(dismissed[c.id]===key)return;
     const fine=diff<0?calcWadeaFine(Math.abs(diff)):0;
     items.push({c,diff,fine,key,tier});
@@ -1666,6 +1707,7 @@ function loadSettingsPage(){
   document.getElementById('setOfficeName').value=settings.officeName;document.getElementById('setDefCur').value=settings.defCurrency;
   renderTags('lawyerTags',settings.lawyers,'lawyer');renderTags('typeTags',settings.types,'type');renderTags('deptTags',settings.depts,'dept');
   updateNotifUI(settings.notifEnabled!==false);
+  renderNotifPrefsUI();
   if(tab==='users') loadUsersList();
 }
 function renderTags(elId,arr,kind){document.getElementById(elId).innerHTML=arr.map((t,i)=>'<div class="tag">'+t+'<button class="tag-del" onclick="removeItem(\''+kind+'\','+i+')">✕</button></div>').join('');}
@@ -4256,7 +4298,7 @@ function renderDashboardMonthlyTasks(){
   const pending=monthlyTasks.filter(t=>!isMonthlyTaskDoneThisMonth(t));
   if(!pending.length){box.style.display='none';box.innerHTML='';return;}
   resetMonthlyTaskPushIfNewMonth(pending);
-  pending.forEach(t=>syncReminderToIndex(200000000000000+t.id,'مهمة شهرية: '+t.text,todayISO(),'عام'));
+  if(isNotifCatEnabled('monthly'))pending.forEach(t=>syncReminderToIndex(200000000000000+t.id,'مهمة شهرية: '+t.text,todayISO(),'عام'));
   box.style.display='block';
   box.innerHTML='<div class="mt-dash-card">'
     +'<div class="mt-dash-hd">'
