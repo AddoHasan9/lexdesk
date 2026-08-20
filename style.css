@@ -269,23 +269,6 @@ svg { flex-shrink:0; }
   gap: 1px;
   flex-shrink: 0;
 }
-.sb-theme-btn {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text2);
-  font-size: 13px;
-  font-weight: 500;
-  width: 100%;
-  cursor: pointer;
-  transition: all var(--t);
-}
-.sb-theme-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
-.sb-theme-btn .sb-lbl { flex:1; }
-.sb-theme-btn:hover { background:var(--glass2); color:var(--text); }
 .sb-user {
   display: flex;
   align-items: center;
@@ -456,15 +439,6 @@ svg { flex-shrink:0; }
    DASHBOARD LAYOUT
 ══════════════════════════════════════ */
 .dash-layout { display:flex; flex:1; min-height:0; overflow:hidden; }
-.dash-center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 12px 12px 12px 0;
-  gap: 10px;
-  overflow-y: auto;
-  min-width: 0;
-}
 
 /* ══════════════════════════════════════
    ★ SOFT GLASS CARDS — The Core Upgrade
@@ -828,7 +802,6 @@ tr.case-row:last-child td { border-bottom:none; }
 }
 .act-btn svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; }
 .del-svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; }
-.del-label { display:none; }
 .act-btn:hover { border-color:var(--border2); color:var(--text2); background:var(--glass2); transform:scale(1.1); }
 .act-btn.del:hover { border-color:var(--red); color:var(--red); background:var(--red-g); }
 
@@ -857,21 +830,6 @@ tr.case-row:last-child td { border-bottom:none; }
   color: var(--text2);
   flex-shrink: 0;
 }
-.pg-info { color:var(--text3); font-size:11px; }
-.pg-btns { display:flex; gap:4px; }
-.pg-btn {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--glass);
-  color: var(--text2);
-  font-size: 12px; font-weight: 600;
-  display: flex; align-items: center; justify-content: center;
-  transition: all var(--t);
-}
-.pg-btn:hover { border-color:var(--gold); color:var(--gold); }
-.pg-btn.active { background:var(--gold-dark); border-color:rgba(245,166,35,.3); color:var(--gold); }
-.pg-btn svg { width:11px; height:11px; stroke:currentColor; fill:none; stroke-width:2.5; }
 
 /* ══════════ RIGHT PANEL ══════════ */
 .dash-right {
@@ -966,23 +924,6 @@ tr.case-row:last-child td { border-bottom:none; }
 
 /* ══════════ SUMMARY PANEL ══════════ */
 .sum-panel { display:flex; flex-direction:column; gap:10px; padding:0 0 14px 14px; width:100%; }
-.sum-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:var(--r); padding:14px; backdrop-filter:blur(var(--glass-blur)); }
-.sum-hd { font-family:var(--font-d); font-size:12px; font-weight:700; color:var(--text2); margin-bottom:10px; }
-.sum-body { display:flex; flex-direction:column; gap:6px; }
-.sum-total { font-family:var(--font-d); font-size:20px; font-weight:900; color:var(--gold); }
-.sum-sub { font-size:11px; color:var(--text3); }
-.sum-divider { height:1px; background:var(--border); margin:4px 0; }
-.status-row { display:flex; align-items:center; justify-content:space-between; padding:4px 0; }
-.status-row-lbl { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text2); }
-.status-row-dot { width:7px; height:7px; border-radius:50%; }
-.status-row-num { font-size:12px; font-weight:700; color:var(--text); }
-.lawyer-row { display:flex; align-items:center; gap:8px; padding:4px 0; }
-.lawyer-av { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; flex-shrink:0; }
-.lawyer-info { flex:1; min-width:0; }
-.lawyer-name { font-size:11px; font-weight:600; color:var(--text2); margin-bottom:3px; }
-.lawyer-bar-wrap { height:4px; background:var(--glass2); border-radius:2px; overflow:hidden; }
-.lawyer-bar { height:100%; border-radius:2px; transition:width .8s var(--ease); }
-.lawyer-count { font-size:11px; font-weight:700; color:var(--text); }
 
 /* ══════════════════════════════════════
    FAB
@@ -1073,16 +1014,11 @@ tr.case-row:last-child td { border-bottom:none; }
 .lr-stat span { font-weight:700; color:var(--text); }
 .lr-amts { text-align:left; }
 .lr-iqd { font-family:var(--font-d); font-size:14px; font-weight:800; color:var(--gold); }
-.lr-usd { font-size:11px; color:var(--green); margin-top:2px; }
 .rep-summary-row { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); }
 .rep-summary-row:last-child { border-bottom:none; }
 .rep-sum-lbl { font-size:13px; color:var(--text2); display:flex; align-items:center; gap:6px; }
 .rep-sum-val { font-family:var(--font-d); font-size:14px; font-weight:700; color:var(--text); }
 #repSummaryCards { padding:0 20px 14px; }
-.rep-sum-card { padding:14px 16px; }
-.rep-sum-card-lbl { font-size:11px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
-.rep-sum-card-lbl svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2; }
-.rep-sum-card-val { font-family:var(--font-d); font-size:22px; font-weight:900; color:var(--text); }
 
 /* ══════════════════════════════════════
    SETTINGS
@@ -1295,8 +1231,6 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
 /* Currency toggle */
 .cur-wrap { display:flex; background:var(--glass); border-radius:10px; overflow:hidden; border:1px solid var(--glass-border); }
-.cur-btn { flex:1; padding:8px; border:none; background:none; color:var(--text2); font-size:13px; font-weight:700; cursor:pointer; transition:all var(--t); }
-.cur-btn.active { background:var(--gold-dark); color:var(--gold); }
 .amt-row { display:flex; gap:8px; align-items:center; }
 .currency-toggle { display:flex; background:var(--glass); border:1px solid var(--glass-border); border-radius:10px; overflow:hidden; }
 .ct-btn { padding:8px 14px; border:none; background:none; color:var(--text3); font-size:13px; font-weight:700; cursor:pointer; transition:all var(--t); }
@@ -1694,9 +1628,6 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
 /* Import preview */
 .import-preview { overflow-x:auto; margin-top:12px; }
-.import-preview table { width:100%; border-collapse:collapse; font-size:11px; }
-.import-preview th { padding:7px 10px; background:var(--glass2); color:var(--text2); font-weight:700; text-align:right; border-bottom:1px solid var(--border); }
-.import-preview td { padding:7px 10px; border-bottom:1px solid var(--border); color:var(--text2); }
 
 /* Skeleton loading */
 .skeleton-row { display:flex; gap:12px; padding:12px 14px; border-bottom:1px solid var(--border); }
@@ -1770,24 +1701,6 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   margin-bottom: 18px;
   gap: 2px;
   border: 0.5px solid var(--border);
-}
-.role-btn, .role-tab {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  color: var(--text2);
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all var(--t);
-  font-family: var(--font);
-}
-.role-btn.active, .role-tab.active {
-  background: rgba(245,166,35,.12);
-  color: #b87a00;
-  border: 0.5px solid rgba(245,166,35,.25);
 }
 [data-theme="light"] .role-tabs { background: rgba(0,0,0,.04); }
 [data-theme="light"] .role-btn.active,
@@ -1940,8 +1853,6 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .stat-val{font-family:var(--font-d);font-size:22px;font-weight:900;color:var(--text);line-height:1.1;}
 .stat-val.iqd{color:var(--gold);}
 .stat-lbl{font-size:11px;color:var(--text2);margin-top:3px;}
-.stat-bar{height:4px;background:var(--glass2);border-radius:2px;overflow:hidden;margin-top:10px;}
-.stat-bar-fill{height:100%;border-radius:2px;transition:width .8s var(--ease);}
 .rp-empty{text-align:center;padding:20px;color:var(--text3);font-size:12px;}
 
 /* ══════════ PRINT ══════════ */
@@ -2001,9 +1912,7 @@ body { padding-bottom:0; }
   .sb-btn{justify-content:center;padding:10px 0;}
   .sb-btn .tip{display:block;}
   .sb-btn.active::before{display:none;}
-  .sb-theme-btn{justify-content:center;padding:9px 0;}
   .sb-user{justify-content:center;padding:10px 0;background:none;border:none;}
-  .dash-right{width:265px;}
 }
 
 /* ══════════ MOBILE (≤768px) ══════════ */
@@ -2079,8 +1988,6 @@ body { padding-bottom:0; }
 
   /* ── Dashboard layout ── */
   .dash-layout{flex-direction:column;overflow-y:auto;}
-  .dash-center{padding:12px;gap:12px;}
-  .dash-right{display:none;}
 
   /* ── Hero KPI ── */
   .hero-kpi{padding:16px 16px 12px;border-radius:12px;}
@@ -2226,7 +2133,6 @@ body { padding-bottom:0; }
   .data-btns-grid{grid-template-columns:1fr;}
   .cards-grid{padding:10px;}
   .topbar{padding:0 12px;}
-  .dash-center{padding:10px;}
 }
 
 /* ══ ICONIFY ICONS ══ */
@@ -2290,15 +2196,6 @@ body { padding-bottom:0; }
   position: relative;
   display: flex;
   align-items: center;
-}
-.search-box-wrap .iconify {
-  position: absolute;
-  right: 10px;
-  color: var(--text3);
-  pointer-events: none;
-}
-.search-box-wrap input {
-  padding-right: 30px;
 }
 
 /* ══════════════════════════════════════
@@ -2497,8 +2394,6 @@ tr.case-row.row-new           { animation: rowHighlight 1.9s var(--ease) forward
 /* ── Topbar buttons (Cmd + AI) ── */
 /* LexBot و ⌘K محذوفون من HTML — أخفِ أي نسخة متبقية */
 .cmd-topbar-btn { display:none !important; }
-.ai-topbar-btn  { display:none !important; }
-.ai-fab         { display:none !important; }
 
 /* ─────────────────────────────────────
    ★ 1. COMMAND PALETTE
@@ -2776,9 +2671,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   box-shadow:0 8px 28px rgba(99,102,241,.45);
   transition:all var(--t);
 }
-.ai-fab svg { width:20px;height:20px;stroke:currentColor;fill:none;flex-shrink:0; }
-.ai-fab:hover { transform:translateY(-3px);box-shadow:0 14px 36px rgba(99,102,241,.55); }
-.ai-fab span { display:block; }
 .ai-panel {
   position:fixed;left:0;top:0;bottom:0;width:370px;max-width:92vw;
   background:var(--bg2);border-right:1px solid var(--border2);
@@ -2878,12 +2770,9 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 
 /* ── Responsive adjustments ── */
 @media(max-width:768px){
-  .ai-fab { bottom:80px;left:16px;height:44px; }
   .bulk-bar { bottom:80px;max-width:95vw; }
   .kanban-col { min-width:210px;max-width:210px; }
   .client-stats-row { grid-template-columns:repeat(2,1fr); }
-  .cmd-topbar-btn { display:none; }
-  .ai-topbar-btn { padding:6px 10px; font-size:11px; }
   .tools-grid { grid-template-columns:1fr; gap:14px; padding:0 14px 30px; }
 
   /* ── Tools page mobile ── */
@@ -3139,16 +3028,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 @media print {
   body > *:not(.def-print-area) { display:none!important; }
   .def-print-area { display:block!important; direction:rtl; padding:20px; }
-  .def-print-wrap { font-family:'Noto Kufi Arabic',sans-serif; color:#000; }
-  .def-print-header { text-align:center; margin-bottom:24px; border-bottom:2px solid #333; padding-bottom:14px; }
-  .def-print-header h1 { font-size:20px; margin:0 0 4px; }
-  .def-print-header p { font-size:12px; color:#666; margin:0; }
-  .def-print-company { margin-bottom:18px; page-break-inside:avoid; }
-  .def-print-company-name { font-family:'Noto Kufi Arabic',sans-serif; font-size:15px; font-weight:700; padding:8px 0; border-bottom:1px solid #ddd; margin-bottom:8px; }
-  .def-print-list { list-style:none; padding:0; margin:0; }
-  .def-print-list li { padding:6px 12px; font-size:13px; border-bottom:1px dotted #eee; display:flex; align-items:center; gap:8px; }
-  .def-print-list li.done { color:#999; text-decoration:line-through; }
-  .def-print-check { font-family:monospace; font-size:12px; color:#666; }
 }
 
 /* ═══ محرّر صفحات PDF ═══ */
@@ -3214,15 +3093,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   position:relative; max-width:370px; text-align:center;
   font-size:14px; line-height:2.05; color:rgba(255,255,255,.72);
 }
-.login-hero-chips{ position:relative; display:flex; gap:12px; margin-top:6px; }
-.login-hero-chip{
-  display:flex; flex-direction:column; align-items:center; gap:8px; width:84px; padding:15px 6px;
-  border-radius:15px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
-  backdrop-filter:blur(8px); color:rgba(255,255,255,.85); font-size:12px; font-weight:500; transition:.3s;
-}
-.login-hero-chip:hover{ background:rgba(255,255,255,.11); transform:translateY(-3px); }
-.login-hero-chip svg{ width:21px; height:21px; }
-.login-hero-chip .g{ color:var(--gold,#f5a623); }
 @media (max-width:860px){
   #loginScreen{ grid-template-columns:1fr !important; }
   .login-hero{ display:none !important; }
@@ -3235,7 +3105,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* علامة ذهبية */
 .login-mark{ width:54px; height:54px; border-radius:16px; display:grid; place-items:center; margin:0 auto 18px;
   color:var(--navy,#0A1C40); background:linear-gradient(135deg,#ffca5f,var(--gold)); box-shadow:0 10px 26px rgba(245,166,35,.4); }
-.login-mark svg{ width:30px; height:30px; }
 /* تسميات الحقول */
 .login-lbl{ display:block; text-align:right; font-size:13px; font-weight:700; color:var(--text2,#46516B); margin:0 2px 8px; }
 /* الحقول */
@@ -3262,17 +3131,8 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 /* ── حركة لوحة الهوية ── */
 .lh-shine{ position:absolute; top:-40%; right:-30%; width:80%; height:180%; transform:rotate(18deg); pointer-events:none;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent); animation:lhSweep 7s ease-in-out infinite; }
-.lh-orb{ position:absolute; border-radius:50%; filter:blur(70px); pointer-events:none; }
-.lh-orb.g{ width:360px; height:360px; background:rgba(245,166,35,.22); top:-90px; right:-60px; animation:lhFloat 9s ease-in-out infinite; }
-.lh-orb.b{ width:320px; height:320px; background:rgba(37,99,235,.18); bottom:-80px; left:-40px; animation:lhFloat 11s ease-in-out infinite reverse; }
-.login-hero-wrap{ position:relative; display:grid; place-items:center; animation:lhUp .7s cubic-bezier(.2,1,.3,1); }
-.login-hero-wrap::before{ content:""; position:absolute; width:220px; height:220px; border-radius:50%;
-  background:radial-gradient(circle,rgba(245,166,35,.32),transparent 62%); animation:lhPulse 4s ease-in-out infinite; }
-.login-hero-line{ position:relative; width:66px; height:3px; border-radius:3px; margin-top:-6px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent); }
 .login-hero-name{ animation:lhUp .7s .08s both cubic-bezier(.2,1,.3,1); }
 .login-hero-tag{ animation:lhUp .7s .16s both cubic-bezier(.2,1,.3,1); }
-.login-hero-chips{ animation:lhUp .7s .24s both cubic-bezier(.2,1,.3,1); }
 @keyframes lhUp{ from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
 @keyframes lhFloat{ 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,26px)} }
 @keyframes lhPulse{ 0%,100%{opacity:.5;transform:scale(1)} 50%{opacity:.9;transform:scale(1.08)} }
@@ -3306,7 +3166,6 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
 
 /* ② الأعمدة تصير شفافة حتى تطفو البطاقات فوق الخلفية */
 .dash-center{ background:transparent; padding:14px 14px 14px 0; gap:14px; }
-.dash-right{ background:transparent; border-right:none !important; padding:14px 14px 14px 0; gap:14px; }
 
 /* ③ المادة الزجاجية — بطاقات المحتوى فقط */
 [data-theme="light"] :is(.hero-kpi,.stat-mini,.cases-panel,.rp-card,.chart-card,.report-card,.set-card){
@@ -3685,9 +3544,6 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .tip-badge{ position:absolute; top:6px; inset-inline-end:10px; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
   background:var(--red); color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; line-height:1; }
 .wadea-alert{ position:relative; padding-inline-end:40px; }
-.wadea-alert-x{ position:absolute; top:8px; inset-inline-end:8px; width:24px; height:24px; border-radius:50%; border:none;
-  background:rgba(0,0,0,.06); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--t); }
-.wadea-alert-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
 
 /* ═══ نظام التنبيه المتدرّج بالألوان (٣ درجات إلحاح + تذكير الباركود) ═══ */
 .wa2-wrap{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
@@ -3803,24 +3659,6 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 .wa2-x{ position:absolute; top:10px; inset-inline-end:10px; width:24px; height:24px; border-radius:50%; border:none;
   background:rgba(0,0,0,.06); color:var(--text2); font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--t); }
 .wa2-x:hover{ background:rgba(0,0,0,.14); color:var(--text); }
-.wadea-page-list{ display:flex; flex-direction:column; gap:10px; }
-.wadea-page-card{ display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; border:1px solid var(--border); background:var(--glass); cursor:pointer; transition:var(--t); }
-.wadea-page-card:hover{ transform:translateY(-1px); border-color:var(--gold); }
-.wadea-page-card.late{ border-color:rgba(255,85,114,.35); background:var(--red-g); }
-.wadea-page-card.soon{ border-color:rgba(251,146,60,.35); background:var(--orange-g); }
-.wadea-page-card .ic{ width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; flex:0 0 auto; }
-.wadea-page-card.late .ic{ background:rgba(255,85,114,.16); }
-.wadea-page-card.soon .ic{ background:rgba(251,146,60,.16); }
-.wadea-page-card.ok .ic{ background:var(--green-g); }
-.wadea-page-card .tx{ flex:1; min-width:0; }
-.wadea-page-card .tn{ font-size:14px; font-weight:700; color:var(--text); }
-.wadea-page-card .ts{ font-size:12px; color:var(--text2); margin-top:3px; }
-.wadea-page-card .rt{ text-align:left; flex:0 0 auto; }
-.wadea-page-card .rt .st{ font-size:12.5px; font-weight:800; }
-.wadea-page-card.late .rt .st{ color:var(--red); }
-.wadea-page-card.soon .rt .st{ color:var(--orange); }
-.wadea-page-card.ok .rt .st{ color:var(--green); }
-.wadea-page-card .rt .fine{ font-family:var(--num,inherit); font-size:11px; color:var(--text2); margin-top:2px; }
 .wadea-empty{ text-align:center; padding:60px 20px; color:var(--text3); }
 .wadea-empty svg{ width:44px; height:44px; opacity:.4; margin-bottom:10px; }
 
@@ -3896,53 +3734,14 @@ body{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; tex
 
 /* ═══════════════ قسم المهام (Kanban) ═══════════════ */
 .tasks-kanban{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; align-items:start; }
-.tk-col{ background:var(--glass); border:1px solid var(--border); border-radius:16px; padding:12px; min-height:120px; transition:var(--t); }
-.tk-col.drag-over{ border-color:var(--gold); background:var(--gold-g); }
-.tk-col-hd{ display:flex; align-items:center; gap:8px; padding:6px 8px 12px; font-size:13.5px; font-weight:800; }
-.tk-col-hd .dot{ width:9px; height:9px; border-radius:50%; }
-.tk-col-hd .count{ margin-inline-start:auto; font-family:var(--num,inherit); font-size:11px; background:var(--bg3); color:var(--text2); padding:2px 8px; border-radius:99px; }
-.tk-col[data-col="new"] .tk-col-hd .dot{ background:var(--blue); }
-.tk-col[data-col="progress"] .tk-col-hd .dot{ background:var(--gold); }
-.tk-col[data-col="done"] .tk-col-hd .dot{ background:var(--green); }
-.tk-cards{ display:flex; flex-direction:column; gap:10px; min-height:40px; }
-.tk-card{ background:var(--bg2); border:1px solid var(--border); border-radius:13px; padding:13px; cursor:grab; transition:transform .2s var(--ease-out),box-shadow .2s,border-color .2s; position:relative; animation:tkRise .4s var(--ease-out) both; }
-.tk-card:hover{ transform:translateY(-2px); box-shadow:0 10px 24px -12px rgba(0,0,0,.4); border-color:var(--gold); }
-.tk-card:active{ cursor:grabbing; }
-.tk-card.dragging{ opacity:.5; }
-.tk-card.urgent{ border-inline-start:3px solid var(--red); }
-.tk-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
-.tk-card-co{ font-size:13.5px; font-weight:700; color:var(--text); line-height:1.4; }
-.tk-card-badge{ font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:99px; flex:0 0 auto; }
-.tk-card-badge.urgent{ background:var(--red-g); color:var(--red); }
-.tk-card-badge.normal{ background:var(--blue-g); color:var(--blue); }
-.tk-card-type{ font-size:12px; color:var(--gold); font-weight:600; margin-bottom:6px; }
-.tk-card-meta{ display:flex; flex-wrap:wrap; gap:8px; font-size:11px; color:var(--text2); }
-.tk-card-meta span{ display:inline-flex; align-items:center; gap:4px; }
-.tk-card-amt{ font-family:var(--num,inherit); font-weight:700; color:var(--text); }
-.tk-card-due{ margin-top:8px; font-size:11px; font-weight:700; display:flex; align-items:center; gap:5px; }
-.tk-card-due.late{ color:var(--red); }
-.tk-card-due.soon{ color:var(--orange); }
-.tk-card-due.ok{ color:var(--text3); }
-.tk-card-progress-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); animation:tkPulse 1.6s ease-in-out infinite; }
-.tk-card-acts{ display:flex; gap:6px; margin-top:10px; }
-.tk-card-btn{ flex:1; height:30px; border:1px solid var(--border); background:var(--glass); border-radius:8px; font-family:inherit; font-size:11px; font-weight:700; color:var(--text2); cursor:pointer; transition:var(--t); display:flex; align-items:center; justify-content:center; gap:4px; }
-.tk-card-btn:hover{ border-color:var(--gold); color:var(--gold); }
-.tk-card-btn.done{ background:var(--green); color:#0A1810; border-color:var(--green); }
-.tk-card-btn.done:hover{ filter:brightness(1.05); color:#0A1810; }
-.tk-card-del{ position:absolute; top:10px; inset-inline-start:10px; width:22px; height:22px; border-radius:6px; border:none; background:transparent; color:var(--text3); cursor:pointer; font-size:13px; opacity:0; transition:var(--t); }
-.tk-card:hover .tk-card-del{ opacity:1; }
-.tk-card-del:hover{ background:var(--red-g); color:var(--red); }
-.tk-col-empty{ text-align:center; padding:20px; color:var(--text3); font-size:12px; }
 .task-modal .modal-body textarea{ resize:vertical; min-height:70px; font-family:inherit; }
 /* تنبيهات المهام (رئيسية) — تعيد استخدام أسلوب wadea-alert */
 .task-alert .ic{ background:rgba(96,165,250,.16)!important; }
-.task-alert.late .ic{ background:rgba(255,85,114,.16)!important; }
 @keyframes tkRise{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
 @keyframes tkPulse{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(.8); opacity:.5; } }
 @keyframes tkPop{ 0%{ transform:scale(.7); } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
-.tk-card.just-done{ animation:tkPop .5s var(--ease-bounce); }
-@media (max-width:900px){ .tasks-kanban{ grid-template-columns:1fr; } }
-@media (prefers-reduced-motion:reduce){ .tk-card,.tk-card-progress-dot{ animation:none; } }
+@media (max-width:900px){ }
+@media (prefers-reduced-motion:reduce){ }
 
 /* ═══════════════ المهام — كارد لكل شركة بسير عمل ٣ دوائر ═══════════════ */
 .tasks-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }

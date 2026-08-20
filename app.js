@@ -611,9 +611,7 @@ function isAdmin(){return currentRole==='admin';}
 
 function applyRoleUI(){
   const sbSet=document.getElementById('sbSettings');if(sbSet)sbSet.style.display=isAdmin()?'flex':'none';
-  const mnSet=document.getElementById('mnSet');if(mnSet)mnSet.style.display=isAdmin()?'flex':'none';
   const sbReports=document.getElementById('sbReports');if(sbReports)sbReports.style.display=isAdmin()?'flex':'none';
-  const mnReports=document.getElementById('mnReports');if(mnReports)mnReports.style.display=isAdmin()?'flex':'none';
   document.querySelectorAll('[onclick="exportExcel()"]').forEach(b=>b.style.display=isAdmin()?'flex':'none');
   document.querySelectorAll('[onclick="window.print()"]').forEach(b=>b.style.display=isAdmin()?'flex':'none');
 }
@@ -2636,11 +2634,8 @@ let aiHistory=[];
 
 function toggleAI(){
   const panel=document.getElementById('aiPanel');
-  const fab=document.getElementById('aiFab');
   aiOpen=!aiOpen;
   panel.classList.toggle('open',aiOpen);
-  const btn=document.getElementById('aiTopbarBtn');
-  if(btn)btn.classList.toggle('active',aiOpen);
   if(aiOpen&&aiHistory.length===0){
     setTimeout(()=>addAIMessage('bot',
       'مرحباً! أنا LexBot مساعدك الذكي في LexDesk 🤖\n\n'
