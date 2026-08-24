@@ -914,7 +914,7 @@ function render(){
   if(currentView==='cards')body.innerHTML='<div class="cards-grid">'+fil.map(renderCard).join('')+'</div>';
   else body.innerHTML='<div class="tbl-wrap"><table><thead><tr>'
     +'<th style="width:34px;padding-right:14px"><input type="checkbox" class="bulk-cb-all" onclick="toggleSelectAll(this)" title="تحديد الكل"></th>'
-    +'<th>الشركة</th><th>المحامي</th><th>المبلغ</th><th>الحالة</th><th>نوع المعاملة</th><th>وين واصلة</th><th></th><th></th>'
+    +'<th style="width:220px">الشركة</th><th style="width:110px">المحامي</th><th style="width:120px">المبلغ</th><th style="width:100px">الحالة</th><th style="width:110px">نوع المعاملة</th><th style="width:90px">وين واصلة</th><th style="width:50px"></th><th style="width:70px"></th>'
     +'</tr></thead><tbody>'+fil.map(renderRow).join('')+'</tbody></table></div>';
   // restore selections
   if(selectedCases.length){

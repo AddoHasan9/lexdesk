@@ -3355,6 +3355,7 @@ tr.case-row.selected td { border-color:rgba(245,166,35,.15); }
   display:flex; flex-direction:column; gap:14px;
   padding:14px; overflow-y:auto; flex:1; min-height:0;
   background:transparent !important;
+  max-width:1360px; width:100%; margin:0 auto;
 }
 .dash-top-row{ display:grid; grid-template-columns:1.4fr .9fr; gap:14px; align-items:stretch; }
 .dash-top-row .hero-kpi{ margin:0; }
