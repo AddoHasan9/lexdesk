@@ -83,7 +83,8 @@ function sanitizeCase(c){
     'deficiency','defCompleted','notes','holdReason','stage','date','addedAt','attachUrl','attachName','log','comments','wadeaChecks',
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
     'workflowStage','workflowDates','certNo','certDate','amountIncludes',
-    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt','wadeaSubmittedDate'];
+    'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt','wadeaSubmittedDate',
+    'shareholder','companyAddress','wadeaDirector','hasReservationBook','reservationGovernorate'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
@@ -1527,6 +1528,11 @@ function openForm(id){
   editingId=id;document.getElementById('formTitle').textContent=id?'تعديل المعاملة':'معاملة جديدة';
   const c=id?cases.find(x=>x.id===id):{};
   document.getElementById('fCompany').value=c.company||'';document.getElementById('fDate').value=c.date||'';
+  document.getElementById('fShareholder').value=c.shareholder||'';
+  document.getElementById('fAddress').value=c.companyAddress||'';
+  document.getElementById('fWadeaDirector').value=c.wadeaDirector||'';
+  document.getElementById('fResBookGov').value=c.reservationGovernorate||'';
+  toggleReservationBook(!!c.hasReservationBook);
   document.getElementById('fDef').value=c.deficiency||'';document.getElementById('fNotes').value=c.notes||'';
   pendingAttachFile=null;pendingAttachUrl=c.attachUrl||'';
   document.getElementById('attachFile').value='';document.getElementById('attachPreview').style.display='none';document.getElementById('attachPreview').innerHTML='';
@@ -1617,6 +1623,13 @@ function completeWadea(){
   },300);
 }
 function toggleWadea(n){const cb=document.getElementById('wc'+n);cb.checked=!cb.checked;document.getElementById('wcheck'+n).classList.toggle('checked',cb.checked);}
+function toggleReservationBook(force){
+  const sw=document.getElementById('fResBookSwitch');
+  const on = force!==undefined ? force : !sw.classList.contains('on');
+  sw.classList.toggle('on',on);
+  document.getElementById('fResBookGovWrap').style.display=on?'block':'none';
+  if(!on)document.getElementById('fResBookGov').value='';
+}
 function setWadeaChecks(val){const checked=(val||'').split(',').map(s=>s.trim()).filter(Boolean);WADEA_ITEMS.forEach((item,i)=>{const n=i+1;const cb=document.getElementById('wc'+n);const lbl=document.getElementById('wcheck'+n);if(!cb||!lbl)return;const isChecked=checked.includes(item);cb.checked=isChecked;lbl.classList.toggle('checked',isChecked);});}
 function getWadeaValue(){return WADEA_ITEMS.filter((_,i)=>{const cb=document.getElementById('wc'+(i+1));return cb&&cb.checked;}).join('، ');}
 function closeForm(){closeOverlay('formOverlay');}
@@ -1629,7 +1642,7 @@ async function saveCase(){
   if(!ok)return;
   const rawAmt=parseAmt(document.getElementById('fAmount').value);
   const stageVal=selDept==='أخرى'?(document.getElementById('fStageOther').value.trim()||'أخرى'):selDept;
-  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():'',amountIncludes:selAmtInc.slice()};
+  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():'',amountIncludes:selAmtInc.slice(),shareholder:document.getElementById('fShareholder').value.trim(),companyAddress:document.getElementById('fAddress').value.trim(),wadeaDirector:type===WADEA_TYPE?document.getElementById('fWadeaDirector').value.trim():'',hasReservationBook:document.getElementById('fResBookSwitch').classList.contains('on'),reservationGovernorate:document.getElementById('fResBookSwitch').classList.contains('on')?document.getElementById('fResBookGov').value:''};
   if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1){const old=cases[idx];const logEntry={id:Date.now(),type:'edit',msg:'تم تعديل المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()};if(old.status!==data.status)logEntry.msg='تغيير الحالة: '+old.status+' → '+data.status;cases[idx]={...old,...data,log:[...(old.log||[]),logEntry],comments:old.comments||[]};if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','معاملة معلقة: '+data.company);else addNotif('edit','تعديل: '+data.company);}toast('تم التعديل','ok');}
   else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);_lastAddedId=newCase.id;addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
   if(pendingAttachFile){const url=await uploadAttachment(pendingAttachFile, data.company);if(url){data.attachUrl=url;data.attachName=pendingAttachFile.name;if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1)cases[idx]={...cases[idx],...data};}else cases[cases.length-1]={...cases[cases.length-1],...data};}}

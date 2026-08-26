@@ -1380,6 +1380,32 @@
           </div>
         </div>
         <div>
+          <label class="fm-lbl">اسم المساهم</label>
+          <input id="fShareholder" type="text" class="fm-inp" placeholder="اسم المساهم">
+        </div>
+        <div>
+          <label class="fm-lbl">عنوان الشركة</label>
+          <input id="fAddress" type="text" class="fm-inp" placeholder="عنوان الشركة">
+        </div>
+        <div class="fm-full">
+          <label class="fm-toggle-row">
+            <span class="fm-lbl" style="margin:0">هل تمتلك الشركة كتاب حجز؟</span>
+            <span class="fm-switch" id="fResBookSwitch" onclick="toggleReservationBook()"><span class="fm-switch-knob"></span></span>
+          </label>
+          <div id="fResBookGovWrap" style="display:none;margin-top:10px">
+            <label class="fm-lbl">المحافظة</label>
+            <select id="fResBookGov" class="fm-inp">
+              <option value="">— اختر المحافظة</option>
+              <option>نينوى</option><option>البصرة</option><option>النجف</option><option>كربلاء</option>
+              <option>بابل</option><option>الأنبار</option><option>ديالى</option><option>كركوك</option>
+              <option>واسط</option><option>ميسان</option><option>ذي قار</option><option>القادسية</option>
+              <option>المثنى</option><option>صلاح الدين</option><option>دهوك</option><option>أربيل</option>
+              <option>السليمانية</option>
+            </select>
+            <div style="font-size:11px;color:var(--text3);margin-top:5px">بغداد مستثناة — معاملاتها إلكترونية بالكامل</div>
+          </div>
+        </div>
+        <div>
           <label class="fm-lbl">نوع المعاملة *</label>
           <select id="fType" class="fm-inp" onchange="onTypeChange()"><option value="">— اختر النوع</option></select>
           <div class="fm-err" id="errType">اختر نوع المعاملة</div>
@@ -1390,6 +1416,10 @@
             <div class="wadea-title">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><path d="M12 12v3"/></svg>
               متطلبات إطلاق الوديعة
+            </div>
+            <div style="margin-bottom:12px">
+              <label class="fm-lbl">اسم المدير المفوض</label>
+              <input id="fWadeaDirector" type="text" class="fm-inp" placeholder="اسم المدير المفوض">
             </div>
             <div class="wadea-checks">
               <label class="wadea-item" id="wcheck1" onclick="toggleWadea(1)">

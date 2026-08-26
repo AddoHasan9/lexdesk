@@ -1202,6 +1202,19 @@ tr.case-row:last-child td { border-bottom:none; }
 .fm-full { grid-column:1/-1; }
 .fm-group-inner { display:flex; flex-direction:column; gap:5px; }
 .fm-lbl { font-size:11px; font-weight:700; color:var(--text2); letter-spacing:.04em; }
+.fm-toggle-row{ display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:2px 0; }
+.fm-switch{
+  position:relative; width:40px; height:23px; border-radius:20px; flex-shrink:0;
+  background:var(--bg3); border:1px solid var(--border2); transition:var(--t);
+}
+.fm-switch.on{ background:var(--gold); border-color:var(--gold); }
+.fm-switch-knob{
+  position:absolute; top:1px; inset-inline-start:1px;
+  width:19px; height:19px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.3); transition:var(--t);
+}
+.fm-switch.on .fm-switch-knob{ transform:translateX(-17px); }
+[dir="ltr"] .fm-switch.on .fm-switch-knob{ transform:translateX(17px); }
 .fm-inp {
   background: var(--glass);
   border: 1px solid var(--glass-border);
