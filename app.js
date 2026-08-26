@@ -84,12 +84,12 @@ function sanitizeCase(c){
     'tasisDone','wadeaLinkedId','tasisLinkedId','wadeaCertDate','wadeaShareholderType','wadeaDeadline','wadeaDone',
     'workflowStage','workflowDates','certNo','certDate','amountIncludes',
     'wadeaStep1','wadeaStep1Date','wadeaStep2','wadeaStep2Date','wadeaStep3','wadeaStep3Date','wadeaBarcodeUrl','wadeaBarcodeName','wadeaCompletedAt','wadeaSubmittedDate',
-    'shareholder','companyAddress','wadeaDirector','hasReservationBook','reservationGovernorate'];
+    'companyAddress','director','shareholders','hasReservationBook','reservationGovernorate'];
   for(const k of allowed){
     const v = c[k];
     if(v === undefined) continue;
-    if(k === 'log' || k === 'comments' || k === 'workflowDates' || k === 'amountIncludes'){
-      try { safe[k] = JSON.parse(JSON.stringify(v||(k==='amountIncludes'?[]:{}))); } catch(e){ safe[k]=(k==='amountIncludes'?[]:{}); }
+    if(k === 'log' || k === 'comments' || k === 'workflowDates' || k === 'amountIncludes' || k === 'shareholders'){
+      try { safe[k] = JSON.parse(JSON.stringify(v||(k==='amountIncludes'||k==='shareholders'?[]:{}))); } catch(e){ safe[k]=(k==='amountIncludes'||k==='shareholders'?[]:{}); }
     } else {
       safe[k] = (typeof v === 'string'||typeof v === 'number'||typeof v === 'boolean'||v===null) ? v : String(v||'');
     }
@@ -257,8 +257,11 @@ function toggleTheme(){
   }
 }
 function updateThemeBtn(t){
-  const cb=document.getElementById('mobThemeInput');
-  if(cb) cb.checked = (t==='light');
+  const sunSVG='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  const moonSVG='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  const html = t==='light' ? sunSVG : moonSVG;
+  const mobIcon=document.getElementById('mobThemeIcon');
+  if(mobIcon) mobIcon.innerHTML=html;
 }
 
 // ══ SECURITY: PASSWORD HASHING ══
@@ -1528,9 +1531,13 @@ function openForm(id){
   editingId=id;document.getElementById('formTitle').textContent=id?'تعديل المعاملة':'معاملة جديدة';
   const c=id?cases.find(x=>x.id===id):{};
   document.getElementById('fCompany').value=c.company||'';document.getElementById('fDate').value=c.date||'';
-  document.getElementById('fShareholder').value=c.shareholder||'';
   document.getElementById('fAddress').value=c.companyAddress||'';
-  document.getElementById('fWadeaDirector').value=c.wadeaDirector||'';
+  document.getElementById('fDirector').value=c.director||c.wadeaDirector||'';
+  shIdCounter=0;
+  formShareholders=Array.isArray(c.shareholders)&&c.shareholders.length
+    ? c.shareholders.map(s=>({_id:++shIdCounter,name:s.name||'',pct:s.pct||''}))
+    : [];
+  renderShareholders();
   document.getElementById('fResBookGov').value=c.reservationGovernorate||'';
   toggleReservationBook(!!c.hasReservationBook);
   document.getElementById('fDef').value=c.deficiency||'';document.getElementById('fNotes').value=c.notes||'';
@@ -1623,6 +1630,46 @@ function completeWadea(){
   },300);
 }
 function toggleWadea(n){const cb=document.getElementById('wc'+n);cb.checked=!cb.checked;document.getElementById('wcheck'+n).classList.toggle('checked',cb.checked);}
+// ══ قائمة المساهمين الديناميكية (اسم + نسبة أسهم لكل واحد) ══
+let formShareholders=[];
+let shIdCounter=0;
+function addShareholderRow(name,pct){
+  formShareholders.push({_id:++shIdCounter, name:name||'', pct:pct||''});
+  renderShareholders();
+}
+function removeShareholderRow(id){
+  formShareholders=formShareholders.filter(s=>s._id!==id);
+  renderShareholders();
+}
+function onShareholderInput(id,field,val){
+  const s=formShareholders.find(x=>x._id===id);
+  if(s)s[field]=val;
+  if(field==='pct')updateShareholdersTotal();
+}
+function updateShareholdersTotal(){
+  const totalEl=document.getElementById('shTotal');
+  if(!totalEl)return;
+  const total=formShareholders.reduce((sum,s)=>sum+(parseFloat(s.pct)||0),0);
+  totalEl.textContent='مجموع النسب: '+total+'%';
+  totalEl.classList.toggle('over',total>100);
+}
+function renderShareholders(){
+  const box=document.getElementById('shareholdersList');
+  if(!box)return;
+  if(!formShareholders.length){
+    box.innerHTML='<div class="sh-empty">ماكو مساهمين مضافين — اضغط "إضافة مساهم"</div>';
+    return;
+  }
+  box.innerHTML=formShareholders.map(s=>
+    '<div class="sh-row">'
+    +'<input class="fm-inp sh-row-name" placeholder="اسم المساهم" value="'+esc(s.name)+'" oninput="onShareholderInput('+s._id+',\'name\',this.value)">'
+    +'<div class="sh-row-pct-wrap"><input class="fm-inp sh-row-pct" type="number" min="0" max="100" step="0.1" placeholder="0" value="'+esc(s.pct)+'" oninput="onShareholderInput('+s._id+',\'pct\',this.value)"><span class="sh-row-pct-sign">%</span></div>'
+    +'<button type="button" class="sh-row-del" onclick="removeShareholderRow('+s._id+')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg></button>'
+    +'</div>'
+  ).join('') + '<div class="sh-total-row" id="shTotal"></div>';
+  updateShareholdersTotal();
+}
+
 function toggleReservationBook(force){
   const sw=document.getElementById('fResBookSwitch');
   const on = force!==undefined ? force : !sw.classList.contains('on');
@@ -1642,7 +1689,7 @@ async function saveCase(){
   if(!ok)return;
   const rawAmt=parseAmt(document.getElementById('fAmount').value);
   const stageVal=selDept==='أخرى'?(document.getElementById('fStageOther').value.trim()||'أخرى'):selDept;
-  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():'',amountIncludes:selAmtInc.slice(),shareholder:document.getElementById('fShareholder').value.trim(),companyAddress:document.getElementById('fAddress').value.trim(),wadeaDirector:type===WADEA_TYPE?document.getElementById('fWadeaDirector').value.trim():'',hasReservationBook:document.getElementById('fResBookSwitch').classList.contains('on'),reservationGovernorate:document.getElementById('fResBookSwitch').classList.contains('on')?document.getElementById('fResBookGov').value:''};
+  const data={company,type,lawyer:selLawyer,status:selStatus,currency:selCur,amountIQD:selCur==='IQD'?rawAmt:0,amountUSD:selCur==='USD'?rawAmt:0,deficiency:document.getElementById('fDef').value.trim(),notes:document.getElementById('fNotes').value.trim(),holdReason:selStatus==='معلقة'?document.getElementById('fHoldReason').value.trim():'',stage:stageVal,date:document.getElementById('fDate').value,attachUrl:pendingAttachUrl||'',attachName:pendingAttachFile?pendingAttachFile.name:(editingId?(cases.find(x=>x.id===editingId)||{}).attachName||'':''),wadeaChecks:type===WADEA_TYPE?getWadeaValue():'',amountIncludes:selAmtInc.slice(),companyAddress:document.getElementById('fAddress').value.trim(),director:document.getElementById('fDirector').value.trim(),shareholders:formShareholders.filter(s=>s.name.trim()).map(s=>({name:s.name.trim(),pct:parseFloat(s.pct)||0})),hasReservationBook:document.getElementById('fResBookSwitch').classList.contains('on'),reservationGovernorate:document.getElementById('fResBookSwitch').classList.contains('on')?document.getElementById('fResBookGov').value:''};
   if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1){const old=cases[idx];const logEntry={id:Date.now(),type:'edit',msg:'تم تعديل المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()};if(old.status!==data.status)logEntry.msg='تغيير الحالة: '+old.status+' → '+data.status;cases[idx]={...old,...data,log:[...(old.log||[]),logEntry],comments:old.comments||[]};if(old.status!=='معلقة'&&data.status==='معلقة')addNotif('hold','معاملة معلقة: '+data.company);else addNotif('edit','تعديل: '+data.company);}toast('تم التعديل','ok');}
   else{const newCase={id:Date.now(),addedAt:Date.now(),...data,log:[{id:Date.now(),type:'new',msg:'تمت إضافة المعاملة',user:currentUser||'الأدمن',time:new Date().toISOString()}],comments:[]};cases.push(newCase);_lastAddedId=newCase.id;addNotif('new','معاملة جديدة: '+data.company+' — '+data.lawyer);SFX.play('add');toast('تمت الإضافة','ok');}
   if(pendingAttachFile){const url=await uploadAttachment(pendingAttachFile, data.company);if(url){data.attachUrl=url;data.attachName=pendingAttachFile.name;if(editingId){const idx=cases.findIndex(c=>c.id===editingId);if(idx!==-1)cases[idx]={...cases[idx],...data};}else cases[cases.length-1]={...cases[cases.length-1],...data};}}
