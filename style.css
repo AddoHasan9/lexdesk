@@ -1621,8 +1621,7 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
   width:27px; height:27px; border-radius:50%;
   background-color:#ffcf96;
   box-shadow:0 2px 6px rgba(0,0,0,.3);
-  transition:all 400ms cubic-bezier(.68,-0.55,.265,1.55);
-  transform:rotate(-45deg);
+  transition:inset-inline-start 400ms cubic-bezier(.68,-0.55,.265,1.55), background-color 400ms;
 }
 .lx-crater{ position:absolute; background-color:#e8cda5; opacity:0; transition:opacity 200ms ease-in-out; border-radius:100%; }
 .lx-crater--1{ top:11px; left:6px;  width:2.5px; height:2.5px; }
@@ -1640,7 +1639,7 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .lx-theme-switch input:checked ~ .lx-ts-track{ background-color:#749dd6; }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-ts-handle{
   background-color:#ffe5b5;
-  transform:translate3d(25px,0,0) rotate(0);
+  inset-inline-start:calc(56px - 2px - 27px);
 }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-crater{ opacity:1; }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--1{ width:1.3px; height:1.3px; }
@@ -1652,7 +1651,11 @@ select.fm-inp { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--4{ transition:all 300ms 200ms cubic-bezier(.445,.05,.55,.95); }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--5{ transition:all 300ms 300ms cubic-bezier(.445,.05,.55,.95); }
 .lx-theme-switch input:checked ~ .lx-ts-track .lx-star--6{ transition:all 300ms 400ms cubic-bezier(.445,.05,.55,.95); }
-@media(max-width:768px){ .lx-ts-track{ width:40px; height:22px; } .lx-ts-handle{ width:18px; height:18px; top:2px; } .lx-theme-switch input:checked ~ .lx-ts-track .lx-ts-handle{ transform:translate3d(16px,0,0) rotate(0); } }
+@media(max-width:768px){
+  .lx-ts-track{ width:40px; height:22px; }
+  .lx-ts-handle{ width:18px; height:18px; top:2px; }
+  .lx-theme-switch input:checked ~ .lx-ts-track .lx-ts-handle{ inset-inline-start:calc(40px - 2px - 18px); }
+}
 .notif-btn { width:34px; height:34px; border-radius:10px; border:1px solid var(--glass-border); background:var(--glass); color:var(--text2); display:flex; align-items:center; justify-content:center; cursor:pointer; backdrop-filter:blur(6px); transition:all var(--t); }
 .notif-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; }
 .notif-btn:hover { border-color:var(--gold); color:var(--gold); box-shadow:var(--gold-glow); }
