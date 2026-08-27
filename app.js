@@ -941,7 +941,7 @@ function renderRow(c){
   const isSelected=selectedCases.includes(c.id);
   return '<tr class="case-row'+(isSelected?' selected':'')+'" data-id="'+c.id+'" style="cursor:pointer'+(c.wadeaDone?';opacity:.6':'')+'">'
   +'<td class="bulk-cb-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" data-id="'+c.id+'"'+(isSelected?' checked':'')+' onclick="event.stopPropagation();toggleSelect('+c.id+')" /></td>'
-  +'<td><div class="td-company" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'"><span class="company-link" onclick="event.stopPropagation();openClientProfile(\''+jsAttr(c.company)+'\')" style="cursor:pointer">'+esc(c.company)+'</span></div>'
+  +'<td><div class="td-company" style="'+(c.wadeaDone?'text-decoration:line-through;color:var(--text3)':'')+'"><span class="company-link" tabindex="0" role="button" aria-label="فتح ملف عميل: '+esc(c.company)+'" onclick="event.stopPropagation();openClientProfile(\''+jsAttr(c.company)+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();event.stopPropagation();openClientProfile(\''+jsAttr(c.company)+'\')}" style="cursor:pointer">'+esc(c.company)+'</span></div>'
   +(c.tasisDone&&c.type===WADEA_TYPE?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;font-weight:700">✓ اكتمل التأسيس</div>':'')
   +(c.wadeaDone?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--green-g);color:var(--green);padding:2px 8px;border-radius:6px;font-weight:700">✓ أُكملت الوديعة</div>':'')
   +(c.type===WADEA_TYPE&&c.tasisLinkedId?'<div style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;background:var(--gold-g);color:var(--gold);padding:2px 8px;border-radius:6px;cursor:pointer;font-weight:700" onclick="event.stopPropagation();openDetail('+c.tasisLinkedId+')">↑ من تأسيس</div>':'')
@@ -1823,7 +1823,27 @@ function handleJSONRestore(inp){if(!inp.files[0])return;const r=new FileReader()
 
 // ══ ATTACHMENTS ══
 let pendingAttachFile=null;let pendingAttachUrl='';const SB_BUCKET='attachments';
-async function uploadAttachment(file,company){try{const ext=file.name.split('.').pop().toLowerCase();const fileName=Date.now()+'_case_'+(Date.now()%100000)+'.'+ext;const res=await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+fileName,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type,'x-upsert':'true'},body:file});if(!res.ok){const err=await res.json().catch(()=>({}));toast('فشل الرفع: '+(err.message||res.status),'err');return'';}toast('تم رفع الملف','ok');return SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+fileName;}catch(e){toast('خطأ في الاتصال','err');return'';}}
+const ATTACH_ALLOWED_MIME=['image/jpeg','image/png','image/webp','image/gif','image/heic','image/heif','application/pdf'];
+const ATTACH_ALLOWED_EXT=['jpg','jpeg','png','webp','gif','heic','heif','pdf'];
+const ATTACH_MAX_SIZE=15*1024*1024; // 15MB
+async function uploadAttachment(file,company){
+  try{
+    const ext=(file.name.split('.').pop()||'').toLowerCase();
+    if(!ATTACH_ALLOWED_MIME.includes(file.type)||!ATTACH_ALLOWED_EXT.includes(ext)){
+      toast('نوع الملف غير مسموح — صور أو PDF فقط','err');
+      return'';
+    }
+    if(file.size>ATTACH_MAX_SIZE){
+      toast('حجم الملف كبير جدًا (الحد الأقصى 15MB)','err');
+      return'';
+    }
+    const fileName=Date.now()+'_case_'+(Date.now()%100000)+'.'+ext;
+    const res=await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+fileName,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type,'x-upsert':'true'},body:file});
+    if(!res.ok){const err=await res.json().catch(()=>({}));toast('فشل الرفع: '+(err.message||res.status),'err');return'';}
+    toast('تم رفع الملف','ok');
+    return SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+fileName;
+  }catch(e){toast('خطأ في الاتصال','err');return'';}
+}
 async function diagStorage(){toast('جاري الفحص...','info');try{const r=await fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/test_'+Date.now()+'.txt',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'text/plain','x-upsert':'true'},body:new Blob(['test'],{type:'text/plain'})});if(r.ok)toast('Storage يشتغل','ok');else toast('خطأ: '+r.status,'err');}catch(e){toast('خطأ في الاتصال','err');}}
 function handleAttachSelect(inp){const file=inp.files[0];if(!file)return;if(file.size>10*1024*1024){toast('الملف أكبر من 10MB','err');return;}pendingAttachFile=file;const sizeMB=(file.size/1024/1024).toFixed(2);const prev=document.getElementById('attachPreview');prev.style.display='block';prev.innerHTML='<div class="attach-preview"><span class="attach-preview-name">'+file.name+'</span><span class="attach-preview-size">'+sizeMB+' MB</span><button class="attach-del" onclick="clearAttach()">✕</button></div>';}
 function clearAttach(){pendingAttachFile=null;document.getElementById('attachFile').value='';document.getElementById('attachPreview').style.display='none';document.getElementById('attachPreview').innerHTML='';}
@@ -2550,10 +2570,10 @@ function handleCmdSearch(){
       html+='<div class="cmd-section">المعاملات</div>';
       matched.forEach(c=>{
         const smap={s:'s-pending','قيد المعالجة':'s-active','منجزة':'s-done','معلقة':'s-hold','مراجعة':'s-pending','ناقصة':'s-def'};
-        html+='<div class="cmd-item" onclick="closeCmd();setTimeout(()=>openDetail('+c.id+'),120)">'
+        html+='<div class="cmd-item" tabindex="0" role="button" aria-label="فتح تفاصيل معاملة: '+esc(c.company)+'" onclick="closeCmd();setTimeout(()=>openDetail('+c.id+'),120)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();closeCmd();setTimeout(()=>openDetail('+c.id+'),120)}">'
           +'<div class="cmd-item-ico">📁</div>'
-          +'<div class="cmd-item-lbl">'+esc(c.company)+'<span class="cmd-item-sub"> — '+c.type+'</span></div>'
-          +'<span class="cmd-item-stat '+(smap[c.status]||'s-pending')+'">'+c.status+'</span>'
+          +'<div class="cmd-item-lbl">'+esc(c.company)+'<span class="cmd-item-sub"> — '+esc(c.type)+'</span></div>'
+          +'<span class="cmd-item-stat '+(smap[c.status]||'s-pending')+'">'+esc(c.status)+'</span>'
           +'</div>';
       });
     }
@@ -2563,7 +2583,7 @@ function handleCmdSearch(){
     if(cos.length){
       html+='<div class="cmd-section">ملف العميل</div>';
       cos.forEach(co=>{
-        html+='<div class="cmd-item" onclick="closeCmd();setTimeout(()=>openClientProfile(\''+jsAttr(co)+'\'),120)">'
+        html+='<div class="cmd-item" tabindex="0" role="button" aria-label="فتح ملف عميل: '+esc(co)+'" onclick="closeCmd();setTimeout(()=>openClientProfile(\''+jsAttr(co)+'\'),120)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();closeCmd();setTimeout(()=>openClientProfile(\''+jsAttr(co)+'\'),120)}">'
           +'<div class="cmd-item-ico">🏢</div>'
           +'<div class="cmd-item-lbl">'+esc(co)+'</div>'
           +'<div class="cmd-item-hint">ملف العميل</div>'
